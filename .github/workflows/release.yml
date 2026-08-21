@@ -10,6 +10,8 @@ permissions:
 jobs:
   release:
     runs-on: macos-15
+    env:
+      MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
     steps:
       - uses: actions/checkout@v4
       - name: Derive version
@@ -17,9 +19,43 @@ jobs:
         run: echo "value=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
       - name: Build DMG
         run: Scripts/make-dmg.sh "${{ steps.version.outputs.value }}"
+
+      # Signing and notarisation only run when the secrets exist. Without them
+      # the release still ships, ad-hoc signed, exactly as before — so the
+      # pipeline is inert until an Apple Developer account is available.
+      - name: Import Developer ID certificate
+        id: signing
+        if: ${{ env.MACOS_CERTIFICATE != '' }}
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/build.keychain"
+          KEYCHAIN_PWD="$(uuidgen)"
+          security create-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN"
+          security set-keychain-settings -lut 900 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN"
+          echo "$MACOS_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" \
+            -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: \
+            -s -k "$KEYCHAIN_PWD" "$KEYCHAIN" >/dev/null
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          rm -f "$RUNNER_TEMP/cert.p12"
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+
+      - name: Sign, notarize and staple
+        if: ${{ steps.signing.outputs.enabled == 'true' }}
+        env:
+          SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: Scripts/notarize.sh dist/Perch.app "${{ steps.version.outputs.value }}"
       - name: Self-test the shipped binary
         run: dist/Perch.app/Contents/MacOS/Perch --selftest
       - name: Checksum
+        # After stapling — the ticket is written into the DMG, changing its hash.
         run: shasum -a 256 dist/*.dmg | tee dist/SHA256SUMS.txt
       - name: Validate the cask renders
         run: |

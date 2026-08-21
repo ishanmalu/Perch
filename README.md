@@ -448,9 +448,11 @@ Then `Scripts/publish-cask.sh 1.1.0` pushes the cask to the tap.
 
 ## Known limitations
 
-- **Not notarized.** Notarization needs a paid Apple Developer account, so
-  Gatekeeper blocks the download until you clear the quarantine flag or click
-  Open Anyway. This is the one thing standing between Perch and a genuinely
+- **Not notarized.** Notarization needs a paid Apple Developer account ($99/yr),
+  so Gatekeeper blocks the download until you clear the quarantine flag or click
+  Open Anyway. The build pipeline for it is already written and inert — see
+  [docs/NOTARIZING.md](docs/NOTARIZING.md); adding four repository secrets is
+  all that switches it on. This is the one thing standing between Perch and a genuinely
   one-click install for anyone else. Because an ad-hoc signature derives from
   the binary itself, every rebuild is also a different code identity and macOS
   forgets the Accessibility grant — the toggle looks enabled
