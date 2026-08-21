@@ -42,7 +42,7 @@ struct MainPanelView: View {
     /// natural heights, and letting the popover resize on each switch made it
     /// jump and — because NSPopover caches the content size — sometimes clip its
     /// own header off the top of the screen. A constant height removes both.
-    private var contentBudget: CGFloat { max(150, min(maxHeight - 120, 296)) }
+    private var contentBudget: CGFloat { max(150, min(maxHeight - 120, 330)) }
 
     /// Total panel height, which stays constant for the life of the popover.
     var panelHeight: CGFloat { contentBudget + 116 }
@@ -167,7 +167,7 @@ struct MainPanelView: View {
             }
             Card(padding: 9) {
                 VStack(spacing: 6) {
-                    InfoRow(symbol: "speedometer", title: "Load average",
+                    InfoRow(symbol: "speedometer", title: "Load Average",
                             value: s.loadAverage.map { String(format: "%.2f", $0) }.joined(separator: "  "),
                             tint: .blue)
                     InfoRow(symbol: "thermometer.medium", title: "Thermal",
@@ -176,7 +176,7 @@ struct MainPanelView: View {
                     InfoRow(symbol: "arrow.left.arrow.right.square", title: "Swap",
                             value: SystemMonitor.bytes(s.swapUsed),
                             tint: s.swapUsed > 2_000_000_000 ? .orange : .secondary)
-                    InfoRow(symbol: "memorychip", title: "Memory pressure",
+                    InfoRow(symbol: "memorychip", title: "Memory Pressure",
                             value: "\(Int(s.memPressure * 100))%",
                             tint: memoryTint(s.memPressure))
                 }

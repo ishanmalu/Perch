@@ -2,6 +2,17 @@
 
 All notable changes to Perch. Versions follow [semver](https://semver.org).
 
+## [1.3.1]
+
+### Fixed
+- **The System tab scrolled for no reason.** The content area was sized from a
+  measurement taken before the monitor had sampled, so the battery row was
+  missing from the count — ~10pt short. Measured properly (System 306, Screen
+  296, Tools 306 with real data) and sized so no tab scrolls.
+
+### Changed
+- "Load Average" and "Memory Pressure" title-cased to match the rest.
+
 ## [1.3.0]
 
 ### Added
