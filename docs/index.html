@@ -113,10 +113,27 @@
      Windows snapping into halves, thirds and quarters — the flagship feature,
      drawn rather than described. Pure CSS: no library, no JS, ~1KB. */
   .tiling {
-    width: 132px; height: 84px; margin: 0 auto 34px;
-    border: 1.5px solid var(--line); border-radius: 9px;
-    position: relative; padding: 6px; background: var(--bg-soft);
+    width: 156px; margin: 0 auto 36px;
+    border: 1.5px solid var(--line); border-radius: 10px;
+    background: var(--bg-soft); overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 10px 26px rgba(0,0,0,.07);
   }
+  /* Menu bar: traffic lights left, a Perch-coloured dot right standing in for
+     the menu bar item. Deliberately no Apple mark — it is Apple's trademark. */
+  .tiling .bar {
+    height: 15px; display: flex; align-items: center; gap: 4px;
+    padding: 0 7px; border-bottom: 1px solid var(--line);
+    background: color-mix(in srgb, var(--text) 5%, transparent);
+  }
+  .tiling .bar u { width: 6px; height: 6px; border-radius: 50%; display: block; }
+  .tiling .bar u:nth-child(1) { background: #ff5f57; }
+  .tiling .bar u:nth-child(2) { background: #febc2e; }
+  .tiling .bar u:nth-child(3) { background: #28c840; }
+  .tiling .bar em {
+    margin-left: auto; width: 6px; height: 6px; border-radius: 2px;
+    background: var(--accent); opacity: .75; display: block;
+  }
+  .tiling .screen { position: relative; height: 84px; }
   .tiling i {
     position: absolute; display: block; border-radius: 4px;
     background: var(--accent); opacity: .9;
@@ -128,31 +145,32 @@
   /* Each keyframe holds its shape, then eases to the next arrangement:
      full screen, halves, thirds, quarters, back to full. */
   @keyframes tile-cycle {
-    0%,14%   { left:6px; top:6px; width:120px; height:72px; }
-    22%,36%  { left:6px; top:6px; width:58px;  height:72px; }
-    44%,58%  { left:6px; top:6px; width:37px;  height:72px; }
-    66%,80%  { left:6px; top:6px; width:58px;  height:34px; }
-    88%,100% { left:6px; top:6px; width:120px; height:72px; }
+    0%,14%   { left:7px; top:7px; width:142px; height:70px; }
+    22%,36%  { left:7px; top:7px; width:69px;  height:70px; }
+    44%,58%  { left:7px; top:7px; width:44px;  height:70px; }
+    66%,80%  { left:7px; top:7px; width:69px;  height:33px; }
+    88%,100% { left:7px; top:7px; width:142px; height:70px; }
   }
   @keyframes tile-cycle-2 {
-    0%,14%   { left:6px;  top:6px;  width:120px; height:72px; opacity:0; }
-    22%,36%  { left:68px; top:6px;  width:58px;  height:72px; opacity:.9; }
-    44%,58%  { left:47px; top:6px;  width:37px;  height:72px; opacity:.9; }
-    66%,80%  { left:68px; top:6px;  width:58px;  height:34px; opacity:.9; }
-    88%,100% { left:6px;  top:6px;  width:120px; height:72px; opacity:0; }
+    0%,14%   { left:7px;  top:7px;  width:142px; height:70px; opacity:0; }
+    22%,36%  { left:80px; top:7px;  width:69px;  height:70px; opacity:.9; }
+    44%,58%  { left:56px; top:7px;  width:44px;  height:70px; opacity:.9; }
+    66%,80%  { left:80px; top:7px;  width:69px;  height:33px; opacity:.9; }
+    88%,100% { left:7px;  top:7px;  width:142px; height:70px; opacity:0; }
   }
   @keyframes tile-cycle-3 {
-    0%,36%   { left:6px;  top:6px;  width:120px; height:72px; opacity:0; }
-    44%,58%  { left:89px; top:6px;  width:37px;  height:72px; opacity:.55; }
-    66%,80%  { left:6px;  top:44px; width:120px; height:34px; opacity:.55; }
-    88%,100% { left:6px;  top:6px;  width:120px; height:72px; opacity:0; }
+    0%,36%   { left:7px;   top:7px;  width:142px; height:70px; opacity:0; }
+    44%,58%  { left:105px; top:7px;  width:44px;  height:70px; opacity:.55; }
+    66%,80%  { left:7px;   top:44px; width:142px; height:33px; opacity:.55; }
+    88%,100% { left:7px;   top:7px;  width:142px; height:70px; opacity:0; }
   }
   /* Motion is decoration here, so it goes away entirely when unwanted. */
   @media (prefers-reduced-motion: reduce) {
     .tiling i { animation: none; }
-    .tiling i:nth-child(2) { left: 68px; width: 58px; opacity: .9; }
+    .tiling i { top: 7px; height: 70px; }
+    .tiling i:first-child { left: 7px; width: 69px; }
+    .tiling i:nth-child(2) { left: 80px; width: 69px; opacity: .9; }
     .tiling i:nth-child(3) { display: none; }
-    .tiling i:first-child { width: 58px; }
   }
 
   /* ---------- early-stage notice ---------- */
@@ -425,7 +443,10 @@
 </nav>
 
 <header class="wrap">
-  <div class="tiling" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="tiling" aria-hidden="true">
+    <div class="bar"><u></u><u></u><u></u><em></em></div>
+    <div class="screen"><i></i><i></i><i></i></div>
+  </div>
   <h1>A dozen Mac utilities. Meet Perch.</h1>
   <p class="lede">
     Window tiling, clipboard history, Alt-Tab, system stats, night mode and
