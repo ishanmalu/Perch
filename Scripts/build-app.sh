@@ -39,14 +39,16 @@ sed "s/__VERSION__/$VERSION/g" Resources/Info.plist > "$APP/Contents/Info.plist"
 # `|| true` matters: with `set -euo pipefail`, grep finding nothing returns 1
 # and would abort the build on any machine without a Developer ID — which is
 # every CI runner.
-DEVELOPER_ID="$(security find-identity -v -p codesigning 2>/dev/null \
+# Not `-v`: that lists only chain-trusted identities, which excludes a
+# self-signed certificate and would silently drop us to ad-hoc signing.
+DEVELOPER_ID="$(security find-identity -p codesigning 2>/dev/null \
   | grep -o '"Developer ID Application: [^"]*"' | head -1 | tr -d '"' || true)"
 IDENTITY="${PERCH_SIGN_IDENTITY:-${DEVELOPER_ID:-Perch Dev}}"
 
 if [ -n "$DEVELOPER_ID" ] && [ "$IDENTITY" = "$DEVELOPER_ID" ]; then
   echo "==> Signing as '$IDENTITY' (hardened runtime, notarizable)"
   codesign --force --deep --options runtime --timestamp --sign "$IDENTITY" "$APP"
-elif security find-identity -v -p codesigning 2>/dev/null | grep -q "$IDENTITY"; then
+elif security find-identity -p codesigning 2>/dev/null | grep -q "$IDENTITY"; then
   echo "==> Signing as '$IDENTITY'"
   codesign --force --deep --sign "$IDENTITY" "$APP"
 else
