@@ -21,7 +21,7 @@ final class ClipboardPanelController {
         model.query = ""
         model.selection = 0
 
-        let p = FloatingPanel(size: CGSize(width: 660, height: 460)) { [model] in
+        let p = FloatingPanel(size: CGSize(width: 420, height: 460)) { [model] in
             ClipboardView(model: model,
                           onPick: { [weak self] in self?.pick($0) },
                           onClose: { [weak self] in self?.close() })
@@ -126,11 +126,12 @@ private struct ClipboardView: View {
     var body: some View {
         let list = model.filtered
         VStack(spacing: 0) {
-            HStack(spacing: 9) {
+            HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(Color.accentColor)
-                Text(model.query.isEmpty ? "Search clipboard history" : model.query)
+                Text(model.query.isEmpty ? "Select a clip to paste" : model.query)
+                    .font(.system(size: 13))
                     .foregroundStyle(model.query.isEmpty ? .tertiary : .primary)
                 Spacer()
                 Text("\(list.count)")
@@ -138,123 +139,82 @@ private struct ClipboardView: View {
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 6).padding(.vertical, 2)
                     .background(Theme.cardFill, in: Capsule())
+                CloseButton(action: onClose)
             }
-            .font(.system(size: 14))
-            .padding(.horizontal, 15).padding(.vertical, 12)
+            .padding(.horizontal, 13).padding(.vertical, 10)
             Divider()
 
             if list.isEmpty {
                 Spacer()
                 VStack(spacing: 6) {
-                    Image(systemName: "doc.on.clipboard").font(.system(size: 30)).foregroundStyle(.tertiary)
+                    Image(systemName: "doc.on.clipboard")
+                        .font(.system(size: 26)).foregroundStyle(.tertiary)
                     Text(model.query.isEmpty ? "Nothing copied yet" : "No matches")
-                        .foregroundStyle(.secondary)
+                        .font(Theme.Font.body).foregroundStyle(.secondary)
                 }
                 Spacer()
             } else {
-                HSplitView {
-                    listColumn(list)
-                    detailColumn(list)
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(spacing: 1) {
+                            ForEach(Array(list.enumerated()), id: \.element.id) { index, item in
+                                row(item, index: index, selected: index == model.selection)
+                                    .id(index)
+                                    .onTapGesture { onPick(item) }
+                            }
+                        }
+                        .padding(5)
+                    }
+                    .onChange(of: model.selection) { _, new in
+                        withAnimation(.easeOut(duration: 0.1)) { proxy.scrollTo(new, anchor: .center) }
+                    }
                 }
             }
 
             Divider()
-            HStack(spacing: 12) {
-                hint("↩", "paste"); hint("⌘1–9", "quick"); hint("⌘P", "pin")
-                hint("⌘⌫", "delete"); hint("⎋", "close")
+            HStack(spacing: 11) {
+                hint("↩", "paste"); hint("⌘1–9", "quick"); hint("⌘P", "pin"); hint("⌘⌫", "delete")
                 Spacer()
                 Button("Clear") { store.clearAll(keepPinned: true) }
                     .buttonStyle(.borderless).font(Theme.Font.caption)
             }
-            .padding(.horizontal, 14).padding(.vertical, 8)
-        }
-    }
-
-    private func listColumn(_ list: [ClipItem]) -> some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(spacing: 2) {
-                    ForEach(Array(list.enumerated()), id: \.element.id) { index, item in
-                        row(item, index: index, selected: index == model.selection)
-                            .id(index)
-                            .onTapGesture { onPick(item) }
-                    }
-                }
-                .padding(6)
-            }
-            .onChange(of: model.selection) { _, new in
-                withAnimation(.easeOut(duration: 0.12)) { proxy.scrollTo(new, anchor: .center) }
-            }
-        }
-        .frame(minWidth: 280, idealWidth: 320)
-    }
-
-    @ViewBuilder
-    private func detailColumn(_ list: [ClipItem]) -> some View {
-        let item = list.indices.contains(model.selection) ? list[model.selection] : nil
-        VStack(alignment: .leading, spacing: 10) {
-            if let item {
-                if item.kind == .image, let img = store.image(for: item) {
-                    Image(nsImage: img).resizable().scaledToFit()
-                        .frame(maxWidth: .infinity, maxHeight: 220)
-                } else {
-                    ScrollView {
-                        Text(item.text)
-                            .font(.system(size: 12, design: item.kind == .text ? .default : .monospaced))
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                }
-                Divider()
-                metadata(item)
-            } else {
-                Spacer()
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(12)
-        .frame(minWidth: 240)
-    }
-
-    private func metadata(_ item: ClipItem) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            if let src = item.sourceName { label("From", src) }
-            label("Copied", item.date.formatted(date: .abbreviated, time: .shortened))
-            if item.kind != .image { label("Length", "\(item.text.count) chars · \(item.text.split(separator: " ").count) words") }
-            if item.kind == .color { label("Color", item.text) }
-        }
-        .font(.caption).foregroundStyle(.secondary)
-    }
-
-    private func label(_ k: String, _ v: String) -> some View {
-        HStack(alignment: .top, spacing: 6) {
-            Text(k).frame(width: 52, alignment: .leading).foregroundStyle(.tertiary)
-            Text(v).foregroundStyle(.secondary)
+            .padding(.horizontal, 12).padding(.vertical, 7)
         }
     }
 
     private func row(_ item: ClipItem, index: Int, selected: Bool) -> some View {
         HStack(spacing: 9) {
-            GlyphBadge(symbol: item.symbol, tint: tint(for: item.kind), size: 22)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(item.preview.replacingOccurrences(of: "\n", with: " "))
-                    .lineLimit(1).font(Theme.Font.title)
-                Text(item.sourceName ?? "Unknown source")
-                    .font(.system(size: 9.5)).foregroundStyle(.tertiary)
+            if item.kind == .image, let img = store.image(for: item) {
+                Image(nsImage: img)
+                    .resizable().scaledToFill()
+                    .frame(width: 20, height: 20)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+            } else {
+                Image(systemName: item.symbol)
+                    .font(.system(size: 11))
+                    .foregroundStyle(tint(for: item.kind))
+                    .frame(width: 20)
             }
-            Spacer(minLength: 4)
+
+            Text(item.preview.replacingOccurrences(of: "\n", with: " "))
+                .lineLimit(1)
+                .font(.system(size: 12.5))
+
+            Spacer(minLength: 6)
+
             if item.pinned {
-                Image(systemName: "pin.fill").font(.system(size: 9)).foregroundStyle(.orange)
+                Image(systemName: "pin.fill").font(.system(size: 8.5)).foregroundStyle(.orange)
             }
-            if index < 9 { KeyCap(text: "⌘\(index + 1)", emphasized: selected) }
+            if index < 9 {
+                Text("⌘\(index + 1)")
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(selected ? .secondary : .tertiary)
+            }
         }
         .padding(.horizontal, 8).padding(.vertical, 5)
-        .background(selected ? Color.accentColor.opacity(0.18) : .clear,
-                    in: RoundedRectangle(cornerRadius: Theme.Radius.control))
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.Radius.control)
-                .strokeBorder(selected ? Color.accentColor.opacity(0.35) : .clear, lineWidth: 1)
-        )
+        .background(selected ? Color.accentColor.opacity(0.85) : .clear,
+                    in: RoundedRectangle(cornerRadius: 6))
+        .foregroundStyle(selected ? AnyShapeStyle(Color.white) : AnyShapeStyle(.primary))
         .contentShape(Rectangle())
     }
 

@@ -73,18 +73,34 @@ enum AX {
     }
 
     /// The frontmost window of the frontmost app.
+    ///
+    /// When Perch's own panel is open, Perch *is* frontmost — acting on that
+    /// would resize the popover instead of the user's window. In that case we
+    /// fall back to whichever app was in front when the panel opened.
     static func focusedWindow() -> AXWindow? {
-        guard let app = NSWorkspace.shared.frontmostApplication else { return nil }
-        let axApp = AXUIElementCreateApplication(app.processIdentifier)
+        var pid = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        if pid == nil || pid == ProcessInfo.processInfo.processIdentifier {
+            pid = WindowManager.shared.panelTargetPID
+        }
+        if let pid, let window = focusedWindow(of: pid) { return window }
+        // Perch was already frontmost when the panel opened (so nothing was
+        // recorded). Fall back to the most recently used non-Perch window.
+        return WindowManager.shared.orderedWindows().first
+    }
+
+    static func focusedWindow(of pid: pid_t) -> AXWindow? {
+        let axApp = AXUIElementCreateApplication(pid)
         guard let w = copyValue(axApp, kAXFocusedWindowAttribute),
               CFGetTypeID(w) == AXUIElementGetTypeID() else { return nil }
-        return AXWindow(element: w as! AXUIElement, pid: app.processIdentifier)
+        return AXWindow(element: w as! AXUIElement, pid: pid)
     }
 
     /// Every on-screen, non-minimized standard window across all regular apps.
     static func allWindows() -> [AXWindow] {
         var result: [AXWindow] = []
-        for app in NSWorkspace.shared.runningApplications where app.activationPolicy == .regular {
+        let ownPID = ProcessInfo.processInfo.processIdentifier
+        for app in NSWorkspace.shared.runningApplications
+        where app.activationPolicy == .regular && app.processIdentifier != ownPID {
             let axApp = AXUIElementCreateApplication(app.processIdentifier)
             guard let raw = copyValue(axApp, kAXWindowsAttribute) as? [AXUIElement] else { continue }
             for el in raw {

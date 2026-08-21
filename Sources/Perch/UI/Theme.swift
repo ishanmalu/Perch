@@ -202,6 +202,26 @@ struct InfoRow: View {
     }
 }
 
+/// Small circular dismiss button for the floating panels.
+struct CloseButton: View {
+    var action: () -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "xmark")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(hovering ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
+                .frame(width: 18, height: 18)
+                .background(hovering ? Theme.hoverFill : Theme.cardFill, in: Circle())
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .help("Close  (Esc)")
+    }
+}
+
 extension View {
     /// Standard page padding for the settings panes.
     func settingsPage() -> some View {

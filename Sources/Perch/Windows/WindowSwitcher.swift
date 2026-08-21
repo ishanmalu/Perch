@@ -76,7 +76,9 @@ final class WindowSwitcher {
         model.selection = model.entries.count > 1 ? 1 : 0
 
         let p = FloatingPanel(size: CGSize(width: 620, height: 420)) { [model] in
-            SwitcherView(model: model, onPick: { [weak self] in self?.pick($0) })
+            SwitcherView(model: model,
+                         onPick: { [weak self] in self?.pick($0) },
+                         onClose: { [weak self] in self?.close() })
         }
         p.showCentered()
         panel = p
@@ -158,6 +160,7 @@ final class WindowSwitcher {
 private struct SwitcherView: View {
     @ObservedObject var model: SwitcherModel
     var onPick: (SwitcherEntry) -> Void
+    var onClose: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -174,6 +177,7 @@ private struct SwitcherView: View {
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 6).padding(.vertical, 2)
                     .background(Theme.cardFill, in: Capsule())
+                CloseButton(action: onClose)
             }
             .padding(.horizontal, 15).padding(.vertical, 12)
             Divider()

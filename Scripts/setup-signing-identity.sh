@@ -33,12 +33,16 @@ echo "==> Generating certificate"
 openssl req -x509 -newkey rsa:2048 -nodes -days 3650 \
   -keyout "$TMP/key.pem" -out "$TMP/cert.pem" -config "$TMP/ext.cnf" 2>/dev/null
 
-openssl pkcs12 -export -inkey "$TMP/key.pem" -in "$TMP/cert.pem" \
-  -out "$TMP/id.p12" -passout pass: -name "$NAME"
+# -legacy: OpenSSL 3 defaults to a PKCS#12 MAC that macOS's Security framework
+# cannot verify, which fails the import with a misleading "wrong password".
+openssl pkcs12 -export -legacy -inkey "$TMP/key.pem" -in "$TMP/cert.pem" \
+  -out "$TMP/id.p12" -passout pass:perch -name "$NAME" 2>/dev/null \
+  || openssl pkcs12 -export -inkey "$TMP/key.pem" -in "$TMP/cert.pem" \
+       -out "$TMP/id.p12" -passout pass:perch -name "$NAME"
 
 echo "==> Importing into your login keychain"
 security import "$TMP/id.p12" -k "$HOME/Library/Keychains/login.keychain-db" \
-  -P "" -A -T /usr/bin/codesign
+  -P perch -A -T /usr/bin/codesign
 
 echo "==> Trusting it for code signing (needs your password)"
 security add-trusted-cert -r trustRoot -p codeSign \

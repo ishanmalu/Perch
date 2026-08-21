@@ -7,6 +7,10 @@ import AppKit
 final class WindowManager {
     static let shared = WindowManager()
 
+    /// Whichever app was frontmost when the Perch panel opened. Panel-driven
+    /// actions target this rather than Perch itself.
+    var panelTargetPID: pid_t?
+
     private var lastAction: (action: WindowAction, at: Date, step: Int)?
     /// Frames captured just before we first moved a window, so ⌥⌃⌫ can undo.
     private var originalFrames: [String: CGRect] = [:]
@@ -47,6 +51,14 @@ final class WindowManager {
 
     private func key(for w: AXWindow) -> String { "\(w.pid)|\(w.title)" }
 
+    /// The screen the target window is on, so a layout applied from the panel
+    /// tiles where the user is working rather than wherever the panel opened.
+    private var panelTargetScreen: NSScreen? {
+        guard let pid = panelTargetPID,
+              let frame = AX.focusedWindow(of: pid)?.frame else { return nil }
+        return screen(containing: frame)
+    }
+
     // MARK: - Public actions
 
     func apply(_ action: WindowAction) {
@@ -73,7 +85,7 @@ final class WindowManager {
     /// Tiles the most recently used windows into a layout's panes, one each.
     func apply(layout: CustomLayout) {
         guard requireAccess() else { return }
-        guard let screen = NSScreen.main else { return }
+        guard let screen = panelTargetScreen ?? NSScreen.main else { return }
         let windows = orderedWindows().filter { w in
             guard let f = w.frame else { return false }
             return self.screen(containing: f) === screen
@@ -110,10 +122,11 @@ final class WindowManager {
         originalFrames.removeValue(forKey: key(for: win))
     }
 
-    /// Windows in front-to-back order across regular apps.
+    /// Windows in front-to-back order across regular apps, excluding Perch.
     func orderedWindows() -> [AXWindow] {
+        let ownPID = ProcessInfo.processInfo.processIdentifier
         let apps = NSWorkspace.shared.runningApplications
-            .filter { $0.activationPolicy == .regular }
+            .filter { $0.activationPolicy == .regular && $0.processIdentifier != ownPID }
         var byPid: [pid_t: [AXWindow]] = [:]
         for w in AX.allWindows() { byPid[w.pid, default: []].append(w) }
         // NSWorkspace roughly keeps launch/activation ordering; frontmost first.
