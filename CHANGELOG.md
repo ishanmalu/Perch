@@ -2,6 +2,24 @@
 
 All notable changes to Perch. Versions follow [semver](https://semver.org).
 
+## [1.3.1]
+
+### Added
+- Clipboard button in the panel header, beside the gear.
+
+### Fixed
+- **The System tab scrolled for no reason.** The content area had been sized
+  from a `--render-ui` measurement taken before the monitor sampled, so the
+  battery row was missing from the count and the budget came out short.
+- **Every tab now sizes to its own content** — no dead space and no scrollbar
+  on any of them. The popover follows because its hosting controller tracks the
+  SwiftUI size via `sizingOptions` instead of being handed one fixed size up
+  front, which is what previously went stale on a tab change and left the
+  popover clipping its own header.
+
+### Changed
+- "Load Average" and "Memory Pressure" title-cased to match the rest.
+
 ## [1.3.0]
 
 ### Added

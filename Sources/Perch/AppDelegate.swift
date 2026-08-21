@@ -111,12 +111,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.popover.performClose(nil)
                 SettingsWindow.shared.show()
             },
-            onQuit: { NSApp.terminate(nil) }
+            onQuit: { NSApp.terminate(nil) },
+            onDismiss: { [weak self] in self?.popover.performClose(nil) }
         )
         let controller = NSHostingController(rootView: panel)
-        // The panel reports a height that does not change with the selected tab,
-        // so the popover is sized once and never resizes underneath itself.
-        controller.preferredContentSize = NSSize(width: 300, height: panel.panelHeight)
+        // Let AppKit track the SwiftUI content size instead of being handed one
+        // up front. Each tab is a different height, and a size set once goes
+        // stale the moment the tab changes — which is what previously left the
+        // popover clipping its own header off the top of the screen.
+        controller.sizingOptions = [.preferredContentSize]
         return controller
     }
 

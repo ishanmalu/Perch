@@ -17,6 +17,8 @@ struct MainPanelView: View {
     var maxHeight: CGFloat = 700
     var onOpenSettings: () -> Void
     var onQuit: () -> Void
+    /// Closes the popover before opening something that needs focus.
+    var onDismiss: () -> Void = {}
     /// Renders without the ScrollView, for `--render-ui` previews: ImageRenderer
     /// draws a ScrollView's contents as blank.
     var flattened = false
@@ -38,14 +40,17 @@ struct MainPanelView: View {
         }
     }
 
-    /// Every tab renders into the same fixed-height area. Tabs have different
-    /// natural heights, and letting the popover resize on each switch made it
-    /// jump and — because NSPopover caches the content size — sometimes clip its
-    /// own header off the top of the screen. A constant height removes both.
-    private var contentBudget: CGFloat { max(150, min(maxHeight - 120, 296)) }
+    /// Each tab is exactly as tall as its own content, so no tab carries dead
+    /// space and none of them scroll. The popover follows because its hosting
+    /// controller tracks the SwiftUI size (`sizingOptions`) rather than being
+    /// handed one fixed size up front — setting it once was what previously
+    /// left the popover clipping its own header.
+    ///
+    /// The cap only engages on a display too short to show a tab outright; that
+    /// is the single case where scrolling is preferable to overflowing.
+    private var contentCap: CGFloat { max(150, maxHeight - 120) }
 
-    /// Total panel height, which stays constant for the life of the popover.
-    var panelHeight: CGFloat { contentBudget + 116 }
+    @State private var contentHeight: CGFloat = 0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -55,13 +60,17 @@ struct MainPanelView: View {
             if flattened {
                 // ImageRenderer draws a ScrollView's contents as blank, so
                 // `--render-ui` previews bypass it.
-                sections.frame(height: contentBudget, alignment: .top)
+                sections
             } else {
                 ScrollView(.vertical) {
                     sections
+                        .background(GeometryReader { geo in
+                            Color.clear.preference(key: PanelHeightKey.self, value: geo.size.height)
+                        })
                 }
                 .scrollBounceBehavior(.basedOnSize)
-                .frame(height: contentBudget)
+                .onPreferenceChange(PanelHeightKey.self) { contentHeight = $0 }
+                .frame(height: min(max(contentHeight, 80), contentCap))
             }
 
             Divider()
@@ -118,6 +127,10 @@ struct MainPanelView: View {
                 .foregroundStyle(Color.accentColor)
             Text("Perch").font(.system(size: 12.5, weight: .semibold))
             Spacer()
+            iconButton("doc.on.clipboard", help: "Clipboard History  (⌘⇧V)") {
+                onDismiss()
+                ClipboardPanelController.shared.toggle()
+            }
             iconButton("gearshape", help: "Settings", action: onOpenSettings)
             iconButton("power", help: "Quit Perch", action: onQuit)
         }
@@ -167,7 +180,7 @@ struct MainPanelView: View {
             }
             Card(padding: 9) {
                 VStack(spacing: 6) {
-                    InfoRow(symbol: "speedometer", title: "Load average",
+                    InfoRow(symbol: "speedometer", title: "Load Average",
                             value: s.loadAverage.map { String(format: "%.2f", $0) }.joined(separator: "  "),
                             tint: .blue)
                     InfoRow(symbol: "thermometer.medium", title: "Thermal",
@@ -176,7 +189,7 @@ struct MainPanelView: View {
                     InfoRow(symbol: "arrow.left.arrow.right.square", title: "Swap",
                             value: SystemMonitor.bytes(s.swapUsed),
                             tint: s.swapUsed > 2_000_000_000 ? .orange : .secondary)
-                    InfoRow(symbol: "memorychip", title: "Memory pressure",
+                    InfoRow(symbol: "memorychip", title: "Memory Pressure",
                             value: "\(Int(s.memPressure * 100))%",
                             tint: memoryTint(s.memPressure))
                 }
@@ -448,6 +461,14 @@ struct MainPanelView: View {
         case .failed(let why): return why
         case .idle: return "Perch \(updater.currentVersion)"
         }
+    }
+}
+
+/// Each tab reports its natural height so the panel can size to it exactly.
+private struct PanelHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }
 
