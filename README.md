@@ -297,6 +297,11 @@ Sources/Perch/
 because XCTest is unavailable with Command Line Tools alone; CI runs them
 against both the debug build and the shipped bundle.
 
+**Branches.** `main` is protected and always releasable; every change reaches it
+through a pull request with CI green. `dev` is the integration branch — new
+features land there first and are merged to `main` once they hold up in daily
+use.
+
 **Releasing.** Tag `v*` and push. The workflow builds a signed universal DMG,
 self-tests the shipped bundle, publishes it with checksums, and validates that
 the Homebrew cask renders. `Scripts/publish-cask.sh <version>` then updates the
