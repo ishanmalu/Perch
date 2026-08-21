@@ -2,6 +2,49 @@
 
 All notable changes to Perch. Versions follow [semver](https://semver.org).
 
+## [1.2.0]
+
+### Added
+- **Prevent sleep** switch — holds an `IOPMAssertion` so the Mac and display
+  stay awake, released on quit.
+- Quick switches on the Tools tab: prevent sleep, record clipboard, launch at
+  login.
+- System tab now also shows load average, thermal state, swap, and memory
+  pressure.
+- Close buttons on the clipboard and switcher panels.
+- `--regular` debug flag, which runs Perch with a Dock icon so screen-automation
+  tooling (which cannot address accessory apps) can drive it.
+
+### Changed
+- Windows and Display merged into a single **Screen** tab; three tabs total.
+- System tab redrawn with circular ring gauges.
+- Clipboard panel is a compact single column (420pt) instead of a two-pane
+  660pt window.
+- Panel height is constant across tabs and sized so no tab has dead space.
+
+### Fixed
+- **Window tiles in the panel did nothing.** With the panel open Perch is the
+  frontmost app, so `AX.focusedWindow()` returned Perch's own popover and tried
+  to resize that. The panel now records the previously frontmost app and targets
+  it, and Perch excludes its own windows from every window query.
+- **Escape and type-to-filter leaked to the app underneath.** The floating
+  panels used `.nonactivatingPanel`, which does not reliably become key.
+- **Popover clipped its own header.** `preferredContentSize` was set once at
+  creation while each tab had a different natural height.
+- Night-mode temperature and brightness values wrapped onto two lines.
+- `setup-signing-identity.sh` failed on OpenSSL 3, which exports PKCS#12 with a
+  MAC macOS cannot verify — now passes `-legacy`. Without a stable identity
+  every rebuild is a new code identity and macOS silently drops the
+  Accessibility grant, which is why permissions kept appearing to reset.
+
+### Security
+- **Updater now fails closed.** A release without a published checksum was
+  previously downloaded unverified; it is now refused.
+- **Updater validates URLs.** The release JSON is attacker-controlled if GitHub
+  is compromised, so download and page URLs must be HTTPS on a known GitHub
+  host before Perch fetches or opens them. Covered by `--selftest`.
+- Removed an unguarded index into the Downloads directory list.
+
 ## [1.1.1]
 
 ### Changed

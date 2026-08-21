@@ -13,7 +13,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var panelController: NSViewController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.accessory)
+        // `--regular` gives Perch a Dock icon and makes it visible to tooling
+        // that can only address regular apps (screen automation, for one).
+        // Normal launches stay accessory: menu bar only, no Dock icon.
+        NSApp.setActivationPolicy(
+            CommandLine.arguments.contains("--regular") ? .regular : .accessory)
 
         setupStatusItem()
         setupPopover()
@@ -42,6 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         BrightnessController.shared.clearAllDimming()
         NightMode.shared.shutdown()
+        PreventSleep.shared.shutdown()
         KeyboardCleaner.shared.stop(reason: "Perch quit")
     }
 
@@ -99,20 +104,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// runs off the top. Leave room for the menu bar and a little breathing space.
     private func makePanelController(for screen: NSScreen?) -> NSViewController {
         let available = (screen ?? NSScreen.main)?.visibleFrame.height ?? 700
-        let controller = NSHostingController(rootView: MainPanelView(
+        let panel = MainPanelView(
             maxHeight: max(320, available - 32),
             onOpenSettings: { [weak self] in
                 self?.popover.performClose(nil)
                 SettingsWindow.shared.show()
             },
             onQuit: { NSApp.terminate(nil) }
-        ))
-        // Give AppKit a concrete size so a popover can never be laid out taller
-        // than the display it drops out of.
-        controller.view.layoutSubtreeIfNeeded()
-        let fitting = controller.view.fittingSize
-        controller.preferredContentSize = NSSize(width: fitting.width,
-                                                 height: min(fitting.height, available - 24))
+        )
+        let controller = NSHostingController(rootView: panel)
+        // The panel reports a height that does not change with the selected tab,
+        // so the popover is sized once and never resizes underneath itself.
+        controller.preferredContentSize = NSSize(width: 300, height: panel.panelHeight)
         return controller
     }
 
@@ -127,6 +130,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        // Remember who was in front before we steal focus, so the window tiles
+        // act on the user's window and not on Perch's own panel.
+        let front = NSWorkspace.shared.frontmostApplication
+        if front?.processIdentifier != ProcessInfo.processInfo.processIdentifier {
+            WindowManager.shared.panelTargetPID = front?.processIdentifier
+        }
         BrightnessController.shared.refresh()
 
         guard let button = statusItem.button, statusItemIsReachable(button) else {
