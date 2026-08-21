@@ -29,8 +29,20 @@ final class Prefs: ObservableObject {
     var animateWindows: Bool { get { get("win.animate", false) } set { set("win.animate", newValue) } }
 
     // MARK: System
-    var menuBarStat: String { get { get("sys.menuStat", "cpu") } set { set("sys.menuStat", newValue) } }
+    /// Icon-only by default — a narrow status item is far less likely to get
+    /// pushed off a crowded menu bar or hidden behind the notch.
+    var menuBarStat: String { get { get("sys.menuStat", "none") } set { set("sys.menuStat", newValue) } }
     var sampleInterval: Double { get { get("sys.interval", 2.0) } set { set("sys.interval", newValue) } }
+
+    // MARK: Updates
+    /// Off by default — the network check is opt-in, not assumed.
+    var autoCheckUpdates: Bool { get { get("update.auto", false) } set { set("update.auto", newValue) } }
+
+    // MARK: Night mode
+    var nightTemperature: Double { get { get("night.kelvin", 3600.0) } set { set("night.kelvin", newValue) } }
+    var nightSchedule: Int { get { get("night.schedule", 0) } set { set("night.schedule", newValue) } }
+    var nightFromMinutes: Int { get { get("night.from", 20 * 60) } set { set("night.from", newValue) } }
+    var nightToMinutes: Int { get { get("night.to", 7 * 60) } set { set("night.to", newValue) } }
 
     // MARK: Screen clean
     var screenCleanColor: String { get { get("screen.color", "black") } set { set("screen.color", newValue) } }

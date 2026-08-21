@@ -3,7 +3,15 @@ import SwiftUI
 
 /// A borderless, key-capable panel used for the clipboard and window switcher.
 final class FloatingPanel: NSPanel {
-    init<Content: View>(size: CGSize, @ViewBuilder content: () -> Content) {
+    convenience init<Content: View>(size: CGSize, @ViewBuilder content: () -> Content) {
+        let host = NSHostingView(rootView: AnyView(content()))
+        host.frame = CGRect(origin: .zero, size: size)
+        self.init(size: size, hosting: host)
+    }
+
+    /// Designated path — takes an already-built view so callers can hand over
+    /// an NSHostingController and keep its state.
+    init(size: CGSize, hosting view: NSView) {
         super.init(contentRect: CGRect(origin: .zero, size: size),
                    styleMask: [.nonactivatingPanel, .fullSizeContentView, .borderless],
                    backing: .buffered, defer: false)
@@ -20,23 +28,35 @@ final class FloatingPanel: NSPanel {
         backgroundColor = .clear
         hasShadow = true
 
-        let host = NSHostingView(rootView: AnyView(content()))
-        host.frame = CGRect(origin: .zero, size: size)
-        host.autoresizingMask = [.width, .height]
+        view.frame = CGRect(origin: .zero, size: size)
+        view.autoresizingMask = [.width, .height]
 
-        let container = NSVisualEffectView(frame: host.frame)
+        let container = NSVisualEffectView(frame: view.frame)
         container.material = .popover
         container.state = .active
         container.blendingMode = .behindWindow
         container.wantsLayer = true
         container.layer?.cornerRadius = 14
         container.layer?.masksToBounds = true
-        container.addSubview(host)
+        container.layer?.borderWidth = 1
+        container.layer?.borderColor = NSColor.separatorColor.withAlphaComponent(0.5).cgColor
+        container.addSubview(view)
         contentView = container
     }
 
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
+
+    /// Anchors under the top-right corner, where the menu bar item would be.
+    func showTopTrailing() {
+        if let screen = NSScreen.main {
+            let f = screen.visibleFrame
+            setFrameOrigin(CGPoint(x: f.maxX - frame.width - 12,
+                                   y: f.maxY - frame.height - 6))
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        makeKeyAndOrderFront(nil)
+    }
 
     func showCentered() {
         if let screen = NSScreen.main {

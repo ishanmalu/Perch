@@ -21,6 +21,13 @@ jobs:
         run: dist/Perch.app/Contents/MacOS/Perch --selftest
       - name: Checksum
         run: shasum -a 256 dist/*.dmg | tee dist/SHA256SUMS.txt
+      - name: Validate the cask renders
+        run: |
+          SHA=$(awk '{print $1}' dist/SHA256SUMS.txt | head -1)
+          sed -e "s/__VERSION__/${{ steps.version.outputs.value }}/g" \
+              -e "s/__SHA256__/$SHA/g" homebrew/perch.rb > /tmp/perch.rb
+          grep -q "__" /tmp/perch.rb && { echo "unsubstituted placeholder"; exit 1; }
+          cat /tmp/perch.rb
       - uses: softprops/action-gh-release@v2
         with:
           files: |

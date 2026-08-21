@@ -1,0 +1,147 @@
+import SwiftUI
+import AppKit
+
+/// Shared visual language. Every surface in Perch pulls its spacing, radii,
+/// type, and chrome from here so the popover, panels, and settings read as
+/// one app rather than three.
+enum Theme {
+    enum Radius {
+        static let card: CGFloat = 10
+        static let control: CGFloat = 7
+        static let chip: CGFloat = 5
+    }
+
+    enum Space {
+        static let section: CGFloat = 13
+        static let row: CGFloat = 7
+        static let inset: CGFloat = 14
+    }
+
+    enum Font {
+        static let sectionHeader = SwiftUI.Font.system(size: 10, weight: .semibold)
+        static let title = SwiftUI.Font.system(size: 12.5, weight: .medium)
+        static let body = SwiftUI.Font.system(size: 12)
+        static let caption = SwiftUI.Font.system(size: 10.5)
+        static let numeric = SwiftUI.Font.system(size: 10.5, design: .monospaced)
+        static let keycap = SwiftUI.Font.system(size: 9.5, weight: .medium, design: .rounded)
+    }
+
+    /// Fills sit on top of the popover's material, so they stay translucent.
+    static let cardFill = Color.primary.opacity(0.055)
+    static let cardStroke = Color.primary.opacity(0.07)
+    static let hoverFill = Color.primary.opacity(0.10)
+}
+
+/// An uppercase section label with a hairline that fills the remaining width.
+struct SectionHeader: View {
+    let title: String
+    var trailing: AnyView? = nil
+
+    init(_ title: String) { self.title = title }
+    init<T: View>(_ title: String, @ViewBuilder trailing: () -> T) {
+        self.title = title
+        self.trailing = AnyView(trailing())
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(title.uppercased())
+                .font(Theme.Font.sectionHeader)
+                .tracking(0.6)
+                .foregroundStyle(.tertiary)
+            Rectangle()
+                .fill(Theme.cardStroke)
+                .frame(height: 1)
+            if let trailing { trailing }
+        }
+    }
+}
+
+/// Rounded translucent container used for every grouped block.
+struct Card<Content: View>: View {
+    var padding: CGFloat = 10
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        content
+            .padding(padding)
+            .frame(maxWidth: .infinity)
+            .background(Theme.cardFill, in: RoundedRectangle(cornerRadius: Theme.Radius.card))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.Radius.card)
+                    .strokeBorder(Theme.cardStroke, lineWidth: 1)
+            )
+    }
+}
+
+/// A keyboard key, for shortcut hints and the shortcut editor.
+struct KeyCap: View {
+    let text: String
+    var emphasized = false
+
+    var body: some View {
+        Text(text)
+            .font(Theme.Font.keycap)
+            .foregroundStyle(emphasized ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.secondary))
+            .padding(.horizontal, 5)
+            .padding(.vertical, 2)
+            .background(
+                RoundedRectangle(cornerRadius: Theme.Radius.chip)
+                    .fill(emphasized ? Color.accentColor.opacity(0.15) : Theme.cardFill)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.Radius.chip)
+                    .strokeBorder(emphasized ? Color.accentColor.opacity(0.35) : Theme.cardStroke, lineWidth: 1)
+            )
+            .fixedSize()
+    }
+}
+
+/// Button that lights up under the cursor — AppKit gives this for free in
+/// menus, but SwiftUI's `.plain` style needs it spelled out.
+struct HoverButton<Label: View>: View {
+    var action: () -> Void
+    @ViewBuilder var label: Label
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            label
+                .background(hovering ? Theme.hoverFill : Theme.cardFill,
+                            in: RoundedRectangle(cornerRadius: Theme.Radius.control))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.Radius.control)
+                        .strokeBorder(hovering ? Color.accentColor.opacity(0.35) : Theme.cardStroke, lineWidth: 1)
+                )
+                .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.control))
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .animation(.easeOut(duration: 0.12), value: hovering)
+    }
+}
+
+/// Icon in a tinted rounded square — the recurring motif for tools and rows.
+struct GlyphBadge: View {
+    let symbol: String
+    var tint: Color = .accentColor
+    var size: CGFloat = 26
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: size * 0.28)
+            .fill(tint.opacity(0.16))
+            .overlay(
+                Image(systemName: symbol)
+                    .font(.system(size: size * 0.5, weight: .medium))
+                    .foregroundStyle(tint)
+            )
+            .frame(width: size, height: size)
+    }
+}
+
+extension View {
+    /// Standard page padding for the settings panes.
+    func settingsPage() -> some View {
+        self.padding(.horizontal, 2).padding(.top, 2)
+    }
+}

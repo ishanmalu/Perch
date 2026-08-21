@@ -76,6 +76,7 @@ private struct SettingsRoot: View {
 
 private struct GeneralSettings: View {
     @ObservedObject var prefs = Prefs.shared
+    @ObservedObject var updater = Updater.shared
     @State private var launchAtLogin = LoginItem.isEnabled
 
     var body: some View {
@@ -99,6 +100,27 @@ private struct GeneralSettings: View {
                     Text("5 seconds").tag(5.0)
                 }
             }
+            Section("Night mode") {
+                Picker("Schedule", selection: Binding(
+                    get: { prefs.nightSchedule },
+                    set: { prefs.nightSchedule = $0; NightMode.shared.start() })) {
+                    ForEach(NightMode.Schedule.allCases) { s in
+                        Text(s.title).tag(s.rawValue)
+                    }
+                }
+                if prefs.nightSchedule == NightMode.Schedule.custom.rawValue {
+                    Stepper("From \(timeLabel(prefs.nightFromMinutes))",
+                            value: Binding(get: { prefs.nightFromMinutes },
+                                           set: { prefs.nightFromMinutes = $0; NightMode.shared.start() }),
+                            in: 0...(23 * 60 + 30), step: 30)
+                    Stepper("Until \(timeLabel(prefs.nightToMinutes))",
+                            value: Binding(get: { prefs.nightToMinutes },
+                                           set: { prefs.nightToMinutes = $0; NightMode.shared.start() }),
+                            in: 0...(23 * 60 + 30), step: 30)
+                }
+                Text("Applied by rewriting the display gamma, the same mechanism f.lux and Night Shift use — it tints everything without an overlay and never shows up in screenshots.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             Section("Screen cleaning") {
                 Picker("Start color", selection: Binding(
                     get: { prefs.screenCleanColor }, set: { prefs.screenCleanColor = $0 })) {
@@ -108,6 +130,23 @@ private struct GeneralSettings: View {
                 Stepper("Keyboard lock: \(prefs.keyboardCleanSeconds)s",
                         value: Binding(get: { prefs.keyboardCleanSeconds }, set: { prefs.keyboardCleanSeconds = $0 }),
                         in: 5...300, step: 5)
+            }
+            Section("Updates") {
+                LabeledContent("Version", value: updater.currentVersion)
+                Toggle("Check for updates automatically", isOn: Binding(
+                    get: { prefs.autoCheckUpdates }, set: { prefs.autoCheckUpdates = $0 }))
+                HStack {
+                    Button("Check now") { updater.check() }
+                        .disabled(updater.state == .checking)
+                    if case .available = updater.state {
+                        Button("Download") { updater.downloadLatest() }
+                            .buttonStyle(.borderedProminent)
+                    }
+                    Button("Release notes") { updater.openReleasePage() }
+                    if updater.state == .checking { ProgressView().controlSize(.small) }
+                }
+                Text("This is the only feature that uses the network. It contacts GitHub, compares versions, and verifies the download against the release checksum. Perch never installs an update itself — you drag it across.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             Section("Permissions") {
                 LabeledContent("Accessibility") {
@@ -124,6 +163,10 @@ private struct GeneralSettings: View {
             }
         }
         .formStyle(.grouped)
+    }
+
+    private func timeLabel(_ minutes: Int) -> String {
+        String(format: "%02d:%02d", minutes / 60, minutes % 60)
     }
 }
 
@@ -165,15 +208,21 @@ private struct WindowSettings: View {
 
 struct LayoutPreview: View {
     let panes: [Pane]
+    /// Tighter gaps and a lighter frame, for use inside the popover.
+    var compact = false
+
     var body: some View {
+        let inset: CGFloat = compact ? 1 : 1.5
         GeometryReader { geo in
             ZStack(alignment: .topLeading) {
-                RoundedRectangle(cornerRadius: 3).fill(Color.primary.opacity(0.07))
+                RoundedRectangle(cornerRadius: 3)
+                    .strokeBorder(Color.primary.opacity(0.18), lineWidth: 1)
                 ForEach(panes) { pane in
                     RoundedRectangle(cornerRadius: 2)
-                        .fill(Color.accentColor.opacity(0.6))
-                        .frame(width: geo.size.width * pane.w - 3, height: geo.size.height * pane.h - 3)
-                        .offset(x: geo.size.width * pane.x + 1.5, y: geo.size.height * pane.y + 1.5)
+                        .fill(Color.accentColor.opacity(compact ? 0.75 : 0.6))
+                        .frame(width: max(2, geo.size.width * pane.w - inset * 2),
+                               height: max(2, geo.size.height * pane.h - inset * 2))
+                        .offset(x: geo.size.width * pane.x + inset, y: geo.size.height * pane.y + inset)
                 }
             }
         }
@@ -252,9 +301,14 @@ private struct DiskSettings: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Reclaimable: \(SystemMonitor.bytes(cleaner.totalReclaimable))")
-                    .font(.system(size: 13, weight: .semibold))
+            HStack(spacing: 9) {
+                GlyphBadge(symbol: "internaldrive", tint: .purple, size: 28)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(SystemMonitor.bytes(cleaner.totalReclaimable))
+                        .font(.system(size: 16, weight: .semibold))
+                    Text("reclaimable from enabled targets")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 if cleaner.scanning { ProgressView().controlSize(.small) }
                 Spacer()
                 Button("Scan") { cleaner.scan() }
@@ -368,6 +422,8 @@ private struct ShortcutSettings: View {
         ("panel", "Open Perch panel"),
         ("clipboard", "Clipboard history"),
         ("switcher", "Window switcher"),
+        ("switcher.altTab", "Alt-Tab (hold to switch)"),
+        ("nightMode", "Night mode"),
         ("screenClean", "Screen cleaning"),
         ("keyboardClean", "Keyboard cleaning"),
         ("win.left", "Window: left half"),
@@ -386,17 +442,48 @@ private struct ShortcutSettings: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Click a shortcut, then press the new combination.")
-                .font(.caption).foregroundStyle(.secondary)
+            HStack(spacing: 5) {
+                Image(systemName: "info.circle").foregroundStyle(.secondary)
+                Text("Click a shortcut, then press the new combination. Esc cancels.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             List {
                 ForEach(rows, id: \.0) { id, label in
-                    HStack {
-                        Text(label)
+                    HStack(spacing: 10) {
+                        GlyphBadge(symbol: symbol(for: id), tint: tint(for: id), size: 22)
+                        Text(label).font(Theme.Font.body)
                         Spacer()
                         HotkeyField(id: id)
                     }
+                    .padding(.vertical, 1)
                 }
             }
+        }
+    }
+
+    private func symbol(for id: String) -> String {
+        switch id {
+        case "panel": return "bird.fill"
+        case "clipboard": return "doc.on.clipboard"
+        case "switcher": return "macwindow.on.rectangle"
+        case "screenClean": return "sparkles.tv"
+        case "keyboardClean": return "keyboard"
+        case "switcher.altTab": return "arrow.left.arrow.right"
+        case "nightMode": return "moon.fill"
+        default: return "macwindow"
+        }
+    }
+
+    private func tint(for id: String) -> Color {
+        switch id {
+        case "panel": return .accentColor
+        case "clipboard": return .orange
+        case "switcher": return .blue
+        case "screenClean": return .cyan
+        case "keyboardClean": return .mint
+        case "switcher.altTab": return .blue
+        case "nightMode": return .orange
+        default: return .gray
         }
     }
 }
@@ -413,11 +500,16 @@ private struct HotkeyField: View {
             recording ? stopRecording() : startRecording()
         } label: {
             Text(recording ? "Press keys…" : (prefs.hotkey(id)?.display ?? "None"))
-                .font(.system(size: 12, design: .monospaced))
-                .frame(minWidth: 90)
-                .padding(.horizontal, 8).padding(.vertical, 3)
-                .background(recording ? Color.accentColor.opacity(0.25) : Color.primary.opacity(0.07),
-                            in: RoundedRectangle(cornerRadius: 5))
+                .font(.system(size: 11.5, weight: .medium, design: .rounded))
+                .foregroundStyle(recording ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.primary))
+                .frame(minWidth: 96)
+                .padding(.horizontal, 9).padding(.vertical, 4)
+                .background(recording ? Color.accentColor.opacity(0.18) : Theme.cardFill,
+                            in: RoundedRectangle(cornerRadius: Theme.Radius.chip))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.Radius.chip)
+                        .strokeBorder(recording ? Color.accentColor.opacity(0.5) : Theme.cardStroke, lineWidth: 1)
+                )
         }
         .buttonStyle(.plain)
         .onDisappear { stopRecording() }

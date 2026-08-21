@@ -6,6 +6,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var popover: NSPopover!
     private var statTimer: Timer?
+    /// Used when the menu bar item is hidden — behind a notch, or pushed off by
+    /// a crowded menu bar. macOS gives apps no control over status item
+    /// placement, so the panel needs a way to appear that does not depend on it.
+    private var fallbackPanel: FloatingPanel?
+    private var panelController: NSViewController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -15,8 +20,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         registerHotkeys()
 
         SystemMonitor.shared.start()
+        NightMode.shared.start()
         ClipboardStore.shared.start()
         DiskCleaner.shared.scan()
+        Task { @MainActor in Updater.shared.checkInBackgroundIfDue() }
 
         statTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
             self?.updateStatusTitle()
@@ -34,6 +41,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         BrightnessController.shared.clearAllDimming()
+        NightMode.shared.shutdown()
         KeyboardCleaner.shared.stop(reason: "Perch quit")
     }
 
@@ -102,15 +110,52 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func togglePopover() {
-        guard let button = statusItem.button else { return }
+        if let panel = fallbackPanel {
+            panel.close()
+            fallbackPanel = nil
+            return
+        }
         if popover.isShown {
             popover.performClose(nil)
-        } else {
-            BrightnessController.shared.refresh()
-            popover.contentViewController = makePanelController(for: button.window?.screen)
-            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-            popover.contentViewController?.view.window?.makeKey()
+            return
         }
+
+        BrightnessController.shared.refresh()
+
+        guard let button = statusItem.button, statusItemIsReachable(button) else {
+            showFallbackPanel()
+            return
+        }
+        popover.contentViewController = makePanelController(for: button.window?.screen)
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        popover.contentViewController?.view.window?.makeKey()
+    }
+
+    /// A hidden status item still has a button, but its window sits off the
+    /// visible area — anchoring a popover to it puts the panel where nobody
+    /// can see it.
+    private func statusItemIsReachable(_ button: NSStatusBarButton) -> Bool {
+        guard statusItem.isVisible, let window = button.window else { return false }
+        let frame = window.frame
+        guard frame.width > 1, frame.height > 1 else { return false }
+        guard let screen = window.screen ?? NSScreen.main else { return false }
+        // Require the item to actually sit inside the screen it claims.
+        return screen.frame.intersects(frame) && frame.minX >= screen.frame.minX - 1
+    }
+
+    private func showFallbackPanel() {
+        let controller = makePanelController(for: NSScreen.main)
+        let fitting = controller.view.fittingSize
+        let panel = FloatingPanel(size: CGSize(width: max(348, fitting.width),
+                                               height: max(320, fitting.height)),
+                                  hosting: controller.view)
+        panelController = controller   // keep the hosting controller alive
+        panel.showTopTrailing()
+        fallbackPanel = panel
+
+        Notifier.show("Perch's menu bar icon is hidden",
+                      "Your menu bar is full or the notch is covering it. Showing the panel here instead — ⌃⌥Space opens it any time.",
+                      duration: 6)
     }
 
     private func showContextMenu() {
@@ -127,9 +172,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         add("Clipboard History", "clipboard") { ClipboardPanelController.shared.toggle() }
         add("Window Switcher", "switcher") { WindowSwitcher.shared.toggle() }
+        add("Night Mode", "nightMode") { NightMode.shared.toggle() }
         add("Screen Cleaning", "screenClean") { ScreenCleaner.shared.start() }
         add("Keyboard Cleaning", "keyboardClean") { KeyboardCleaner.shared.start() }
         menu.addItem(.separator())
+        add("Check for Updates…", "") { Task { @MainActor in Updater.shared.check() } }
         add("Disk Clean…", "") { SettingsWindow.shared.show(tab: .disk) }
         add("Settings…", "") { SettingsWindow.shared.show() }
         menu.addItem(.separator())
@@ -151,6 +198,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hk.register("panel") { [weak self] in self?.togglePopover() }
         hk.register("clipboard") { ClipboardPanelController.shared.toggle() }
         hk.register("switcher") { WindowSwitcher.shared.toggle() }
+        hk.register("switcher.altTab") { WindowSwitcher.shared.holdToSwitch(modifier: .option) }
+        hk.register("nightMode") { NightMode.shared.toggle() }
         hk.register("screenClean") { ScreenCleaner.shared.toggle() }
         hk.register("keyboardClean") { KeyboardCleaner.shared.toggle() }
 

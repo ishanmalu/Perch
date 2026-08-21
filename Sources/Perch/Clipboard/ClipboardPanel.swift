@@ -126,15 +126,21 @@ private struct ClipboardView: View {
     var body: some View {
         let list = model.filtered
         VStack(spacing: 0) {
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+            HStack(spacing: 9) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Color.accentColor)
                 Text(model.query.isEmpty ? "Search clipboard history" : model.query)
-                    .foregroundStyle(model.query.isEmpty ? .secondary : .primary)
+                    .foregroundStyle(model.query.isEmpty ? .tertiary : .primary)
                 Spacer()
-                Text("\(list.count)").font(.caption).foregroundStyle(.tertiary)
+                Text("\(list.count)")
+                    .font(Theme.Font.numeric)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 6).padding(.vertical, 2)
+                    .background(Theme.cardFill, in: Capsule())
             }
-            .font(.system(size: 15))
-            .padding(.horizontal, 16).padding(.vertical, 12)
+            .font(.system(size: 14))
+            .padding(.horizontal, 15).padding(.vertical, 12)
             Divider()
 
             if list.isEmpty {
@@ -153,12 +159,12 @@ private struct ClipboardView: View {
             }
 
             Divider()
-            HStack(spacing: 14) {
-                hint("↩", "paste"); hint("⌘1–9", "quick paste")
-                hint("⌘P", "pin"); hint("⌘⌫", "delete"); hint("⎋", "close")
+            HStack(spacing: 12) {
+                hint("↩", "paste"); hint("⌘1–9", "quick"); hint("⌘P", "pin")
+                hint("⌘⌫", "delete"); hint("⎋", "close")
                 Spacer()
                 Button("Clear") { store.clearAll(keepPinned: true) }
-                    .buttonStyle(.borderless).font(.caption)
+                    .buttonStyle(.borderless).font(Theme.Font.caption)
             }
             .padding(.horizontal, 14).padding(.vertical, 8)
         }
@@ -229,30 +235,43 @@ private struct ClipboardView: View {
 
     private func row(_ item: ClipItem, index: Int, selected: Bool) -> some View {
         HStack(spacing: 9) {
-            Image(systemName: item.symbol)
-                .frame(width: 16).foregroundStyle(selected ? Color.accentColor : .secondary)
+            GlyphBadge(symbol: item.symbol, tint: tint(for: item.kind), size: 22)
             VStack(alignment: .leading, spacing: 1) {
                 Text(item.preview.replacingOccurrences(of: "\n", with: " "))
-                    .lineLimit(1).font(.system(size: 12.5))
-                Text(item.sourceName ?? "").font(.system(size: 10)).foregroundStyle(.tertiary)
+                    .lineLimit(1).font(Theme.Font.title)
+                Text(item.sourceName ?? "Unknown source")
+                    .font(.system(size: 9.5)).foregroundStyle(.tertiary)
             }
             Spacer(minLength: 4)
-            if item.pinned { Image(systemName: "pin.fill").font(.system(size: 9)).foregroundStyle(.orange) }
-            if index < 9 {
-                Text("⌘\(index + 1)").font(.system(size: 9, design: .monospaced)).foregroundStyle(.tertiary)
+            if item.pinned {
+                Image(systemName: "pin.fill").font(.system(size: 9)).foregroundStyle(.orange)
             }
+            if index < 9 { KeyCap(text: "⌘\(index + 1)", emphasized: selected) }
         }
-        .padding(.horizontal, 9).padding(.vertical, 5)
-        .background(selected ? Color.accentColor.opacity(0.2) : .clear, in: RoundedRectangle(cornerRadius: 7))
+        .padding(.horizontal, 8).padding(.vertical, 5)
+        .background(selected ? Color.accentColor.opacity(0.18) : .clear,
+                    in: RoundedRectangle(cornerRadius: Theme.Radius.control))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.Radius.control)
+                .strokeBorder(selected ? Color.accentColor.opacity(0.35) : .clear, lineWidth: 1)
+        )
         .contentShape(Rectangle())
     }
 
+    private func tint(for kind: ClipItem.Kind) -> Color {
+        switch kind {
+        case .text: return .blue
+        case .url: return .teal
+        case .color: return .pink
+        case .image: return .purple
+        case .file: return .orange
+        }
+    }
+
     private func hint(_ key: String, _ what: String) -> some View {
-        HStack(spacing: 3) {
-            Text(key).font(.system(size: 10, design: .monospaced))
-                .padding(.horizontal, 4).padding(.vertical, 1)
-                .background(Color.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 3))
-            Text(what).font(.system(size: 10)).foregroundStyle(.secondary)
+        HStack(spacing: 4) {
+            KeyCap(text: key)
+            Text(what).font(.system(size: 9.5)).foregroundStyle(.tertiary)
         }
     }
 }

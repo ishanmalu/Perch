@@ -38,10 +38,24 @@ final class WindowSwitcher {
     private let model = SwitcherModel()
     private var panel: FloatingPanel?
     private var monitor: Any?
+    /// Set when opened Alt-Tab style: the switcher stays up only while this
+    /// modifier is held, and releasing it raises the highlighted window.
+    private var holdModifier: NSEvent.ModifierFlags?
 
     var isOpen: Bool { panel != nil }
 
     func toggle() { isOpen ? close() : open() }
+
+    /// Classic Alt-Tab: hold the modifier, tap Tab to walk the list, let go to
+    /// switch. If the switcher is already up, another press just advances it.
+    func holdToSwitch(modifier: NSEvent.ModifierFlags = .option) {
+        if isOpen, holdModifier != nil {
+            move(by: 1, in: model.filtered)
+            return
+        }
+        holdModifier = modifier
+        open()
+    }
 
     func open() {
         guard AX.isTrusted(prompt: true) else {
@@ -72,9 +86,23 @@ final class WindowSwitcher {
         }
     }
 
+    /// True when the event was a hold-modifier release that we acted on.
+    private func handleHoldRelease(_ event: NSEvent) -> Bool {
+        guard let holdModifier, event.type == .flagsChanged else { return false }
+        guard !event.modifierFlags.contains(holdModifier) else { return false }
+        let list = model.filtered
+        if list.indices.contains(model.selection) {
+            pick(list[model.selection])
+        } else {
+            close()
+        }
+        return true
+    }
+
     func close() {
         if let monitor { NSEvent.removeMonitor(monitor) }
         monitor = nil
+        holdModifier = nil
         panel?.close()
         panel = nil
     }
@@ -90,7 +118,9 @@ final class WindowSwitcher {
     }
 
     private func handle(_ event: NSEvent) -> Bool {
-        guard isOpen, event.type == .keyDown else { return false }
+        guard isOpen else { return false }
+        if handleHoldRelease(event) { return true }
+        guard event.type == .keyDown else { return false }
         let list = model.filtered
 
         switch Int(event.keyCode) {
@@ -107,6 +137,9 @@ final class WindowSwitcher {
             return true
         case 48:                                  // Tab / Shift-Tab
             move(by: event.modifierFlags.contains(.shift) ? -1 : 1, in: list)
+            return true
+        case 50 where holdModifier != nil:        // ` while holding — walk backwards
+            move(by: -1, in: list)
             return true
         case 51:                                  // Delete
             if !model.query.isEmpty { model.query.removeLast(); model.selection = 0 }
@@ -128,15 +161,21 @@ private struct SwitcherView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 8) {
-                Image(systemName: "macwindow.on.rectangle").foregroundStyle(.secondary)
+            HStack(spacing: 9) {
+                Image(systemName: "macwindow.on.rectangle")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Color.accentColor)
                 Text(model.query.isEmpty ? "Type to filter windows" : model.query)
-                    .font(.system(size: 15))
-                    .foregroundStyle(model.query.isEmpty ? .secondary : .primary)
+                    .font(.system(size: 14))
+                    .foregroundStyle(model.query.isEmpty ? .tertiary : .primary)
                 Spacer()
-                Text("\(model.filtered.count)").font(.caption).foregroundStyle(.tertiary)
+                Text("\(model.filtered.count)")
+                    .font(Theme.Font.numeric)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 6).padding(.vertical, 2)
+                    .background(Theme.cardFill, in: Capsule())
             }
-            .padding(.horizontal, 16).padding(.vertical, 12)
+            .padding(.horizontal, 15).padding(.vertical, 12)
             Divider()
 
             ScrollViewReader { proxy in
@@ -154,22 +193,46 @@ private struct SwitcherView: View {
                     withAnimation(.easeOut(duration: 0.12)) { proxy.scrollTo(new, anchor: .center) }
                 }
             }
+
+            Divider()
+            HStack(spacing: 12) {
+                hint("↑↓", "move"); hint("⇥", "cycle"); hint("↩", "raise"); hint("⎋", "close")
+                Spacer()
+            }
+            .padding(.horizontal, 14).padding(.vertical, 8)
+        }
+    }
+
+    private func hint(_ key: String, _ what: String) -> some View {
+        HStack(spacing: 4) {
+            KeyCap(text: key)
+            Text(what).font(.system(size: 9.5)).foregroundStyle(.tertiary)
         }
     }
 
     private func row(_ entry: SwitcherEntry, selected: Bool) -> some View {
         HStack(spacing: 10) {
             if let icon = entry.icon {
-                Image(nsImage: icon).resizable().frame(width: 26, height: 26)
+                Image(nsImage: icon).resizable().frame(width: 28, height: 28)
+            } else {
+                GlyphBadge(symbol: "macwindow", tint: .gray, size: 28)
             }
             VStack(alignment: .leading, spacing: 1) {
                 Text(entry.title).lineLimit(1).font(.system(size: 13, weight: .medium))
-                Text(entry.appName).lineLimit(1).font(.system(size: 11)).foregroundStyle(.secondary)
+                Text(entry.appName).lineLimit(1).font(.system(size: 10.5)).foregroundStyle(.secondary)
             }
             Spacer()
+            if selected {
+                KeyCap(text: "↩", emphasized: true)
+            }
         }
-        .padding(.horizontal, 10).padding(.vertical, 6)
-        .background(selected ? Color.accentColor.opacity(0.22) : .clear, in: RoundedRectangle(cornerRadius: 8))
+        .padding(.horizontal, 9).padding(.vertical, 6)
+        .background(selected ? Color.accentColor.opacity(0.18) : .clear,
+                    in: RoundedRectangle(cornerRadius: Theme.Radius.control))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.Radius.control)
+                .strokeBorder(selected ? Color.accentColor.opacity(0.35) : .clear, lineWidth: 1)
+        )
         .contentShape(Rectangle())
     }
 }
