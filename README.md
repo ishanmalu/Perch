@@ -1,94 +1,76 @@
 <div align="center">
 
-<img src="docs/perch-icon.png" width="120" alt="Perch">
+<img src="docs/perch-icon.png" width="112" alt="">
 
 # Perch
 
-**One menu bar icon for the small things macOS makes you hunt for.**
+**A dozen Mac utilities in one menu bar icon.**
 
-Window tiling · Clipboard history · Alt-Tab window switcher · System stats
-Disk cleaning · Screen, keyboard & trackpad cleaning · Night mode · Brightness
+Window tiling · Clipboard history · Alt-Tab switcher · System monitoring
+Night mode · Disk cleaning · Screen, keyboard and trackpad cleaning
+
+[**perch website**](https://ishanmalu.github.io/perch/) · [**Download**](../../releases/latest) · [Changelog](CHANGELOG.md) · [Security](SECURITY.md)
 
 [![CI](https://github.com/ishanmalu/perch/actions/workflows/ci.yml/badge.svg)](https://github.com/ishanmalu/perch/actions/workflows/ci.yml)
-![Platform](https://img.shields.io/badge/macOS-14%2B-black)
+![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black)
 ![Universal](https://img.shields.io/badge/binary-universal-black)
-![License](https://img.shields.io/badge/license-MIT-black)
+![MIT](https://img.shields.io/badge/licence-MIT-black)
 
-No accounts. No telemetry. Nothing leaves your Mac except an update check
-you have to turn on.
+</div>
 
-**[perch website →](https://ishanmalu.github.io/perch/)**
-
-[Install](#install) · [Features](#features) · [Shortcuts](#shortcuts) · [Updating](#updating) · [Privacy](#privacy-and-security) · [Build](#building-from-source)
-
+<div align="center">
+<img src="docs/shots/panel-system-light.png#gh-light-mode-only" width="240" alt="System tab">
+<img src="docs/shots/panel-screen-light.png#gh-light-mode-only" width="240" alt="Screen tab">
+<img src="docs/shots/panel-tools-light.png#gh-light-mode-only" width="240" alt="Tools tab">
+<img src="docs/shots/panel-system-dark.png#gh-dark-mode-only" width="240" alt="System tab">
+<img src="docs/shots/panel-screen-dark.png#gh-dark-mode-only" width="240" alt="Screen tab">
+<img src="docs/shots/panel-tools-dark.png#gh-dark-mode-only" width="240" alt="Tools tab">
 </div>
 
 ---
 
 ## Install
 
-Three routes. Pick one — they all end in the same place.
+Perch is free, open source, and needs macOS 14 or later. The binary is
+universal — Apple silicon and Intel — and about 4 MB.
 
-### Option A — Homebrew (best for upgrades)
+### Download the DMG
+
+```bash
+# 1. Download Perch-x.y.z.dmg from the releases page
+# 2. Open it and drag Perch to Applications
+# 3. Clear the download flag, then open it:
+xattr -dr com.apple.quarantine /Applications/Perch.app
+```
+
+[**Download the latest release →**](../../releases/latest)
+
+Step 3 is needed because Perch is signed but not notarized — notarizing
+requires a paid Apple Developer account. macOS blocks unnotarized downloads
+until the flag is cleared.
+
+Prefer not to use the terminal? Open Perch, dismiss the warning, then go to
+**System Settings → Privacy & Security**, scroll to **Security**, and click
+**Open Anyway**.
+
+> On macOS 15 and later, Control-clicking an app and choosing **Open** no longer
+> works for unnotarized apps. Guides that recommend it are out of date.
+
+### Homebrew
 
 ```bash
 brew tap ishanmalu/tap
 brew trust ishanmalu/tap
 brew install --cask perch
 xattr -dr com.apple.quarantine /Applications/Perch.app
-open -a Perch
 ```
 
-`brew trust` is required for any third-party tap — current Homebrew refuses to
-load one without it.
+`brew trust` is required for any third-party tap. The `xattr` line is still
+needed — Homebrew 6 removed `--no-quarantine`, and the app is quarantined
+regardless because it is not notarized. Homebrew's advantage here is upgrades,
+not a smoother first launch.
 
-The `xattr` line is still needed. Homebrew 6 removed the `--no-quarantine`
-flag, and `HOMEBREW_CASK_OPTS` does not avoid the flag either: the app is
-quarantined regardless, because it is not notarized. Homebrew's advantage here
-is upgrades (`brew upgrade --cask perch`), not a smoother first launch.
-
-Then jump to [First run](#first-run).
-
-### Option B — Download the DMG
-
-1. Open [**Releases**](../../releases) and download `Perch-x.y.z.dmg` from the
-   newest one.
-2. Double-click the DMG, then drag **Perch** onto the **Applications** shortcut.
-3. Eject the DMG (⌘E in Finder, or drag it to the Bin).
-4. **Clear the quarantine flag** — paste this into Terminal:
-
-   ```bash
-   xattr -dr com.apple.quarantine /Applications/Perch.app
-   ```
-
-5. Open Perch from Applications.
-
-<details>
-<summary>Why step 4 is needed, and what to do without a terminal</summary>
-
-Perch is signed, but not *notarized* — notarizing requires a paid Apple
-Developer account. macOS therefore blocks it on first launch:
-
-```
-$ spctl -a -t exec Perch.app
-Perch.app: rejected
-```
-
-Clearing the flag removes the block. The signature still verifies, so the app
-is unaltered since it was built.
-
-**Without the terminal:** open Perch and dismiss the warning, then go to
-**System Settings → Privacy & Security**, scroll down to **Security**, and click
-**Open Anyway** beside the message about Perch. Enter your password, then open
-Perch again.
-
-**Note:** on macOS 15 and later — including macOS 26 — Control-clicking the app
-and choosing **Open** no longer works for unnotarized apps. Apple removed that
-shortcut. Many guides still recommend it.
-
-</details>
-
-### Option C — Build it yourself
+### From source
 
 ```bash
 git clone https://github.com/ishanmalu/perch.git
@@ -96,192 +78,98 @@ cd perch
 Scripts/install.sh
 ```
 
-Builds, self-tests, installs to `/Applications`, and launches it. Needs Swift 6
-and the macOS SDK — Command Line Tools are enough, full Xcode is not required.
-Nothing is downloaded, so there is no quarantine flag to clear.
+Builds, self-tests, installs to `/Applications` and launches. Swift 6 and the
+macOS SDK are enough — full Xcode is not required, and nothing is downloaded,
+so there is no quarantine flag to clear.
 
 ---
 
 ## First run
 
-1. **Find the icon.** Perch lives in the menu bar as a small bird — no Dock icon.
-   Press **⌃⌥Space** to open its panel at any time.
+**1 — Find it.** Perch lives in the menu bar with no Dock icon. Press
+`⌃⌥Space` to open the panel at any time.
 
-   *Can't see the icon?* A notch or a full menu bar can hide it, and macOS gives
-   apps no control over placement. ⌃⌥Space still works, and Perch shows the panel
-   at the top right when it detects the icon is unreachable.
+If a notch or a full menu bar hides the icon, the shortcut still works, and
+Perch shows the panel at the top right when it detects the icon is unreachable.
 
-2. **Grant Accessibility access.** Open **System Settings → Privacy & Security →
-   Accessibility**, click **+**, and add `/Applications/Perch.app`. Toggle it on.
+**2 — Grant Accessibility.** System Settings → Privacy & Security →
+**Accessibility** → **+** → add `/Applications/Perch.app`.
 
-   This is required for window tiling, the window switcher, Alt-Tab, keyboard and
-   trackpad cleaning, and paste-on-pick. Everything else works without it. Perch
-   reads window positions, titles, and app names — never window contents.
+Required for window tiling, the switcher, Alt-Tab, and the cleaning modes.
+Everything else works without it. Perch reads window positions, sizes, titles
+and app names — never what is inside a window.
 
-3. **Optional: live window previews.** Settings → Windows → Grant, or add Perch
-   under System Settings → Privacy & Security → **Screen Recording**. Only
-   needed for Alt-Tab thumbnails; skip it and you get app icons instead.
+**3 — Optional: live window previews.** Settings → Windows → Grant, or add
+Perch under **Screen Recording**. Only needed for Alt-Tab thumbnails; without
+it the switcher shows large app icons instead.
 
-4. **Try it.** With any window focused:
+**4 — Try it.** With any window focused:
 
-   | Press | What happens |
-   | --- | --- |
-   | `⌃⌥←` | Window snaps to the left half — press again to cycle ⅓ and ⅔ |
-   | `⌃⌥↩` | Window fills the screen |
-   | `⌃⌥⌫` | Window returns to its original size |
-   | `⌥Tab` | Hold Option, tap Tab, release to switch window |
-   | `⌘⇧V` | Clipboard history |
-   | `⌃⌥N` | Night mode on/off |
+| Press | Result |
+| --- | --- |
+| `⌃⌥←` | Left half. Press again to cycle ⅓ and ⅔ |
+| `⌃⌥↩` | Fill the screen |
+| `⌃⌥⌫` | Back to its original size |
+| `⌥Tab` | Hold Option, tap Tab, release to switch window |
+| `⌘⇧V` | Clipboard history |
+| `⌃⌥N` | Night mode |
 
-5. **Turn on Launch at Login** — Tools tab in the panel, or Settings → General.
+**5 — Make it yours.** Turn on Launch at Login from the Tools tab, and rebind
+anything under Settings → Shortcuts.
 
-6. **Make the shortcuts yours** — Settings → Shortcuts. Click any shortcut and
-   press a new combination; `Esc` cancels.
-
-> If you also run Rectangle, Magnet, or AltTab, their defaults overlap Perch's.
-> Whichever registered a shortcut first wins, so change one side or quit the
-> other.
+> Rectangle, Magnet and AltTab ship some of these same defaults. Whichever
+> registered a shortcut first wins, so change one side or quit the other.
 
 ---
 
-## Using it
+## What it does
 
-The panel has three tabs, plus a clipboard button and settings in its header.
+**Window manager.** Halves, thirds, quarters and full screen. Pressing the same
+directional shortcut again cycles the width through ½ → ⅓ → ⅔, so one key finds
+the size you meant. Configurable gaps, movement between displays, and one
+shortcut to undo. Five layouts tile your frontmost windows at once.
 
-| Tab | What's there |
-| --- | --- |
-| **System** | CPU, memory and disk rings; network, battery, uptime, load average, thermal state, swap, memory pressure |
-| **Screen** | Window layout grid, saved layouts, per-display brightness, night mode |
-| **Tools** | Screen Clean, Keyboard Clean, Trackpad Clean, Clipboard, Switcher, Disk Clean, plus Prevent Sleep / Record Clipboard / Launch at Login switches |
+**Alt-Tab and the window switcher.** `⌥Tab` holds a grid of live window
+previews that grow when fewer windows are open. It lists *windows*, not apps,
+so two documents in one app are two entries. Type to filter; while Option is
+held, `W` closes a window, `M` minimises it and `Q` quits the app. A separate
+title-only switcher lives on ``⌃⌥` `` and can be switched off entirely.
 
-Right-clicking the menu bar icon opens the same actions as a plain menu.
+**Clipboard history.** Searchable, with image previews, pinning, source-app
+attribution and paste-on-pick. Text, links, colours, files and images are
+recognised and shown differently. Anything matching a credential shape —
+`sk-`, `ghp_`, `AKIA`, bare JWTs, PEM keys — is skipped automatically.
 
----
+**System monitoring.** CPU, memory and disk as gauges, with network throughput,
+battery level, health and cycle count, load average, thermal state, swap and
+memory pressure. Any one stat can sit inline in the menu bar.
 
-## Features
+**Disk cleaning.** Sixteen built-in targets — user caches, Xcode DerivedData
+and device support, npm, yarn, pip, Homebrew, Go, Gradle, CocoaPods, crash
+reports, Trash — each with its measured size, plus your own folders with an
+optional age filter. Everything is moved to the Trash, never deleted outright.
 
-### 🪟 Window manager
+**Screen cleaning.** Fills every display with flat black so dust and smudges
+actually show. Space cycles white, red, green, blue and grey, which doubles as
+a dead-pixel test.
 
-Snap the focused window to halves, thirds, quarters, or full screen. Press the
-same directional shortcut again and the width cycles ½ → ⅓ → ⅔, so one key
-finds the size you meant. `⌃⌥⌫` puts the window back where it started.
+**Keyboard and trackpad cleaning.** Keyboard cleaning locks input for a
+countdown so you can wipe the keys without typing into anything. Trackpad
+cleaning is the complement: the pointer freezes while the keyboard stays live,
+so a single `Esc` unlocks it — your hands are nowhere near the keys while
+wiping a trackpad, which is the point. Both share one event tap, one countdown
+and one failsafe.
 
-Set a **gap** in Settings → Windows and Perch insets each window, halving the
-gap between neighbours so tiled windows stay evenly spaced. `⌃⌥⇧←/→` throws a
-window to the next display, preserving its relative position and proportions.
+**Night mode.** Warms the screen from 6500K to 2400K by rewriting the display
+gamma, the same mechanism f.lux and Night Shift use. Because gamma is applied
+by the window server underneath everything, it tints the whole screen without
+an overlay and never appears in screenshots. Manual, sunset-to-sunrise, or
+custom hours. macOS restores the ramps if the process exits, so a crash cannot
+leave a display stuck warm.
 
-### ▦ Custom layouts
-
-A layout is a set of panes in screen-relative coordinates. Applying one tiles
-your frontmost windows into its panes, in order.
-
-| Layout | Panes |
-| --- | --- |
-| Halves | Two columns |
-| Thirds | Three columns |
-| Main + Stack | 62% main, two stacked beside it |
-| Quarters | Four corners |
-| Focus | One centred window with margins |
-
-The pane model is plain data — add your own in
-[`Sources/Perch/Windows/Layouts.swift`](Sources/Perch/Windows/Layouts.swift).
-
-### ⇥ Window switcher and Alt-Tab
-
-`⌥Tab` is classic Alt-Tab: hold Option, tap Tab to walk the grid, release to
-switch. Unlike Command-Tab it lists **windows**, so two documents in the same
-app are two separate entries. Typing filters them, and thumbnails grow when
-fewer windows are open.
-
-While Option is held, letters act on the highlighted window: `W` closes it,
-`M` minimises it, `Q` quits the app.
-
-**Live previews need Screen Recording permission** — macOS offers no other way
-for one app to show another app's window, and AltTab has the same requirement.
-Without it the switcher falls back to large app icons and everything else still
-works. Perch captures a window only while the switcher is on screen, never in
-the background. Grant it in System Settings → Privacy & Security → Screen
-Recording, or from Settings → Windows.
-
-`⌃⌥\`` opens a compact title list instead, on its own shortcut. Typing filters
-by subsequence, so `vsc pkg` finds *VS Code — Package.swift*. Turn it off
-entirely in Settings → Windows if you only want Alt-Tab.
-
-### 📋 Clipboard history
-
-Everything you copy, searchable, with image previews and the source app for
-each entry.
-
-| Key | Action |
-| --- | --- |
-| `⌘⇧V` | Open history |
-| `⌘1`–`⌘9` | Paste that entry directly |
-| `⌘P` | Pin (never expires) |
-| `⌘⌫` | Delete entry |
-| `↩` | Paste selected |
-
-Text, links, colors, files, and images are detected and shown differently.
-Size and retention are configurable, and paste-on-pick drops the entry straight
-into the app you came from.
-
-### 📊 System monitoring
-
-Live CPU (user vs system), memory with pressure colouring, disk, network
-throughput, battery level, health and cycle count, load average, thermal state,
-and uptime — with sparklines for CPU and memory.
-
-The menu bar shows the icon alone by default; Settings → General can put CPU,
-memory, network, or battery beside it.
-
-### 🧹 Disk cleaning
-
-Sixteen built-in targets with measured sizes — user caches, Xcode DerivedData
-and device support, npm / yarn / pip / Homebrew / Go / Gradle / CocoaPods
-caches, crash reports, Trash. Add your own folders, optionally filtered to
-files older than N days.
-
-**Nothing is deleted outright.** Every item is moved to the Trash so you can
-look through it before emptying.
-
-### ✨ Screen cleaning
-
-Fills every display with flat black so dust and smudges are actually visible.
-Space cycles white → red → green → blue → grey, which doubles as a dead-pixel
-test. Any key or click exits.
-
-### ⌨️ Keyboard cleaning
-
-Locks out the keyboard and trackpad for a countdown so you can wipe the keys
-without typing into whatever was focused. Hold `Esc` for a second to finish
-early. Perch counts the presses it blocked but never records which keys.
-
-### 🖱️ Trackpad cleaning
-
-The complement: the pointer is frozen — no movement, clicks, drags, or
-scrolling — while **the keyboard stays live**, so a single press of `Esc` or
-`⌃⌥⇧T` unlocks it. Your hands are nowhere near the keys while you wipe a
-trackpad, which is exactly why the escape hatch lives there.
-
-Both modes run on one event tap, share the same countdown, and share the same
-failsafe: an independent timer ends the session even if the UI wedges, and the
-tap dies with the process, so input can never stay locked.
-
-### 🌙 Night mode
-
-Warms the screen by rewriting each display's gamma ramp — the same mechanism
-f.lux and Night Shift use. Because gamma is applied by the window server
-underneath everything, it tints the whole screen without an overlay and never
-shows up in screenshots or recordings.
-
-6500K (neutral) down to 2400K (deep amber). Manual with `⌃⌥N`, on a
-sunset-to-sunrise schedule, or between custom hours. macOS restores the system
-ramps when the process exits, so a crash can't leave your display stuck orange.
-
-### 🔆 Monitor brightness
-
-A slider per display. The built-in panel uses real backlight control; external
-displays are dimmed with a black overlay, which works over any cable regardless
-of DDC/CI support.
+**Brightness and sleep.** A slider per display — real backlight control for the
+built-in panel, software dimming for external monitors so it works over any
+cable. Plus a power assertion that keeps the Mac awake until you switch it off.
 
 ---
 
@@ -292,11 +180,7 @@ of DDC/CI support.
 | `⌃⌥Space` | Open the Perch panel |
 | `⌘⇧V` | Clipboard history |
 | `⌥Tab` | Alt-Tab — hold Option, tap Tab, release to switch |
-| `⌃⌥\`` | Window switcher (searchable) |
-| `⌃⌥N` | Night mode |
-| `⌃⌥K` | Screen cleaning |
-| `⌃⌥⇧L` | Keyboard cleaning |
-| `⌃⌥⇧T` | Trackpad cleaning |
+| ``⌃⌥` `` | Title-only window switcher |
 | `⌃⌥←` `→` | Left / right half — press again to cycle ⅓, ⅔ |
 | `⌃⌥↑` `↓` | Top / bottom half |
 | `⌃⌥D` `F` `G` | Left / center / right third |
@@ -304,85 +188,65 @@ of DDC/CI support.
 | `⌃⌥C` | Center |
 | `⌃⌥⌫` | Restore original size |
 | `⌃⌥⇧←` `→` | Move to previous / next display |
+| `⌃⌥N` | Night mode |
+| `⌃⌥K` | Screen cleaning |
+| `⌃⌥⇧L` | Keyboard cleaning |
+| `⌃⌥⇧T` | Trackpad cleaning |
 
-All rebindable in Settings → Shortcuts. Click a shortcut, press the new
+All rebindable under Settings → Shortcuts. Click a shortcut, press the new
 combination; `Esc` cancels.
-
-**Can't see the menu bar icon?** A notch or a full menu bar can hide it, and
-macOS gives apps no say in status item placement. `⌃⌥Space` always opens the
-panel, and when Perch detects its icon is unreachable it shows the panel as a
-floating window at the top right instead.
 
 ---
 
 ## Updating
 
-**In-app** — the Updates row at the bottom of the panel, right-click the menu
-bar icon → Check for Updates, or Settings → General. Automatic checking is off
-by default; when on it runs at most once a day.
+**In the app.** The Updates row at the bottom of the panel, or right-click the
+menu bar icon → Check for Updates. Automatic checking is off by default and
+runs at most once a day when enabled.
 
 Download fetches the DMG, verifies it against the `SHA256SUMS.txt` published
-with the release, and reveals it in Finder. You open it and drag Perch across.
+with the release, and reveals it in Finder. Perch does not install updates
+itself: an app that can silently replace its own binary from the network is a
+much larger thing to trust than one that hands you a verified file —
+particularly one already holding Accessibility and input-tap permissions.
 
-Perch does not install updates itself, deliberately. An app that can silently
-replace its own binary from the network is a much larger thing to trust than
-one that hands you a verified file — especially one already holding
-Accessibility and input-tap permissions.
+**Homebrew.** `brew upgrade --cask perch`
 
-**Homebrew**
-
-```bash
-brew update && brew upgrade --cask perch
-```
-
-**From source**
-
-```bash
-git pull && Scripts/install.sh
-```
+**From source.** `git pull && Scripts/install.sh`
 
 ---
 
 ## Privacy and security
 
-Perch holds unusually sensitive capabilities — it can see window titles, read
-the clipboard, and intercept keystrokes. That's worth being explicit about.
-Full detail in [SECURITY.md](SECURITY.md).
+Perch can see window titles, read the clipboard and intercept keystrokes. That
+deserves stating plainly. Full detail in [SECURITY.md](SECURITY.md).
 
 | Capability | Used for | Bounded by |
 | --- | --- | --- |
 | Accessibility | Window frames, titles, app names | Never reads window contents |
-| Screen Recording | Window previews in Alt-Tab | Optional; captures only while the switcher is open |
-| Event tap | Swallowing input while cleaning keys or trackpad | Counts events; key codes discarded |
+| Screen Recording | Alt-Tab previews | Optional; captures only while the switcher is open |
+| Event tap | Swallowing input while cleaning | Counts events; key codes discarded |
 | Pasteboard | Clipboard history | `0600` file, filtered (below) |
 | Filesystem | Cache measurement and clearing | Path guard, Trash only |
 | Network | Update check | Off by default; GitHub only |
 
-**Keystrokes are counted, never recorded.** The keyboard-cleaning event tap
-increments a counter and discards the event. Key codes are not stored, logged,
-or written anywhere. The tap is torn down when the session ends, when you hold
-`Esc`, when Perch quits, and by an independent failsafe that fires even if the
-UI wedges.
+**Keystrokes are counted, never recorded.** The cleaning event tap increments a
+counter and discards the event. Key codes are not stored, logged or written
+anywhere. The tap is torn down on completion, on `Esc`-hold, on quit, and by an
+independent failsafe that fires even if the UI wedges.
 
 **Clipboard history is local and permission-restricted**, at
-`~/Library/Application Support/Perch/` with the directory `0700` and the file
-`0600`. It is **not encrypted** — treat it as readable by anything running as
-you. Three filters reduce what lands there:
+`~/Library/Application Support/Perch/` with the directory `0700` and files
+`0600`. It is not encrypted — treat it as readable by anything running as you.
+Three filters reduce what lands there: content marked
+`org.nspasteboard.ConcealedType`, a configurable list of ignored bundle IDs,
+and credential-shaped strings. That last one is a safety net, not a guarantee.
 
-- Content marked `org.nspasteboard.ConcealedType` (what password managers set).
-- A configurable list of bundle IDs that are never recorded from.
-- Anything matching a credential shape — `sk-`, `ghp_`, `AKIA`, `xoxb-`,
-  bare JWTs, PEM private keys — skipped with a notice.
-
-That last one is a safety net, not a guarantee. A pattern matcher misses
-secrets that don't look like secrets. If you copy something truly sensitive,
-clear the history afterwards.
-
-**Disk cleaning can't be pointed anywhere dangerous.** Custom targets pass a
-guard rejecting `/`, `/System`, `/Users`, your home directory and its important
-children (`Documents`, `Desktop`, `.ssh`, `Library`, …), relative paths, and
-anything resolving outside home or a temp directory. It runs at scan time *and*
-clean time, so a hand-edited preference can't slip past it.
+**Disk cleaning cannot be pointed anywhere dangerous.** Custom targets pass a
+guard that rejects `/`, `/System`, `/Users`, your home directory and its
+important children, relative paths, and anything resolving outside home or a
+temp directory. It runs at scan time and again at clean time, so editing
+preferences by hand cannot widen it.
 
 Verify any build yourself:
 
@@ -397,10 +261,10 @@ Verify any build yourself:
 ```bash
 git clone https://github.com/ishanmalu/perch.git
 cd perch
-Scripts/make-dmg.sh 1.1.0
+Scripts/make-dmg.sh 1.5.0
 ```
 
-Swift 6 and the macOS 14 SDK are all you need — full Xcode is not required.
+Swift 6 and the macOS SDK are all that is needed — full Xcode is not required.
 The universal binary is produced by compiling each architecture separately and
 `lipo`-ing them together, which sidesteps Xcode's multi-arch build system.
 
@@ -408,68 +272,55 @@ The universal binary is produced by compiling each architecture separately and
 | --- | --- |
 | `swift build` | Debug build |
 | `.build/debug/Perch --selftest` | Run the safety checks |
-| `Scripts/install.sh [version]` | Build, verify, install to `/Applications`, relaunch |
-| `Scripts/build-app.sh [version]` | Universal, signed `Perch.app` |
-| `Scripts/make-dmg.sh [version]` | The above, wrapped in a DMG |
-| `Scripts/setup-signing-identity.sh` | One-time: stable identity so macOS keeps the Accessibility grant across rebuilds |
-| `Scripts/publish-cask.sh [version]` | Update the Homebrew tap from a published release |
-| `swift Scripts/makeicon.swift Resources` | Redraw the icon |
+| `.build/debug/Perch --render-ui <dir>` | Render each panel tab, both appearances |
+| `Scripts/install.sh` | Build, verify, install, relaunch |
+| `Scripts/build-app.sh` | Signed universal `Perch.app` |
+| `Scripts/make-dmg.sh` | The above, wrapped in a DMG |
+| `Scripts/setup-signing-identity.sh` | One-time: stable identity for local builds |
+| `Scripts/notarize.sh` | Sign, notarize and staple (needs an Apple account) |
+| `Scripts/publish-cask.sh` | Update the Homebrew tap from a release |
 
-The icon is drawn in code ([`Scripts/makeicon.swift`](Scripts/makeicon.swift))
+The app icon is drawn in code ([`Scripts/makeicon.swift`](Scripts/makeicon.swift))
 rather than checked in, so it regenerates at any size without design tooling.
-
-### Source layout
 
 ```
 Sources/Perch/
   Core/        preferences, global hotkeys, HUD, login item, updater
-  Windows/     Accessibility wrapper, tiling engine, layouts, switcher
+  Windows/     Accessibility wrapper, tiling engine, layouts, switcher, thumbnails
   Clipboard/   pasteboard watcher, persistence, history panel
-  System/      CPU/memory/disk/network/battery sampling, disk cleaner
-  Screen/      screen cleaning, keyboard lock, night mode, brightness
+  System/      CPU/memory/disk/network/battery sampling, disk cleaner, sleep
+  Screen/      screen and input cleaning, night mode, brightness
   UI/          design system, menu bar popover, settings, floating panel
 ```
 
 `SelfTest.swift` holds the safety-critical checks. They ship inside the binary
-because XCTest isn't available with Command Line Tools alone; CI runs them
+because XCTest is unavailable with Command Line Tools alone; CI runs them
 against both the debug build and the shipped bundle.
 
-### Releasing
-
-```bash
-git tag v1.1.0 && git push origin v1.1.0
-```
-
-The release workflow builds a universal DMG, self-tests the shipped bundle,
-publishes it with checksums, and validates that the Homebrew cask renders.
-Then `Scripts/publish-cask.sh 1.1.0` pushes the cask to the tap.
+**Releasing.** Tag `v*` and push. The workflow builds a signed universal DMG,
+self-tests the shipped bundle, publishes it with checksums, and validates that
+the Homebrew cask renders. `Scripts/publish-cask.sh <version>` then updates the
+tap. See [docs/NOTARIZING.md](docs/NOTARIZING.md) for turning on notarization.
 
 ---
 
 ## Known limitations
 
-- **Not notarized.** Notarization needs a paid Apple Developer account ($99/yr),
-  so Gatekeeper blocks the download until you clear the quarantine flag or click
-  Open Anyway. The build pipeline for it is already written and inert — see
-  [docs/NOTARIZING.md](docs/NOTARIZING.md); adding four repository secrets is
-  all that switches it on. This is the one thing standing between Perch and a genuinely
-  one-click install for anyone else. Because an ad-hoc signature derives from
-  the binary itself, every rebuild is also a different code identity and macOS
-  forgets the Accessibility grant — the toggle looks enabled
-  while the app still reads as untrusted. Run
-  `Scripts/setup-signing-identity.sh` once if you build locally.
-- **Clipboard capture polls** twice a second; macOS offers no change
+- **Not notarized.** Gatekeeper blocks the download until you clear the
+  quarantine flag or click Open Anyway. Notarizing needs a paid Apple Developer
+  account; the pipeline is written and inert, waiting on credentials.
+- **Clipboard capture polls** twice a second, since macOS offers no change
   notification. An app that copies and immediately loses focus can be
   attributed to the wrong source.
-- **Night mode's sunset schedule** uses fixed hours (20:00–07:00) rather than a
-  real solar calculation, which would mean asking for your location.
-- **External display brightness** is a software overlay, not real backlight
-  control. It can't go fully black and won't survive a screenshot.
-- **Window animation** issues one Accessibility call per frame, is off by
-  default, and some apps repaint poorly during it.
-- **Stage Manager and full-screen windows** aren't tiled — macOS owns their
+- **Window previews need Screen Recording**, and fall back to app icons
+  without it. There is no narrower permission for reading another app's window.
+- **Night mode's sunset schedule** uses fixed hours rather than a real solar
+  calculation, which would mean asking for your location.
+- **External display brightness** is a software overlay, not backlight control.
+  It cannot go fully black and will not survive a screenshot.
+- **Stage Manager and full-screen windows** are not tiled — macOS owns their
   geometry.
 
-## License
+## Licence
 
 MIT — see [LICENSE](LICENSE).
