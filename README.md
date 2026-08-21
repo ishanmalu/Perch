@@ -9,7 +9,7 @@
 Window tiling · Clipboard history · Alt-Tab switcher · System monitoring
 Night mode · Disk cleaning · Screen, keyboard and trackpad cleaning
 
-[**Website**](https://ishanmalu.github.io/perch/) · [**Download**](../../releases/latest) · [Changelog](CHANGELOG.md) · [Security](SECURITY.md)
+[**Website**](https://ishanmalu.github.io/Perch/) · [**Download**](../../releases/latest) · [Changelog](CHANGELOG.md) · [Security](SECURITY.md)
 
 [![CI](https://github.com/ishanmalu/perch/actions/workflows/ci.yml/badge.svg)](https://github.com/ishanmalu/perch/actions/workflows/ci.yml)
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black)
