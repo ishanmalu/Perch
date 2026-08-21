@@ -4,6 +4,35 @@ All notable changes to Perch. Versions follow [semver](https://semver.org),
 and each heading below corresponds to a published
 [release](https://github.com/ishanmalu/perch/releases).
 
+## [1.5.0] — 2026-08-22
+
+### Fixed
+- **Accessibility stopped working after every update.** Releases were ad-hoc
+  signed, and an ad-hoc signature is derived from the binary, so each release
+  was a different code identity and macOS dropped the grant recorded against
+  the previous one — while still showing the app as enabled, which made the
+  usual advice useless. Releases are now signed with a consistent certificate.
+- Perch now recognises that state and says so, instead of asking you to enable
+  a permission that already looks enabled. It inspects its own signature: a
+  build with a certificate has a stable identity, so a denial genuinely means
+  the permission was never granted; an ad-hoc build's identity changes every
+  release, so a denial after an update means a stale entry.
+- The Homebrew instructions did not work. The tap did not exist, third-party
+  taps must now be trusted before Homebrew will load them, and Homebrew 6
+  removed `--no-quarantine` altogether. All three corrected, and the tap is
+  published.
+
+### Added
+- Notarization pipeline (`Scripts/notarize.sh` plus release-workflow steps),
+  inert until Apple Developer credentials are supplied. See
+  [docs/NOTARIZING.md](docs/NOTARIZING.md).
+- A landing page at <https://ishanmalu.github.io/perch/>, served from `docs/`.
+
+### Changed
+- Screen Recording, added in 1.4.0 and documented nowhere, is now covered in
+  the README and SECURITY.md.
+- `⌃⌥=` had a default shortcut but no handler; removed.
+
 ## [1.4.0] — 2026-08-22
 
 ### Added
