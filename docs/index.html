@@ -136,12 +136,16 @@
     letter-spacing: .02em;
   }
   /* Show the screenshot that matches the active theme. */
-  .shot img.dark { display: none; }
-  :root[data-theme="dark"] .shot img.light { display: none; }
-  :root[data-theme="dark"] .shot img.dark { display: block; }
+  .shot img.dark, .row-shot img.dark { display: none; }
+  :root[data-theme="dark"] .shot img.light,
+  :root[data-theme="dark"] .row-shot img.light { display: none; }
+  :root[data-theme="dark"] .shot img.dark,
+  :root[data-theme="dark"] .row-shot img.dark { display: block; }
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .shot img.light { display: none; }
-    :root:not([data-theme="light"]) .shot img.dark { display: block; }
+    :root:not([data-theme="light"]) .shot img.light,
+    :root:not([data-theme="light"]) .row-shot img.light { display: none; }
+    :root:not([data-theme="light"]) .shot img.dark,
+    :root:not([data-theme="light"]) .row-shot img.dark { display: block; }
   }
 
   /* ---------- theme toggle ---------- */
@@ -168,37 +172,44 @@
     margin: 0 0 10px; font-weight: 660;
   }
   .section-sub { color: var(--muted); margin: 0 0 36px; font-size: 15.5px; max-width: 640px; }
-  .eyebrow {
-    font-size: 12px; font-weight: 620; letter-spacing: .09em; text-transform: uppercase;
-    color: var(--accent); margin: 0 0 10px;
+
+  /* ---------- alternating feature rows ---------- */
+  .row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 64px;
+    align-items: center; padding: 74px 0;
+  }
+  .row + .row { border-top: 1px solid var(--line); }
+  .row:nth-child(even) .row-text { order: 2; }
+  .row-num {
+    font: 600 12px/1 ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+    color: var(--faint); letter-spacing: .1em; margin: 0 0 14px;
+  }
+  .row h3 {
+    font-size: clamp(21px, 2.6vw, 27px); letter-spacing: -.022em;
+    margin: 0 0 12px; font-weight: 650;
+  }
+  .row p { margin: 0 0 16px; color: var(--muted); font-size: 15.5px; line-height: 1.62; }
+  .row .keys { display: flex; flex-wrap: wrap; gap: 7px; }
+  .row-shot { display: flex; justify-content: center; }
+  .row-shot img {
+    width: 292px; max-width: 88%; height: auto; display: block;
+    border-radius: 16px; border: 1px solid var(--line);
+    box-shadow: 0 2px 6px rgba(0,0,0,.05), 0 18px 44px rgba(0,0,0,.12);
+  }
+  @media (max-width: 780px) {
+    .row { grid-template-columns: 1fr; gap: 34px; padding: 54px 0; }
+    .row:nth-child(even) .row-text { order: 0; }
   }
 
-  /* grid-auto-rows: 1fr makes every row share a height, and the cards stretch
-     into it, so blocks stay level regardless of how much text they hold. */
-  .grid {
-    display: grid; gap: 16px;
-    grid-template-columns: repeat(auto-fit, minmax(268px, 1fr));
-    grid-auto-rows: 1fr;
+  /* ---------- compact capability list ---------- */
+  .caps { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2px 34px; }
+  .cap {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 15px 0; border-bottom: 1px solid var(--line);
   }
-  .feature {
-    display: flex; flex-direction: column; height: 100%;
-    background: var(--card); border: 1px solid var(--line);
-    border-radius: var(--radius); padding: 24px 22px;
-    transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease;
-  }
-  .feature:hover {
-    border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
-    transform: translateY(-2px);
-    box-shadow: var(--shadow);
-  }
-  .feature .icon-chip {
-    width: 38px; height: 38px; border-radius: 10px; margin-bottom: 15px;
-    display: grid; place-items: center; flex: none;
-    background: var(--accent-soft); color: var(--accent);
-  }
-  .feature h3 { margin: 0 0 7px; font-size: 15.5px; font-weight: 620; letter-spacing: -.01em; }
-  .feature p { margin: 0; color: var(--muted); font-size: 14.2px; line-height: 1.58; }
-  .feature kbd { font-size: 11.5px; }
+  .cap svg.ico { width: 17px; height: 17px; margin-top: 2px; color: var(--muted); flex: none; }
+  .cap b { font-weight: 590; font-size: 14.5px; display: block; margin-bottom: 2px; }
+  .cap span { color: var(--muted); font-size: 13.6px; line-height: 1.5; }
 
   svg.ico { width: 19px; height: 19px; display: block; }
   svg.ico use, svg.ico { fill: none; stroke: currentColor; stroke-width: 1.75;
@@ -386,129 +397,78 @@
   </div>
 </header>
 
-<div class="wrap shots">
-  <figure class="shot" style="margin:0">
-    <img class="light" src="shots/panel-system-light.png" alt="Perch System tab showing CPU, memory and disk gauges with network, battery and load statistics">
-    <img class="dark" src="shots/panel-system-dark.png" alt="Perch System tab showing CPU, memory and disk gauges with network, battery and load statistics">
-    <span>System</span>
-  </figure>
-  <figure class="shot" style="margin:0">
-    <img class="light" src="shots/panel-screen-light.png" alt="Perch Screen tab showing the window layout grid, brightness slider and night mode toggle">
-    <img class="dark" src="shots/panel-screen-dark.png" alt="Perch Screen tab showing the window layout grid, brightness slider and night mode toggle">
-    <span>Screen</span>
-  </figure>
-  <figure class="shot" style="margin:0">
-    <img class="light" src="shots/panel-tools-light.png" alt="Perch Tools tab showing cleaning tools and quick switches">
-    <img class="dark" src="shots/panel-tools-dark.png" alt="Perch Tools tab showing cleaning tools and quick switches">
-    <span>Tools</span>
-  </figure>
-</div>
-
 <section id="features">
   <div class="wrap">
-    <p class="eyebrow">Features</p>
-    <h2>Everything it does</h2>
-    <p class="section-sub">All of it free. There is no paid tier.</p>
-    <div class="grid">
 
-      <div class="feature">
-        <span class="icon-chip"><svg class="ico"><use href="#i-window"/></svg></span>
-        <h3>Window manager</h3>
-        <p>Snap to halves, thirds, quarters or full screen. Press the same shortcut
-        again and the width cycles ½ → ⅓ → ⅔. Configurable gaps, move between
-        displays, and <kbd>⌃⌥⌫</kbd> to undo.</p>
+    <div class="row">
+      <div class="row-text">
+        <p class="row-num">01 — WINDOWS</p>
+        <h3>Put windows where you want them</h3>
+        <p>Halves, thirds, quarters, full screen. Press the same shortcut again
+        and the width cycles — one key finds the size you meant. Five layouts
+        tile everything at once, and one shortcut puts a window back.</p>
+        <div class="keys">
+          <kbd>⌃⌥←</kbd> <kbd>⌃⌥→</kbd> <kbd>⌃⌥↩</kbd> <kbd>⌃⌥⌫</kbd>
+        </div>
       </div>
+      <div class="row-shot"><img class="light" src="shots/panel-screen-light.png" alt="Perch window layout grid with brightness and night mode">
+      <img class="dark" src="shots/panel-screen-dark.png" alt="Perch window layout grid with brightness and night mode"></div>
+    </div>
 
-      <div class="feature">
-        <span class="icon-chip"><svg class="ico"><use href="#i-layout"/></svg></span>
-        <h3>Custom layouts</h3>
-        <p>Halves, Thirds, Main + Stack, Quarters and Focus. Applying one tiles your
-        frontmost windows into its panes in order.</p>
+    <div class="row">
+      <div class="row-text">
+        <p class="row-num">02 — SYSTEM</p>
+        <h3>Know what your Mac is doing</h3>
+        <p>CPU, memory and disk at a glance, with network throughput, battery
+        health, load average, thermal state and memory pressure underneath.
+        Pin any one of them next to the clock.</p>
+        <div class="keys"><kbd>⌃⌥Space</kbd></div>
       </div>
+      <div class="row-shot"><img class="light" src="shots/panel-system-light.png" alt="Perch system monitoring with CPU, memory and disk gauges">
+      <img class="dark" src="shots/panel-system-dark.png" alt="Perch system monitoring with CPU, memory and disk gauges"></div>
+    </div>
 
-      <div class="feature">
-        <span class="icon-chip"><svg class="ico"><use href="#i-switch"/></svg></span>
-        <h3>Alt-Tab &amp; switcher</h3>
-        <p>Hold <kbd>⌥</kbd>, tap <kbd>Tab</kbd>, release to switch. Lists
-        <em>windows</em>, not apps — two documents in one app are two entries.
-        Or search them with <kbd>⌃⌥`</kbd>.</p>
+    <div class="row">
+      <div class="row-text">
+        <p class="row-num">03 — TOOLS</p>
+        <h3>The small stuff, one click away</h3>
+        <p>Blank the screen to clean it. Lock the keyboard, or just the
+        trackpad, and wipe without typing into anything. Clear caches to the
+        Trash. Keep the Mac awake. Paste from history.</p>
+        <div class="keys">
+          <kbd>⌘⇧V</kbd> <kbd>⌥Tab</kbd> <kbd>⌃⌥N</kbd> <kbd>⌃⌥K</kbd>
+        </div>
       </div>
+      <div class="row-shot"><img class="light" src="shots/panel-tools-light.png" alt="Perch tools tab with cleaning modes and quick switches">
+      <img class="dark" src="shots/panel-tools-dark.png" alt="Perch tools tab with cleaning modes and quick switches"></div>
+    </div>
 
-      <div class="feature">
-        <span class="icon-chip"><svg class="ico"><use href="#i-clipboard"/></svg></span>
-        <h3>Clipboard history</h3>
-        <p>Searchable, with image previews and the source app. Pin entries,
-        paste with <kbd>⌘1</kbd>–<kbd>⌘9</kbd>. Anything that looks like an API key
-        or private key is skipped automatically.</p>
-      </div>
+  </div>
+</section>
 
-      <div class="feature">
-        <span class="icon-chip"><svg class="ico"><use href="#i-activity"/></svg></span>
-        <h3>System monitoring</h3>
-        <p>CPU, memory and disk rings, plus network throughput, battery health and
-        cycle count, load average, thermal state, swap and memory pressure. Show any
-        stat inline in the menu bar.</p>
-      </div>
-
-      <div class="feature">
-        <span class="icon-chip"><svg class="ico"><use href="#i-drive"/></svg></span>
-        <h3>Disk cleaning</h3>
-        <p>Sixteen built-in cache targets — Xcode, npm, Homebrew, pip, Gradle and
-        more — with measured sizes. Add your own. Everything goes to the Trash,
-        never deleted outright.</p>
-      </div>
-
-      <div class="feature">
-        <span class="icon-chip"><svg class="ico"><use href="#i-sparkle"/></svg></span>
-        <h3>Screen cleaning</h3>
-        <p>Fills every display with flat black so dust actually shows. Space cycles
-        colours, which doubles as a dead-pixel test.</p>
-      </div>
-
-      <div class="feature">
-        <span class="icon-chip"><svg class="ico"><use href="#i-keyboard"/></svg></span>
-        <h3>Keyboard cleaning</h3>
-        <p>Locks the keyboard for a countdown so you can wipe the keys without
-        typing into anything. Hold <kbd>Esc</kbd> to finish early.</p>
-      </div>
-
-      <div class="feature">
-        <span class="icon-chip"><svg class="ico"><use href="#i-trackpad"/></svg></span>
-        <h3>Trackpad cleaning</h3>
-        <p>The opposite: the pointer freezes while the keyboard stays live, so a
-        single <kbd>Esc</kbd> unlocks it. Your hands are nowhere near the keys while
-        wiping a trackpad — that is the point.</p>
-      </div>
-
-      <div class="feature">
-        <span class="icon-chip"><svg class="ico"><use href="#i-moon"/></svg></span>
-        <h3>Night mode</h3>
-        <p>Warms the screen from 6500K down to 2400K using display gamma, like
-        f.lux — so it tints everything without an overlay and never appears in
-        screenshots. Manual or scheduled.</p>
-      </div>
-
-      <div class="feature">
-        <span class="icon-chip"><svg class="ico"><use href="#i-sun"/></svg></span>
-        <h3>Brightness</h3>
-        <p>A slider per display. Real backlight control for the built-in panel,
-        software dimming for external monitors so it works over any cable.</p>
-      </div>
-
-      <div class="feature">
-        <span class="icon-chip"><svg class="ico"><use href="#i-coffee"/></svg></span>
-        <h3>Prevent sleep</h3>
-        <p>Keeps the Mac and display awake until you switch it off. Plus quick
-        toggles for clipboard recording and launch at login.</p>
-      </div>
-
+<section class="alt">
+  <div class="wrap">
+    <h2>Everything in the box</h2>
+    <p class="section-sub">No paid tier. All of it works the moment you install it.</p>
+    <div class="caps">
+      <div class="cap"><svg class="ico"><use href="#i-window"/></svg><div><b>Window manager</b><span>Halves, thirds, quarters, gaps, multi-display, undo.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-layout"/></svg><div><b>Custom layouts</b><span>Five presets that tile your frontmost windows at once.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-switch"/></svg><div><b>Alt-Tab switcher</b><span>Live window previews, type to filter, close or quit inline.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-clipboard"/></svg><div><b>Clipboard history</b><span>Searchable, pinnable, with image previews and source apps.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-activity"/></svg><div><b>System monitoring</b><span>CPU, memory, disk, network, battery health, thermals.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-drive"/></svg><div><b>Disk cleaning</b><span>Sixteen cache targets plus your own. Always to the Trash.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-sparkle"/></svg><div><b>Screen cleaning</b><span>Flat colours that double as a dead-pixel test.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-keyboard"/></svg><div><b>Keyboard cleaning</b><span>Input locked on a countdown so you can wipe the keys.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-trackpad"/></svg><div><b>Trackpad cleaning</b><span>Pointer frozen, keyboard live so Esc still lets you out.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-moon"/></svg><div><b>Night mode</b><span>6500K to 2400K via display gamma. Manual or scheduled.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-sun"/></svg><div><b>Brightness</b><span>Per display, including external monitors over any cable.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-coffee"/></svg><div><b>Prevent sleep</b><span>Keeps the Mac and display awake until you switch it off.</span></div></div>
     </div>
   </div>
 </section>
 
-<section class="alt" id="shortcuts">
+<section id="shortcuts">
   <div class="wrap">
-    <p class="eyebrow">Keyboard</p>
     <h2>Shortcuts</h2>
     <p class="section-sub">Every one of them rebindable in Settings.</p>
     <div class="scroller">
@@ -536,7 +496,6 @@
 
 <section id="install">
   <div class="wrap">
-    <p class="eyebrow">Get started</p>
     <h2>Install</h2>
     <p class="section-sub">Free, and takes about a minute.</p>
 
@@ -617,44 +576,20 @@ Scripts/install.sh</pre>
 
 <section class="alt">
   <div class="wrap">
-    <p class="eyebrow">Transparency</p>
     <h2>Privacy</h2>
     <p class="section-sub">Perch can see window titles, read the clipboard and intercept keystrokes. That deserves saying plainly.</p>
-    <div class="grid">
-      <div class="feature">
-        <span class="icon-chip"><svg class="ico"><use href="#i-keylock"/></svg></span>
-        <h3>Keystrokes are counted, never recorded</h3>
-        <p>The cleaning modes swallow input through an event tap. The handler
-        increments a counter and discards the event — key codes are never stored,
-        logged or written anywhere.</p>
-      </div>
-      <div class="feature">
-        <span class="icon-chip"><svg class="ico"><use href="#i-lock"/></svg></span>
-        <h3>Clipboard history stays on your Mac</h3>
-        <p>Stored locally with owner-only permissions. Password-manager content and
-        anything resembling a credential are skipped. It is not encrypted, and the
-        docs say so.</p>
-      </div>
-      <div class="feature">
-        <span class="icon-chip"><svg class="ico"><use href="#i-nonet"/></svg></span>
-        <h3>One network feature, off by default</h3>
-        <p>The update check is the only code that opens a socket, and it talks to
-        GitHub alone. No analytics, no crash reporting, no phone-home.</p>
-      </div>
-      <div class="feature">
-        <span class="icon-chip"><svg class="ico"><use href="#i-shield"/></svg></span>
-        <h3>Disk cleaning cannot go rogue</h3>
-        <p>A path guard rejects system directories, your home folder and its
-        important children. Removal is always to the Trash, never an outright delete.</p>
-      </div>
+    <div class="caps">
+      <div class="cap"><svg class="ico"><use href="#i-keylock"/></svg><div><b>Keystrokes are counted, never recorded</b><span>The cleaning modes discard every event they swallow. Key codes are never stored or logged.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-lock"/></svg><div><b>Clipboard history stays local</b><span>Owner-only permissions. Password managers and credential-shaped strings are skipped.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-nonet"/></svg><div><b>One network feature, off by default</b><span>The update check is the only code that opens a socket, and it talks to GitHub alone.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-shield"/></svg><div><b>Disk cleaning cannot go rogue</b><span>A path guard rejects system and home directories. Removal is always to the Trash.</span></div></div>
     </div>
-    <p style="margin-top:26px;color:var(--muted);font-size:14.4px">
+    <p style="margin-top:30px;color:var(--muted);font-size:14.4px">
       Full detail in <a href="https://github.com/ishanmalu/perch/blob/main/SECURITY.md">SECURITY.md</a>.
       Every release ships a checksum, and you can run the built-in checks yourself with
       <code>Perch --selftest</code>.
     </p>
-  </div>
-</section>
+  </section>
 
 <footer>
   <div class="wrap">
