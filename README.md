@@ -109,7 +109,11 @@ Nothing is downloaded, so there is no quarantine flag to clear.
    trackpad cleaning, and paste-on-pick. Everything else works without it. Perch
    reads window positions, titles, and app names — never window contents.
 
-3. **Try it.** With any window focused:
+3. **Optional: live window previews.** Settings → Windows → Grant, or add Perch
+   under System Settings → Privacy & Security → **Screen Recording**. Only
+   needed for Alt-Tab thumbnails; skip it and you get app icons instead.
+
+4. **Try it.** With any window focused:
 
    | Press | What happens |
    | --- | --- |
@@ -120,9 +124,9 @@ Nothing is downloaded, so there is no quarantine flag to clear.
    | `⌘⇧V` | Clipboard history |
    | `⌃⌥N` | Night mode on/off |
 
-4. **Turn on Launch at Login** — Tools tab in the panel, or Settings → General.
+5. **Turn on Launch at Login** — Tools tab in the panel, or Settings → General.
 
-5. **Make the shortcuts yours** — Settings → Shortcuts. Click any shortcut and
+6. **Make the shortcuts yours** — Settings → Shortcuts. Click any shortcut and
    press a new combination; `Esc` cancels.
 
 > If you also run Rectangle, Magnet, or AltTab, their defaults overlap Perch's.
@@ -175,12 +179,24 @@ The pane model is plain data — add your own in
 
 ### ⇥ Window switcher and Alt-Tab
 
-`⌥Tab` is classic Alt-Tab: hold Option, tap Tab to walk the list, release to
-switch. `⌥\`` walks backwards. Unlike Command-Tab it lists **windows**, so two
-documents in the same app are two separate entries.
+`⌥Tab` is classic Alt-Tab: hold Option, tap Tab to walk the grid, release to
+switch. Unlike Command-Tab it lists **windows**, so two documents in the same
+app are two separate entries. Typing filters them, and thumbnails grow when
+fewer windows are open.
 
-`⌃⌥\`` opens the same list as a searchable panel. Typing filters by
-subsequence, so `vsc pkg` finds *VS Code — Package.swift*.
+While Option is held, letters act on the highlighted window: `W` closes it,
+`M` minimises it, `Q` quits the app.
+
+**Live previews need Screen Recording permission** — macOS offers no other way
+for one app to show another app's window, and AltTab has the same requirement.
+Without it the switcher falls back to large app icons and everything else still
+works. Perch captures a window only while the switcher is on screen, never in
+the background. Grant it in System Settings → Privacy & Security → Screen
+Recording, or from Settings → Windows.
+
+`⌃⌥\`` opens a compact title list instead, on its own shortcut. Typing filters
+by subsequence, so `vsc pkg` finds *VS Code — Package.swift*. Turn it off
+entirely in Settings → Windows if you only want Alt-Tab.
 
 ### 📋 Clipboard history
 
@@ -327,6 +343,7 @@ Full detail in [SECURITY.md](SECURITY.md).
 | Capability | Used for | Bounded by |
 | --- | --- | --- |
 | Accessibility | Window frames, titles, app names | Never reads window contents |
+| Screen Recording | Window previews in Alt-Tab | Optional; captures only while the switcher is open |
 | Event tap | Swallowing input while cleaning keys or trackpad | Counts events; key codes discarded |
 | Pasteboard | Clipboard history | `0600` file, filtered (below) |
 | Filesystem | Cache measurement and clearing | Path guard, Trash only |

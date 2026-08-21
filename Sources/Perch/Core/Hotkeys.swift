@@ -49,7 +49,6 @@ struct HotkeySpec: Codable, Equatable {
         "win.thirdL":     .init(keyCode: UInt32(kVK_ANSI_D),     modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
         "win.thirdC":     .init(keyCode: UInt32(kVK_ANSI_F),     modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
         "win.thirdR":     .init(keyCode: UInt32(kVK_ANSI_G),     modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
-        "win.cycleSize":  .init(keyCode: UInt32(kVK_ANSI_Equal), modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
     ]
 }
 

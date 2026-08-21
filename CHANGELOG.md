@@ -17,6 +17,8 @@ and each heading below corresponds to a published
 - Settings → Windows chooses what Alt-Tab shows: Thumbnails or Titles.
 
 ### Fixed
+- `⌃⌥=` had a default shortcut but no handler behind it, so it silently did
+  nothing while occupying a combination.
 - Alt-Tab lost hold mode as it opened, because `open()` calls `close()`, which
   cleared the modifier that had just been set. The per-window actions never
   appeared as a result.

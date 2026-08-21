@@ -73,11 +73,7 @@
   @media (max-width: 640px) { nav a.link.hide-sm { display: none; } }
 
   /* ---------- hero ---------- */
-  header { padding: 72px 0 8px; text-align: center; }
-  header img.icon {
-    width: 108px; height: 108px; border-radius: 24px;
-    box-shadow: var(--shadow); margin-bottom: 26px;
-  }
+  header { padding: 96px 0 8px; text-align: center; }
   h1 {
     font-size: clamp(32px, 5.6vw, 54px); line-height: 1.06;
     letter-spacing: -.033em; margin: 0 0 18px; font-weight: 680;
@@ -101,7 +97,9 @@
     border: 1px solid transparent; transition: transform .12s ease, opacity .12s ease;
   }
   .btn:hover { text-decoration: none; transform: translateY(-1px); }
-  .btn-primary { background: var(--accent); color: #fff; box-shadow: var(--shadow); }
+  .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 32%, transparent); }
+  .btn-primary:hover { box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 40%, transparent); }
+  .btn svg.ico { width: 17px; height: 17px; }
   .btn-secondary { background: var(--card); color: var(--text); border-color: var(--line); }
   .sub { font-size: 13px; color: var(--faint); margin-top: 14px; }
 
@@ -119,12 +117,22 @@
     display: flex; gap: 22px; justify-content: center; align-items: flex-start;
     flex-wrap: wrap; padding: 64px 0 8px;
   }
-  .shot { text-align: center; }
+  /* The three panels are genuinely different heights, so rather than distort
+     them the figure gets a shared minimum and the caption is pushed to the
+     bottom — the blocks line up without the screenshots being stretched. */
+  .shot {
+    text-align: center; display: flex; flex-direction: column;
+    min-height: 452px;
+  }
   .shot img {
     width: 268px; max-width: 84vw; height: auto; display: block;
     border-radius: 15px; border: 1px solid var(--line); box-shadow: var(--shadow);
   }
-  .shot span { display: block; margin-top: 12px; font-size: 13px; color: var(--faint); }
+  .shot span {
+    display: block; margin-top: auto; padding-top: 14px;
+    font-size: 12.5px; font-weight: 550; color: var(--faint);
+    letter-spacing: .02em;
+  }
   /* Show the screenshot that matches the active theme. */
   .shot img.dark { display: none; }
   :root[data-theme="dark"] .shot img.light { display: none; }
@@ -151,23 +159,48 @@
   }
 
   /* ---------- sections ---------- */
-  section { padding: 72px 0; }
+  section { padding: 84px 0; }
   section.alt { background: var(--bg-soft); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
   h2 {
     font-size: clamp(24px, 3.2vw, 31px); letter-spacing: -.022em;
     margin: 0 0 10px; font-weight: 660;
   }
-  .section-sub { color: var(--muted); margin: 0 0 34px; font-size: 15.5px; }
-
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr)); gap: 16px; }
-  .feature {
-    background: var(--card); border: 1px solid var(--line);
-    border-radius: var(--radius); padding: 22px;
+  .section-sub { color: var(--muted); margin: 0 0 36px; font-size: 15.5px; max-width: 640px; }
+  .eyebrow {
+    font-size: 12px; font-weight: 620; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 10px;
   }
-  .feature .ico { font-size: 21px; line-height: 1; margin-bottom: 12px; display: block; }
+
+  /* grid-auto-rows: 1fr makes every row share a height, and the cards stretch
+     into it, so blocks stay level regardless of how much text they hold. */
+  .grid {
+    display: grid; gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(268px, 1fr));
+    grid-auto-rows: 1fr;
+  }
+  .feature {
+    display: flex; flex-direction: column; height: 100%;
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 24px 22px;
+    transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease;
+  }
+  .feature:hover {
+    border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+  }
+  .feature .icon-chip {
+    width: 38px; height: 38px; border-radius: 10px; margin-bottom: 15px;
+    display: grid; place-items: center; flex: none;
+    background: var(--accent-soft); color: var(--accent);
+  }
   .feature h3 { margin: 0 0 7px; font-size: 15.5px; font-weight: 620; letter-spacing: -.01em; }
   .feature p { margin: 0; color: var(--muted); font-size: 14.2px; line-height: 1.58; }
   .feature kbd { font-size: 11.5px; }
+
+  svg.ico { width: 19px; height: 19px; display: block; }
+  svg.ico use, svg.ico { fill: none; stroke: currentColor; stroke-width: 1.75;
+    stroke-linecap: round; stroke-linejoin: round; }
 
   kbd {
     font: 12px ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
@@ -202,15 +235,33 @@
   }
   .tabs { display: flex; gap: 8px; margin-bottom: 22px; flex-wrap: wrap; }
   .tab {
-    padding: 8px 15px; border-radius: 9px; font-size: 14px; font-weight: 550;
-    border: 1px solid var(--line); background: var(--card); color: var(--muted); cursor: pointer;
+    padding: 9px 17px; border-radius: 10px; font-size: 14px; font-weight: 560;
+    border: 1px solid var(--line); background: var(--card); color: var(--muted);
+    cursor: pointer; transition: background .14s ease, color .14s ease, border-color .14s ease;
   }
+  .tab:hover { color: var(--text); }
   .tab[aria-selected="true"] { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
   .panel[hidden] { display: none; }
 
-  footer { padding: 46px 0 64px; border-top: 1px solid var(--line); color: var(--faint); font-size: 13.5px; }
-  footer .wrap { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
-  footer .spacer { flex: 1; }
+  footer {
+    padding: 48px 0 60px; border-top: 1px solid var(--line);
+    color: var(--faint); font-size: 13.5px; text-align: center;
+  }
+  .footer-links { display: flex; flex-wrap: wrap; gap: 22px; justify-content: center; }
+  .footer-links a { color: var(--muted); }
+  .footer-links a:hover { color: var(--text); text-decoration: none; }
+  .made { margin: 22px 0 0; font-size: 13.5px; color: var(--faint); }
+  .made a { color: var(--muted); font-weight: 560; }
+  .made a:hover { color: var(--accent); text-decoration: none; }
+  .heart { color: #e2495e; font-style: normal; }
+  /* Deliberately quiet — present for anyone who looks, never a pitch. */
+  .coffee { margin: 14px 0 0; }
+  .coffee a {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px; color: var(--faint); opacity: .75;
+  }
+  .coffee a:hover { color: var(--muted); opacity: 1; text-decoration: none; }
+  .coffee svg.ico { width: 13px; height: 13px; }
 </style>
 <script>
   // Runs before first paint so a remembered choice never flashes the other theme.
@@ -221,6 +272,70 @@
 </script>
 </head>
 <body>
+
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-window" viewBox="0 0 24 24">
+      <rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16M3 10h9"/>
+    </symbol>
+    <symbol id="i-layout" viewBox="0 0 24 24">
+      <rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16"/>
+    </symbol>
+    <symbol id="i-switch" viewBox="0 0 24 24">
+      <rect x="3" y="6" width="13" height="11" rx="2"/><path d="M8 3h11a2 2 0 0 1 2 2v11"/>
+    </symbol>
+    <symbol id="i-clipboard" viewBox="0 0 24 24">
+      <rect x="8" y="3" width="8" height="4" rx="1"/>
+      <path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"/>
+      <path d="M8 12h8M8 16h5"/>
+    </symbol>
+    <symbol id="i-activity" viewBox="0 0 24 24">
+      <path d="M3 12h4l3 8 4-16 3 8h4"/>
+    </symbol>
+    <symbol id="i-drive" viewBox="0 0 24 24">
+      <rect x="3" y="5" width="18" height="6" rx="2"/><rect x="3" y="13" width="18" height="6" rx="2"/>
+      <path d="M7 8h.01M7 16h.01"/>
+    </symbol>
+    <symbol id="i-sparkle" viewBox="0 0 24 24">
+      <rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8"/>
+      <path d="M12 8l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z"/>
+    </symbol>
+    <symbol id="i-keyboard" viewBox="0 0 24 24">
+      <rect x="2" y="6" width="20" height="12" rx="2"/>
+      <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/>
+    </symbol>
+    <symbol id="i-trackpad" viewBox="0 0 24 24">
+      <rect x="3" y="4" width="18" height="14" rx="2"/><path d="M12 12v6"/>
+    </symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24">
+      <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/>
+    </symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="4"/>
+      <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
+    </symbol>
+    <symbol id="i-coffee" viewBox="0 0 24 24">
+      <path d="M4 9h13v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z"/>
+      <path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17"/><path d="M7 3v2M11 3v2"/>
+    </symbol>
+    <symbol id="i-keylock" viewBox="0 0 24 24">
+      <rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+    </symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24">
+      <rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v2"/>
+    </symbol>
+    <symbol id="i-nonet" viewBox="0 0 24 24">
+      <path d="M5 12.5a10 10 0 0 1 14 0M8.5 16a5.5 5.5 0 0 1 7 0M12 20h.01"/><path d="M3 3l18 18"/>
+    </symbol>
+    <symbol id="i-download" viewBox="0 0 24 24">
+      <path d="M12 3v12M7 11l5 5 5-5M4 20h16"/>
+    </symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24">
+      <path d="M12 3l8 3v6c0 5-3.4 8.4-8 9-4.6-.6-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>
+    </symbol>
+  </defs>
+</svg>
 
 <nav>
   <div class="wrap">
@@ -239,7 +354,6 @@
 </nav>
 
 <header class="wrap">
-  <img class="icon" src="perch-icon.png" alt="Perch app icon">
   <h1>A dozen Mac utilities. Meet Perch.</h1>
   <p class="lede">
     Tile windows, paste from history, switch with Alt-Tab, watch your system,
@@ -256,7 +370,7 @@
   </div>
 
   <div class="cta">
-    <a class="btn btn-primary" href="https://github.com/ishanmalu/perch/releases/latest">Download for macOS</a>
+    <a class="btn btn-primary" href="https://github.com/ishanmalu/perch/releases/latest"><svg class="ico"><use href="#i-download"/></svg>Download for macOS</a>
     <a class="btn btn-secondary" href="https://github.com/ishanmalu/perch">View source</a>
   </div>
   <p class="sub">Free to download and free to use. Always. No trial, no Pro tier, no subscription.</p>
@@ -290,12 +404,13 @@
 
 <section id="features">
   <div class="wrap">
+    <p class="eyebrow">Features</p>
     <h2>Everything it does</h2>
     <p class="section-sub">All of it free. There is no paid tier.</p>
     <div class="grid">
 
       <div class="feature">
-        <span class="ico">🪟</span>
+        <span class="icon-chip"><svg class="ico"><use href="#i-window"/></svg></span>
         <h3>Window manager</h3>
         <p>Snap to halves, thirds, quarters or full screen. Press the same shortcut
         again and the width cycles ½ → ⅓ → ⅔. Configurable gaps, move between
@@ -303,14 +418,14 @@
       </div>
 
       <div class="feature">
-        <span class="ico">▦</span>
+        <span class="icon-chip"><svg class="ico"><use href="#i-layout"/></svg></span>
         <h3>Custom layouts</h3>
         <p>Halves, Thirds, Main + Stack, Quarters and Focus. Applying one tiles your
         frontmost windows into its panes in order.</p>
       </div>
 
       <div class="feature">
-        <span class="ico">⇥</span>
+        <span class="icon-chip"><svg class="ico"><use href="#i-switch"/></svg></span>
         <h3>Alt-Tab &amp; switcher</h3>
         <p>Hold <kbd>⌥</kbd>, tap <kbd>Tab</kbd>, release to switch. Lists
         <em>windows</em>, not apps — two documents in one app are two entries.
@@ -318,7 +433,7 @@
       </div>
 
       <div class="feature">
-        <span class="ico">📋</span>
+        <span class="icon-chip"><svg class="ico"><use href="#i-clipboard"/></svg></span>
         <h3>Clipboard history</h3>
         <p>Searchable, with image previews and the source app. Pin entries,
         paste with <kbd>⌘1</kbd>–<kbd>⌘9</kbd>. Anything that looks like an API key
@@ -326,7 +441,7 @@
       </div>
 
       <div class="feature">
-        <span class="ico">📊</span>
+        <span class="icon-chip"><svg class="ico"><use href="#i-activity"/></svg></span>
         <h3>System monitoring</h3>
         <p>CPU, memory and disk rings, plus network throughput, battery health and
         cycle count, load average, thermal state, swap and memory pressure. Show any
@@ -334,7 +449,7 @@
       </div>
 
       <div class="feature">
-        <span class="ico">🧹</span>
+        <span class="icon-chip"><svg class="ico"><use href="#i-drive"/></svg></span>
         <h3>Disk cleaning</h3>
         <p>Sixteen built-in cache targets — Xcode, npm, Homebrew, pip, Gradle and
         more — with measured sizes. Add your own. Everything goes to the Trash,
@@ -342,21 +457,21 @@
       </div>
 
       <div class="feature">
-        <span class="ico">✨</span>
+        <span class="icon-chip"><svg class="ico"><use href="#i-sparkle"/></svg></span>
         <h3>Screen cleaning</h3>
         <p>Fills every display with flat black so dust actually shows. Space cycles
         colours, which doubles as a dead-pixel test.</p>
       </div>
 
       <div class="feature">
-        <span class="ico">⌨️</span>
+        <span class="icon-chip"><svg class="ico"><use href="#i-keyboard"/></svg></span>
         <h3>Keyboard cleaning</h3>
         <p>Locks the keyboard for a countdown so you can wipe the keys without
         typing into anything. Hold <kbd>Esc</kbd> to finish early.</p>
       </div>
 
       <div class="feature">
-        <span class="ico">🖱️</span>
+        <span class="icon-chip"><svg class="ico"><use href="#i-trackpad"/></svg></span>
         <h3>Trackpad cleaning</h3>
         <p>The opposite: the pointer freezes while the keyboard stays live, so a
         single <kbd>Esc</kbd> unlocks it. Your hands are nowhere near the keys while
@@ -364,7 +479,7 @@
       </div>
 
       <div class="feature">
-        <span class="ico">🌙</span>
+        <span class="icon-chip"><svg class="ico"><use href="#i-moon"/></svg></span>
         <h3>Night mode</h3>
         <p>Warms the screen from 6500K down to 2400K using display gamma, like
         f.lux — so it tints everything without an overlay and never appears in
@@ -372,14 +487,14 @@
       </div>
 
       <div class="feature">
-        <span class="ico">🔆</span>
+        <span class="icon-chip"><svg class="ico"><use href="#i-sun"/></svg></span>
         <h3>Brightness</h3>
         <p>A slider per display. Real backlight control for the built-in panel,
         software dimming for external monitors so it works over any cable.</p>
       </div>
 
       <div class="feature">
-        <span class="ico">☕</span>
+        <span class="icon-chip"><svg class="ico"><use href="#i-coffee"/></svg></span>
         <h3>Prevent sleep</h3>
         <p>Keeps the Mac and display awake until you switch it off. Plus quick
         toggles for clipboard recording and launch at login.</p>
@@ -391,6 +506,7 @@
 
 <section class="alt" id="shortcuts">
   <div class="wrap">
+    <p class="eyebrow">Keyboard</p>
     <h2>Shortcuts</h2>
     <p class="section-sub">Every one of them rebindable in Settings.</p>
     <div class="scroller">
@@ -418,6 +534,7 @@
 
 <section id="install">
   <div class="wrap">
+    <p class="eyebrow">Get started</p>
     <h2>Install</h2>
     <p class="section-sub">Free, and takes about a minute.</p>
 
@@ -493,27 +610,32 @@ Scripts/install.sh</pre>
 
 <section class="alt">
   <div class="wrap">
+    <p class="eyebrow">Transparency</p>
     <h2>Privacy</h2>
     <p class="section-sub">Perch can see window titles, read the clipboard and intercept keystrokes. That deserves saying plainly.</p>
     <div class="grid">
       <div class="feature">
+        <span class="icon-chip"><svg class="ico"><use href="#i-keylock"/></svg></span>
         <h3>Keystrokes are counted, never recorded</h3>
         <p>The cleaning modes swallow input through an event tap. The handler
         increments a counter and discards the event — key codes are never stored,
         logged or written anywhere.</p>
       </div>
       <div class="feature">
+        <span class="icon-chip"><svg class="ico"><use href="#i-lock"/></svg></span>
         <h3>Clipboard history stays on your Mac</h3>
         <p>Stored locally with owner-only permissions. Password-manager content and
         anything resembling a credential are skipped. It is not encrypted, and the
         docs say so.</p>
       </div>
       <div class="feature">
+        <span class="icon-chip"><svg class="ico"><use href="#i-nonet"/></svg></span>
         <h3>One network feature, off by default</h3>
         <p>The update check is the only code that opens a socket, and it talks to
         GitHub alone. No analytics, no crash reporting, no phone-home.</p>
       </div>
       <div class="feature">
+        <span class="icon-chip"><svg class="ico"><use href="#i-shield"/></svg></span>
         <h3>Disk cleaning cannot go rogue</h3>
         <p>A path guard rejects system directories, your home folder and its
         important children. Removal is always to the Trash, never an outright delete.</p>
@@ -529,11 +651,22 @@ Scripts/install.sh</pre>
 
 <footer>
   <div class="wrap">
-    <span>Perch — free and open source under the MIT licence.</span>
-    <span class="spacer"></span>
-    <a href="https://github.com/ishanmalu/perch">GitHub</a>
-    <a href="https://github.com/ishanmalu/perch/releases">Releases</a>
-    <a href="https://github.com/ishanmalu/perch/issues">Report an issue</a>
+    <div class="footer-links">
+      <a href="https://github.com/ishanmalu/perch">GitHub</a>
+      <a href="https://github.com/ishanmalu/perch/releases">Releases</a>
+      <a href="https://github.com/ishanmalu/perch/issues">Report an issue</a>
+      <a href="https://github.com/ishanmalu/perch/blob/main/LICENSE">MIT licence</a>
+    </div>
+    <p class="made">
+      Made with <span class="heart" aria-label="love">&#9829;</span> in Finland
+      &nbsp;·&nbsp;
+      By <a href="https://www.linkedin.com/in/ishanmalu/" target="_blank" rel="noopener">Ishan Malu</a>
+    </p>
+    <p class="coffee">
+      <a href="https://buymeacoffee.com/ishanmalu" target="_blank" rel="noopener">
+        <svg class="ico"><use href="#i-coffee"/></svg>Buy me a coffee
+      </a>
+    </p>
   </div>
 </footer>
 
