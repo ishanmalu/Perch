@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Perch — a dozen Mac utilities in one place</title>
+<meta name="description" content="A free, open-source macOS menu bar utility: window tiling, clipboard history, Alt-Tab switcher, system monitoring, night mode, disk cleaning, and screen, keyboard and trackpad cleaning.">
+<link rel="icon" href="perch-icon.png">
+<meta property="og:title" content="Perch — a dozen Mac utilities in one place">
+<meta property="og:description" content="Window tiling, clipboard history, Alt-Tab, system monitoring, night mode and cleaning modes — free and open source.">
+<meta property="og:image" content="https://ishanmalu.github.io/perch/perch-icon.png">
+<meta property="og:type" content="website">
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-soft: #f6f7f9;
+    --card: #ffffff;
+    --line: #e6e8ec;
+    --text: #14161a;
+    --muted: #5f6672;
+    --faint: #8b929e;
+    --accent: #2f6df6;
+    --accent-soft: rgba(47, 109, 246, .10);
+    --shadow: 0 1px 2px rgba(16, 20, 28, .04), 0 8px 24px rgba(16, 20, 28, .06);
+    --radius: 14px;
+    --free-fg: #0a7d3f; --free-bg: rgba(16, 163, 82, .10); --free-line: rgba(16, 163, 82, .28);
+  }
+  /* Dark palette, applied both by explicit choice and by system preference.
+     The media query is guarded so an explicit light choice always wins. */
+  :root[data-theme="dark"] {
+    --bg: #0c0e12; --bg-soft: #12151b; --card: #14181f; --line: #232833;
+    --text: #eef1f6; --muted: #9aa3b2; --faint: #6b7382;
+    --accent: #5b8dff; --accent-soft: rgba(91, 141, 255, .14);
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 12px 32px rgba(0, 0, 0, .35);
+    --free-fg: #4ade90; --free-bg: rgba(74, 222, 144, .12); --free-line: rgba(74, 222, 144, .26);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0c0e12; --bg-soft: #12151b; --card: #14181f; --line: #232833;
+      --text: #eef1f6; --muted: #9aa3b2; --faint: #6b7382;
+      --accent: #5b8dff; --accent-soft: rgba(91, 141, 255, .14);
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 12px 32px rgba(0, 0, 0, .35);
+      --free-fg: #4ade90; --free-bg: rgba(74, 222, 144, .12); --free-line: rgba(74, 222, 144, .26);
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ---------- nav ---------- */
+  nav {
+    position: sticky; top: 0; z-index: 20;
+    backdrop-filter: saturate(180%) blur(14px);
+    -webkit-backdrop-filter: saturate(180%) blur(14px);
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    border-bottom: 1px solid var(--line);
+  }
+  nav .wrap { display: flex; align-items: center; gap: 10px; height: 58px; }
+  nav img { width: 26px; height: 26px; border-radius: 6px; }
+  nav b { font-size: 15px; letter-spacing: -.01em; }
+  nav .spacer { flex: 1; }
+  nav a.link { color: var(--muted); font-size: 14px; margin-left: 20px; }
+  nav a.link:hover { color: var(--text); text-decoration: none; }
+  @media (max-width: 640px) { nav a.link.hide-sm { display: none; } }
+
+  /* ---------- hero ---------- */
+  header { padding: 72px 0 8px; text-align: center; }
+  header img.icon {
+    width: 108px; height: 108px; border-radius: 24px;
+    box-shadow: var(--shadow); margin-bottom: 26px;
+  }
+  h1 {
+    font-size: clamp(32px, 5.6vw, 54px); line-height: 1.06;
+    letter-spacing: -.033em; margin: 0 0 18px; font-weight: 680;
+    text-wrap: balance;
+  }
+  .lede {
+    font-size: clamp(16px, 2.1vw, 19px); color: var(--muted);
+    max-width: 620px; margin: 0 auto 28px;
+  }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 28px; }
+  .badge {
+    font-size: 12.5px; font-weight: 550; color: var(--muted);
+    background: var(--bg-soft); border: 1px solid var(--line);
+    padding: 5px 11px; border-radius: 999px;
+  }
+  .badge.free { color: var(--free-fg); background: var(--free-bg); border-color: var(--free-line); }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; align-items: center; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 22px; border-radius: 11px; font-weight: 600; font-size: 15px;
+    border: 1px solid transparent; transition: transform .12s ease, opacity .12s ease;
+  }
+  .btn:hover { text-decoration: none; transform: translateY(-1px); }
+  .btn-primary { background: var(--accent); color: #fff; box-shadow: var(--shadow); }
+  .btn-secondary { background: var(--card); color: var(--text); border-color: var(--line); }
+  .sub { font-size: 13px; color: var(--faint); margin-top: 14px; }
+
+  /* ---------- early-stage notice ---------- */
+  .notice {
+    margin: 44px auto 0; max-width: 720px;
+    background: var(--bg-soft); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 18px 20px;
+    font-size: 14.5px; color: var(--muted); text-align: left;
+  }
+  .notice b { color: var(--text); }
+
+  /* ---------- shots ---------- */
+  .shots {
+    display: flex; gap: 22px; justify-content: center; align-items: flex-start;
+    flex-wrap: wrap; padding: 64px 0 8px;
+  }
+  .shot { text-align: center; }
+  .shot img {
+    width: 268px; max-width: 84vw; height: auto; display: block;
+    border-radius: 15px; border: 1px solid var(--line); box-shadow: var(--shadow);
+  }
+  .shot span { display: block; margin-top: 12px; font-size: 13px; color: var(--faint); }
+  /* Show the screenshot that matches the active theme. */
+  .shot img.dark { display: none; }
+  :root[data-theme="dark"] .shot img.light { display: none; }
+  :root[data-theme="dark"] .shot img.dark { display: block; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .shot img.light { display: none; }
+    :root:not([data-theme="light"]) .shot img.dark { display: block; }
+  }
+
+  /* ---------- theme toggle ---------- */
+  .theme-toggle {
+    display: grid; place-items: center; width: 32px; height: 32px;
+    margin-left: 18px; border-radius: 9px; cursor: pointer;
+    background: var(--bg-soft); border: 1px solid var(--line); color: var(--muted);
+    padding: 0; font-size: 14px; line-height: 1;
+  }
+  .theme-toggle:hover { color: var(--text); }
+  .theme-toggle .moon { display: none; }
+  :root[data-theme="dark"] .theme-toggle .sun { display: none; }
+  :root[data-theme="dark"] .theme-toggle .moon { display: block; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .theme-toggle .sun { display: none; }
+    :root:not([data-theme="light"]) .theme-toggle .moon { display: block; }
+  }
+
+  /* ---------- sections ---------- */
+  section { padding: 72px 0; }
+  section.alt { background: var(--bg-soft); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  h2 {
+    font-size: clamp(24px, 3.2vw, 31px); letter-spacing: -.022em;
+    margin: 0 0 10px; font-weight: 660;
+  }
+  .section-sub { color: var(--muted); margin: 0 0 34px; font-size: 15.5px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr)); gap: 16px; }
+  .feature {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 22px;
+  }
+  .feature .ico { font-size: 21px; line-height: 1; margin-bottom: 12px; display: block; }
+  .feature h3 { margin: 0 0 7px; font-size: 15.5px; font-weight: 620; letter-spacing: -.01em; }
+  .feature p { margin: 0; color: var(--muted); font-size: 14.2px; line-height: 1.58; }
+  .feature kbd { font-size: 11.5px; }
+
+  kbd {
+    font: 12px ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+    background: var(--bg-soft); border: 1px solid var(--line);
+    border-radius: 5px; padding: 2px 6px; color: var(--text); white-space: nowrap;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  th, td { text-align: left; padding: 11px 12px; border-bottom: 1px solid var(--line); }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); font-weight: 600; }
+  td:first-child { width: 190px; }
+  .scroller { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  ol.steps { counter-reset: s; list-style: none; padding: 0; margin: 0; }
+  ol.steps > li {
+    counter-increment: s; position: relative; padding: 0 0 22px 46px; margin: 0;
+  }
+  ol.steps > li::before {
+    content: counter(s); position: absolute; left: 0; top: -1px;
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--accent-soft); color: var(--accent);
+    font-size: 13px; font-weight: 660; display: grid; place-items: center;
+  }
+  ol.steps h4 { margin: 3px 0 6px; font-size: 15.5px; font-weight: 600; }
+  ol.steps p { margin: 0 0 8px; color: var(--muted); font-size: 14.4px; }
+
+  pre {
+    background: var(--bg-soft); border: 1px solid var(--line); border-radius: 10px;
+    padding: 13px 15px; overflow-x: auto; margin: 10px 0 0;
+    font: 13px/1.55 ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+    color: var(--text);
+  }
+  .tabs { display: flex; gap: 8px; margin-bottom: 22px; flex-wrap: wrap; }
+  .tab {
+    padding: 8px 15px; border-radius: 9px; font-size: 14px; font-weight: 550;
+    border: 1px solid var(--line); background: var(--card); color: var(--muted); cursor: pointer;
+  }
+  .tab[aria-selected="true"] { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+  .panel[hidden] { display: none; }
+
+  footer { padding: 46px 0 64px; border-top: 1px solid var(--line); color: var(--faint); font-size: 13.5px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+  footer .spacer { flex: 1; }
+</style>
+<script>
+  // Runs before first paint so a remembered choice never flashes the other theme.
+  try {
+    var t = localStorage.getItem('perch-theme');
+    if (t) document.documentElement.dataset.theme = t;
+  } catch (e) {}
+</script>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <img src="perch-icon.png" alt="">
+    <b>Perch</b>
+    <span class="spacer"></span>
+    <a class="link hide-sm" href="#features">Features</a>
+    <a class="link hide-sm" href="#shortcuts">Shortcuts</a>
+    <a class="link" href="#install">Install</a>
+    <a class="link" href="https://github.com/ishanmalu/perch">GitHub</a>
+    <button class="theme-toggle" id="theme-toggle" type="button"
+            aria-label="Switch between light and dark">
+      <span class="sun">☀</span><span class="moon">☾</span>
+    </button>
+  </div>
+</nav>
+
+<header class="wrap">
+  <img class="icon" src="perch-icon.png" alt="Perch app icon">
+  <h1>A dozen Mac utilities. Meet Perch.</h1>
+  <p class="lede">
+    Tile windows, paste from history, switch with Alt-Tab, watch your system,
+    warm the screen at night, reclaim disk space and lock the keyboard to clean it —
+    all from one panel, all on a shortcut.
+  </p>
+
+  <div class="badges">
+    <span class="badge free">Free &amp; open source</span>
+    <span class="badge">macOS 14+</span>
+    <span class="badge">Universal — Apple silicon &amp; Intel</span>
+    <span class="badge">No account, no telemetry</span>
+    <span class="badge">~4 MB</span>
+  </div>
+
+  <div class="cta">
+    <a class="btn btn-primary" href="https://github.com/ishanmalu/perch/releases/latest">Download for macOS</a>
+    <a class="btn btn-secondary" href="https://github.com/ishanmalu/perch">View source</a>
+  </div>
+  <p class="sub">Free to download and free to use. Always. No trial, no Pro tier, no subscription.</p>
+
+  <div class="notice">
+    <b>Early stage.</b> Perch is a personal project, built and used daily on one Mac.
+    It works, and every release is checked by an automated self-test — but it has not
+    been through wide testing, and it is <b>not notarized by Apple</b>, so the first
+    launch takes one extra step (<a href="#install">shown below</a>). Bugs and rough
+    edges are likely. Issues and pull requests are welcome.
+  </div>
+</header>
+
+<div class="wrap shots">
+  <figure class="shot" style="margin:0">
+    <img class="light" src="shots/panel-system-light.png" alt="Perch System tab showing CPU, memory and disk gauges with network, battery and load statistics">
+    <img class="dark" src="shots/panel-system-dark.png" alt="Perch System tab showing CPU, memory and disk gauges with network, battery and load statistics">
+    <span>System</span>
+  </figure>
+  <figure class="shot" style="margin:0">
+    <img class="light" src="shots/panel-screen-light.png" alt="Perch Screen tab showing the window layout grid, brightness slider and night mode toggle">
+    <img class="dark" src="shots/panel-screen-dark.png" alt="Perch Screen tab showing the window layout grid, brightness slider and night mode toggle">
+    <span>Screen</span>
+  </figure>
+  <figure class="shot" style="margin:0">
+    <img class="light" src="shots/panel-tools-light.png" alt="Perch Tools tab showing cleaning tools and quick switches">
+    <img class="dark" src="shots/panel-tools-dark.png" alt="Perch Tools tab showing cleaning tools and quick switches">
+    <span>Tools</span>
+  </figure>
+</div>
+
+<section id="features">
+  <div class="wrap">
+    <h2>Everything it does</h2>
+    <p class="section-sub">All of it free. There is no paid tier.</p>
+    <div class="grid">
+
+      <div class="feature">
+        <span class="ico">🪟</span>
+        <h3>Window manager</h3>
+        <p>Snap to halves, thirds, quarters or full screen. Press the same shortcut
+        again and the width cycles ½ → ⅓ → ⅔. Configurable gaps, move between
+        displays, and <kbd>⌃⌥⌫</kbd> to undo.</p>
+      </div>
+
+      <div class="feature">
+        <span class="ico">▦</span>
+        <h3>Custom layouts</h3>
+        <p>Halves, Thirds, Main + Stack, Quarters and Focus. Applying one tiles your
+        frontmost windows into its panes in order.</p>
+      </div>
+
+      <div class="feature">
+        <span class="ico">⇥</span>
+        <h3>Alt-Tab &amp; switcher</h3>
+        <p>Hold <kbd>⌥</kbd>, tap <kbd>Tab</kbd>, release to switch. Lists
+        <em>windows</em>, not apps — two documents in one app are two entries.
+        Or search them with <kbd>⌃⌥`</kbd>.</p>
+      </div>
+
+      <div class="feature">
+        <span class="ico">📋</span>
+        <h3>Clipboard history</h3>
+        <p>Searchable, with image previews and the source app. Pin entries,
+        paste with <kbd>⌘1</kbd>–<kbd>⌘9</kbd>. Anything that looks like an API key
+        or private key is skipped automatically.</p>
+      </div>
+
+      <div class="feature">
+        <span class="ico">📊</span>
+        <h3>System monitoring</h3>
+        <p>CPU, memory and disk rings, plus network throughput, battery health and
+        cycle count, load average, thermal state, swap and memory pressure. Show any
+        stat inline in the menu bar.</p>
+      </div>
+
+      <div class="feature">
+        <span class="ico">🧹</span>
+        <h3>Disk cleaning</h3>
+        <p>Sixteen built-in cache targets — Xcode, npm, Homebrew, pip, Gradle and
+        more — with measured sizes. Add your own. Everything goes to the Trash,
+        never deleted outright.</p>
+      </div>
+
+      <div class="feature">
+        <span class="ico">✨</span>
+        <h3>Screen cleaning</h3>
+        <p>Fills every display with flat black so dust actually shows. Space cycles
+        colours, which doubles as a dead-pixel test.</p>
+      </div>
+
+      <div class="feature">
+        <span class="ico">⌨️</span>
+        <h3>Keyboard cleaning</h3>
+        <p>Locks the keyboard for a countdown so you can wipe the keys without
+        typing into anything. Hold <kbd>Esc</kbd> to finish early.</p>
+      </div>
+
+      <div class="feature">
+        <span class="ico">🖱️</span>
+        <h3>Trackpad cleaning</h3>
+        <p>The opposite: the pointer freezes while the keyboard stays live, so a
+        single <kbd>Esc</kbd> unlocks it. Your hands are nowhere near the keys while
+        wiping a trackpad — that is the point.</p>
+      </div>
+
+      <div class="feature">
+        <span class="ico">🌙</span>
+        <h3>Night mode</h3>
+        <p>Warms the screen from 6500K down to 2400K using display gamma, like
+        f.lux — so it tints everything without an overlay and never appears in
+        screenshots. Manual or scheduled.</p>
+      </div>
+
+      <div class="feature">
+        <span class="ico">🔆</span>
+        <h3>Brightness</h3>
+        <p>A slider per display. Real backlight control for the built-in panel,
+        software dimming for external monitors so it works over any cable.</p>
+      </div>
+
+      <div class="feature">
+        <span class="ico">☕</span>
+        <h3>Prevent sleep</h3>
+        <p>Keeps the Mac and display awake until you switch it off. Plus quick
+        toggles for clipboard recording and launch at login.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section class="alt" id="shortcuts">
+  <div class="wrap">
+    <h2>Shortcuts</h2>
+    <p class="section-sub">Every one of them rebindable in Settings.</p>
+    <div class="scroller">
+      <table>
+        <thead><tr><th>Shortcut</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td><kbd>⌃⌥Space</kbd></td><td>Open the Perch panel</td></tr>
+          <tr><td><kbd>⌘⇧V</kbd></td><td>Clipboard history</td></tr>
+          <tr><td><kbd>⌥Tab</kbd></td><td>Alt-Tab — hold Option, tap Tab, release to switch</td></tr>
+          <tr><td><kbd>⌃⌥`</kbd></td><td>Searchable window switcher</td></tr>
+          <tr><td><kbd>⌃⌥←</kbd> <kbd>→</kbd></td><td>Left / right half — press again to cycle ⅓, ⅔</td></tr>
+          <tr><td><kbd>⌃⌥↑</kbd> <kbd>↓</kbd></td><td>Top / bottom half</td></tr>
+          <tr><td><kbd>⌃⌥↩</kbd></td><td>Maximize</td></tr>
+          <tr><td><kbd>⌃⌥⌫</kbd></td><td>Restore original size</td></tr>
+          <tr><td><kbd>⌃⌥⇧←</kbd> <kbd>→</kbd></td><td>Move to previous / next display</td></tr>
+          <tr><td><kbd>⌃⌥N</kbd></td><td>Night mode</td></tr>
+          <tr><td><kbd>⌃⌥K</kbd></td><td>Screen cleaning</td></tr>
+          <tr><td><kbd>⌃⌥⇧L</kbd></td><td>Keyboard cleaning</td></tr>
+          <tr><td><kbd>⌃⌥⇧T</kbd></td><td>Trackpad cleaning</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="install">
+  <div class="wrap">
+    <h2>Install</h2>
+    <p class="section-sub">Free, and takes about a minute.</p>
+
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" aria-selected="true" data-panel="p-dmg">Download</button>
+      <button class="tab" role="tab" aria-selected="false" data-panel="p-brew">Homebrew</button>
+      <button class="tab" role="tab" aria-selected="false" data-panel="p-src">Build it</button>
+    </div>
+
+    <div class="panel" id="p-dmg">
+      <ol class="steps">
+        <li>
+          <h4>Download the DMG</h4>
+          <p>Grab the newest <code>Perch-x.y.z.dmg</code> from the releases page.</p>
+          <a class="btn btn-primary" href="https://github.com/ishanmalu/perch/releases/latest" style="margin-top:6px">Download latest release</a>
+        </li>
+        <li>
+          <h4>Drag Perch to Applications</h4>
+          <p>Open the DMG and drag the app onto the Applications shortcut, then eject it.</p>
+        </li>
+        <li>
+          <h4>Clear the download flag</h4>
+          <p>Perch is signed, but not <em>notarized</em> — that needs a paid Apple
+          Developer account — so macOS blocks it on first launch. Paste this into
+          Terminal:</p>
+          <pre>xattr -dr com.apple.quarantine /Applications/Perch.app</pre>
+          <p style="margin-top:10px">Prefer not to use Terminal? Open Perch, dismiss the warning, then go to
+          <b>System Settings → Privacy &amp; Security</b>, scroll to <b>Security</b> and click
+          <b>Open Anyway</b>. On macOS 15 and later, Control-clicking and choosing Open no
+          longer works for unnotarized apps.</p>
+        </li>
+        <li>
+          <h4>Grant Accessibility access</h4>
+          <p><b>System Settings → Privacy &amp; Security → Accessibility</b>, then add
+          <code>Perch.app</code>. Needed for window tiling, the switcher, Alt-Tab and the
+          cleaning modes. Perch reads window positions and titles — never window contents.</p>
+        </li>
+        <li>
+          <h4>Press <kbd>⌃⌥Space</kbd></h4>
+          <p>Perch lives in the menu bar with no Dock icon. If a notch or a full menu
+          bar hides the icon, the shortcut still opens the panel.</p>
+        </li>
+      </ol>
+    </div>
+
+    <div class="panel" id="p-brew" hidden>
+      <p class="section-sub" style="margin-bottom:14px">
+        The smoothest route — <code>--no-quarantine</code> means there is nothing to clear afterwards.
+      </p>
+      <pre>brew tap ishanmalu/tap
+brew install --cask --no-quarantine perch
+open -a Perch</pre>
+      <p style="margin-top:16px;color:var(--muted);font-size:14.4px">
+        Then grant Accessibility access under System Settings → Privacy &amp; Security →
+        Accessibility, and press <kbd>⌃⌥Space</kbd>.
+      </p>
+    </div>
+
+    <div class="panel" id="p-src" hidden>
+      <p class="section-sub" style="margin-bottom:14px">
+        Needs Swift 6 and the macOS SDK. Command Line Tools are enough — full Xcode is not required.
+      </p>
+      <pre>git clone https://github.com/ishanmalu/perch.git
+cd perch
+Scripts/install.sh</pre>
+      <p style="margin-top:16px;color:var(--muted);font-size:14.4px">
+        Builds, runs the self-test, installs to <code>/Applications</code> and launches it.
+        Nothing is downloaded, so there is no quarantine flag to clear.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="alt">
+  <div class="wrap">
+    <h2>Privacy</h2>
+    <p class="section-sub">Perch can see window titles, read the clipboard and intercept keystrokes. That deserves saying plainly.</p>
+    <div class="grid">
+      <div class="feature">
+        <h3>Keystrokes are counted, never recorded</h3>
+        <p>The cleaning modes swallow input through an event tap. The handler
+        increments a counter and discards the event — key codes are never stored,
+        logged or written anywhere.</p>
+      </div>
+      <div class="feature">
+        <h3>Clipboard history stays on your Mac</h3>
+        <p>Stored locally with owner-only permissions. Password-manager content and
+        anything resembling a credential are skipped. It is not encrypted, and the
+        docs say so.</p>
+      </div>
+      <div class="feature">
+        <h3>One network feature, off by default</h3>
+        <p>The update check is the only code that opens a socket, and it talks to
+        GitHub alone. No analytics, no crash reporting, no phone-home.</p>
+      </div>
+      <div class="feature">
+        <h3>Disk cleaning cannot go rogue</h3>
+        <p>A path guard rejects system directories, your home folder and its
+        important children. Removal is always to the Trash, never an outright delete.</p>
+      </div>
+    </div>
+    <p style="margin-top:26px;color:var(--muted);font-size:14.4px">
+      Full detail in <a href="https://github.com/ishanmalu/perch/blob/main/SECURITY.md">SECURITY.md</a>.
+      Every release ships a checksum, and you can run the built-in checks yourself with
+      <code>Perch --selftest</code>.
+    </p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>Perch — free and open source under the MIT licence.</span>
+    <span class="spacer"></span>
+    <a href="https://github.com/ishanmalu/perch">GitHub</a>
+    <a href="https://github.com/ishanmalu/perch/releases">Releases</a>
+    <a href="https://github.com/ishanmalu/perch/issues">Report an issue</a>
+  </div>
+</footer>
+
+<script>
+  // Applied before paint by the inline head script; this only handles clicks.
+  const root = document.documentElement;
+  document.getElementById('theme-toggle').addEventListener('click', () => {
+    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const current = root.dataset.theme || (systemDark ? 'dark' : 'light');
+    const next = current === 'dark' ? 'light' : 'dark';
+    root.dataset.theme = next;
+    try { localStorage.setItem('perch-theme', next); } catch (e) {}
+  });
+
+  const tabs = document.querySelectorAll('.tab');
+  tabs.forEach(tab => tab.addEventListener('click', () => {
+    tabs.forEach(t => {
+      t.setAttribute('aria-selected', String(t === tab));
+      document.getElementById(t.dataset.panel).hidden = t !== tab;
+    });
+  }));
+</script>
+
+</body>
+</html>
