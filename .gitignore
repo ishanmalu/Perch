@@ -2,3 +2,5 @@
 dist/
 *.dmg
 .DS_Store
+Resources/Perch.iconset/
+Resources/Perch.icns
