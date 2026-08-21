@@ -47,12 +47,16 @@ final class FloatingPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
 
-    /// Anchors under the top-right corner, where the menu bar item would be.
+    /// Anchors under the top-right corner, where the menu bar item would be,
+    /// shrinking and clamping so the panel is always fully on screen.
     func showTopTrailing() {
         if let screen = NSScreen.main {
             let f = screen.visibleFrame
-            setFrameOrigin(CGPoint(x: f.maxX - frame.width - 12,
-                                   y: f.maxY - frame.height - 6))
+            let width = min(frame.width, f.width - 24)
+            let height = min(frame.height, f.height - 24)
+            let x = max(f.minX + 12, f.maxX - width - 12)
+            let y = max(f.minY + 12, f.maxY - height - 6)
+            setFrame(CGRect(x: x, y: y, width: width, height: height), display: true)
         }
         NSApp.activate(ignoringOtherApps: true)
         makeKeyAndOrderFront(nil)

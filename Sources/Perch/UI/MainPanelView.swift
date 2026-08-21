@@ -15,32 +15,96 @@ struct MainPanelView: View {
     var maxHeight: CGFloat = 700
     var onOpenSettings: () -> Void
     var onQuit: () -> Void
+    /// Renders without the ScrollView, for `--render-ui` previews: ImageRenderer
+    /// draws a ScrollView's contents as blank.
+    var flattened = false
+    /// Which tab to open on; only used by `--render-ui`.
+    var initialTab: PanelTab? = nil
 
     @State private var contentHeight: CGFloat = 0
+    @State private var tab: PanelTab = .system
+
+    enum PanelTab: String, CaseIterable, Identifiable {
+        case system, windows, display, tools
+        var id: String { rawValue }
+        var title: String { rawValue.capitalized }
+        var symbol: String {
+            switch self {
+            case .system: return "gauge.medium"
+            case .windows: return "macwindow"
+            case .display: return "sun.max"
+            case .tools: return "wrench.and.screwdriver"
+            }
+        }
+    }
+
+    /// The scrollable middle gets what's left after the header, footer, and a
+    /// margin from the menu bar. Hard-capped so the panel can never be taller
+    /// than the display it drops out of.
+    private var scrollBudget: CGFloat { max(180, min(maxHeight - 120, 420)) }
 
     var body: some View {
         VStack(spacing: 0) {
             header
+            tabBar
             Divider()
-            ScrollView(.vertical) {
-                VStack(alignment: .leading, spacing: Theme.Space.section) {
-                    statsSection
-                    windowsSection
-                    brightnessSection
-                    nightSection
-                    toolsSection
-                    updateSection
+            if flattened {
+                sections
+            } else {
+                ScrollView(.vertical) {
+                    sections
+                        .background(GeometryReader { geo in
+                            Color.clear.preference(key: PanelHeightKey.self, value: geo.size.height)
+                        })
                 }
-                .padding(Theme.Space.inset)
-                .background(GeometryReader { geo in
-                    Color.clear.preference(key: PanelHeightKey.self, value: geo.size.height)
-                })
+                .scrollBounceBehavior(.basedOnSize)
+                .onPreferenceChange(PanelHeightKey.self) { contentHeight = $0 }
+                .frame(height: min(max(contentHeight, 100), scrollBudget))
             }
-            .scrollBounceBehavior(.basedOnSize)
-            .onPreferenceChange(PanelHeightKey.self) { contentHeight = $0 }
-            .frame(height: min(max(contentHeight, 120), maxHeight))
+            Divider()
+            footer
         }
-        .frame(width: 348)
+        .frame(width: 300)
+        .onAppear { if let initialTab { tab = initialTab } }
+    }
+
+    private var tabBar: some View {
+        HStack(spacing: 3) {
+            ForEach(PanelTab.allCases) { item in
+                Button {
+                    withAnimation(.easeOut(duration: 0.12)) { tab = item }
+                } label: {
+                    VStack(spacing: 2) {
+                        Image(systemName: item.symbol).font(.system(size: 11.5))
+                        Text(item.title).font(.system(size: 9))
+                    }
+                    .foregroundStyle(tab == item ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.secondary))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 5)
+                    .background(tab == item ? Color.accentColor.opacity(0.13) : .clear,
+                                in: RoundedRectangle(cornerRadius: 6))
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.bottom, 7)
+    }
+
+    @ViewBuilder
+    private var sections: some View {
+        Group {
+            switch tab {
+            case .system: statsSection
+            case .windows: windowsSection
+            case .display: displaySection
+            case .tools: toolsSection
+            }
+        }
+        .padding(.horizontal, 11)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Header
@@ -50,16 +114,13 @@ struct MainPanelView: View {
             Image(systemName: "bird.fill")
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(Color.accentColor)
-            Text("Perch").font(.system(size: 13, weight: .semibold))
-            Text(updater.currentVersion)
-                .font(Theme.Font.numeric)
-                .foregroundStyle(.tertiary)
+            Text("Perch").font(.system(size: 12.5, weight: .semibold))
             Spacer()
             iconButton("gearshape", help: "Settings", action: onOpenSettings)
             iconButton("power", help: "Quit Perch", action: onQuit)
         }
-        .padding(.horizontal, Theme.Space.inset)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 11)
+        .padding(.vertical, 7)
     }
 
     private func iconButton(_ symbol: String, help: String, action: @escaping () -> Void) -> some View {
@@ -76,34 +137,39 @@ struct MainPanelView: View {
 
     private var statsSection: some View {
         let s = monitor.snapshot
-        return VStack(alignment: .leading, spacing: Theme.Space.row) {
-            SectionHeader("System")
-            Card {
-                VStack(spacing: 9) {
-                    StatBar(title: "CPU", value: s.cpuUsed / 100,
-                            detail: String(format: "%.0f%%", s.cpuUsed),
-                            history: monitor.cpuHistory, tint: .blue)
-                    StatBar(title: "Memory", value: s.memPercent / 100,
-                            detail: SystemMonitor.bytes(s.memUsed),
-                            history: monitor.memHistory, tint: memoryTint(s.memPressure))
-                    StatBar(title: "Disk", value: s.diskPercent / 100,
-                            detail: "\(SystemMonitor.bytes(s.diskFree)) free",
-                            history: [], tint: .purple)
-
-                    Divider().opacity(0.5)
-
-                    HStack(spacing: 0) {
-                        chip("arrow.down", SystemMonitor.rate(s.netIn), .teal)
-                        chip("arrow.up", SystemMonitor.rate(s.netOut), .indigo)
-                        if let b = s.batteryPercent {
-                            chip(s.batteryCharging ? "bolt.fill" : "battery.50", "\(b)%",
-                                 b < 20 && !s.batteryCharging ? .red : .green)
-                        }
-                        chip("clock", SystemMonitor.duration(s.uptime), .orange)
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                RingGauge(symbol: "cpu", label: "CPU", value: s.cpuUsed / 100,
+                          detail: String(format: "%.0f%%", s.cpuUsed), tint: .blue)
+                RingGauge(symbol: "memorychip", label: "MEM", value: s.memPercent / 100,
+                          detail: SystemMonitor.bytes(s.memUsed), tint: memoryTint(s.memPressure))
+                RingGauge(symbol: "internaldrive", label: "DISK", value: s.diskPercent / 100,
+                          detail: SystemMonitor.bytes(s.diskFree), tint: .orange)
+            }
+            Card(padding: 9) {
+                VStack(spacing: 6) {
+                    InfoRow(symbol: "arrow.down", title: "Download",
+                            value: SystemMonitor.rate(s.netIn), tint: .teal)
+                    InfoRow(symbol: "arrow.up", title: "Upload",
+                            value: SystemMonitor.rate(s.netOut), tint: .indigo)
+                    if let b = s.batteryPercent {
+                        InfoRow(symbol: s.batteryCharging ? "bolt.fill" : "battery.50",
+                                title: s.batteryCharging ? "Charging" : "Battery",
+                                value: batteryDetail(s), tint: b < 20 && !s.batteryCharging ? .red : .green)
                     }
+                    InfoRow(symbol: "clock", title: "Uptime",
+                            value: SystemMonitor.duration(s.uptime), tint: .orange)
                 }
             }
         }
+    }
+
+    private func batteryDetail(_ s: SystemSnapshot) -> String {
+        var text = "\(s.batteryPercent ?? 0)%"
+        if let mins = s.batteryTimeMinutes, mins > 0 {
+            text += "  ·  \(mins / 60)h \(mins % 60)m"
+        }
+        return text
     }
 
     private func memoryTint(_ pressure: Double) -> Color {
@@ -121,31 +187,22 @@ struct MainPanelView: View {
     // MARK: - Windows
 
     private var windowsSection: some View {
-        VStack(alignment: .leading, spacing: Theme.Space.row) {
-            SectionHeader("Windows") {
-                Text("⌃⌥ + arrows").font(Theme.Font.keycap).foregroundStyle(.quaternary)
-            }
-            Card {
-                VStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
+            Card(padding: 8) {
+                VStack(spacing: 5) {
                     ForEach(tileRows, id: \.first) { row in
-                        HStack(spacing: 6) {
+                        HStack(spacing: 5) {
                             ForEach(row, id: \.self) { tile($0) }
                         }
                     }
-                    Divider().opacity(0.5)
+                    Divider().opacity(0.4)
                     HStack(spacing: 5) {
                         ForEach(CustomLayout.builtins) { layout in
                             HoverButton(action: { WindowManager.shared.apply(layout: layout) }) {
-                                VStack(spacing: 3) {
-                                    LayoutPreview(panes: layout.panes, compact: true)
-                                        .frame(width: 30, height: 19)
-                                    Text(layout.name)
-                                        .font(.system(size: 8.5))
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(1)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 5)
+                                LayoutPreview(panes: layout.panes, compact: true)
+                                    .frame(height: 22)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(3)
                             }
                             .help("Tile frontmost windows into \(layout.name)")
                         }
@@ -164,87 +221,56 @@ struct MainPanelView: View {
     private func tile(_ action: WindowAction) -> some View {
         HoverButton(action: { WindowManager.shared.apply(action) }) {
             TileGlyph(pane: action.unitRect(step: 0))
-                .frame(height: 22)
+                .frame(height: 26)
                 .frame(maxWidth: .infinity)
-                .padding(4)
+                .padding(3)
         }
         .help(action.title)
     }
 
     // MARK: - Brightness
 
-    private var brightnessSection: some View {
-        VStack(alignment: .leading, spacing: Theme.Space.row) {
-            SectionHeader("Brightness")
-            Card {
-                VStack(spacing: 8) {
+    private var displaySection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Card(padding: 9) {
+                VStack(spacing: 7) {
                     ForEach(brightness.displays) { display in
-                        HStack(spacing: 9) {
+                        HStack(spacing: 7) {
                             Image(systemName: display.isBuiltin ? "laptopcomputer" : "display")
-                                .font(.system(size: 11))
-                                .foregroundStyle(.secondary)
-                                .frame(width: 15)
+                                .font(.system(size: 10)).foregroundStyle(.secondary).frame(width: 13)
                             Slider(value: Binding(
                                 get: { display.level },
                                 set: { brightness.setLevel($0, for: display.id) }
                             ), in: 0...1)
-                            .controlSize(.small)
+                            .controlSize(.mini)
                             Text("\(Int(display.level * 100))")
-                                .font(Theme.Font.numeric)
-                                .foregroundStyle(.secondary)
-                                .frame(width: 24, alignment: .trailing)
+                                .font(Theme.Font.numeric).foregroundStyle(.secondary)
+                                .frame(width: 22, alignment: .trailing)
                         }
                         .help(display.isBuiltin ? display.name : "\(display.name) — software dimming")
                     }
-                    if brightness.displays.isEmpty {
-                        Text("No displays detected").font(Theme.Font.caption).foregroundStyle(.tertiary)
-                    }
-                }
-            }
-        }
-    }
 
-    // MARK: - Night mode
+                    Divider().opacity(0.4)
 
-    private var nightSection: some View {
-        VStack(alignment: .leading, spacing: Theme.Space.row) {
-            SectionHeader("Night") {
-                Text("⌃⌥N").font(Theme.Font.keycap).foregroundStyle(.quaternary)
-            }
-            Card {
-                VStack(spacing: 8) {
-                    HStack(spacing: 9) {
-                        GlyphBadge(symbol: night.isActive ? "moon.fill" : "sun.max",
-                                   tint: night.isActive ? .orange : .gray, size: 25)
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(night.isActive ? "Warming the screen" : "Night mode off")
-                                .font(Theme.Font.title)
-                            Text(night.isActive
-                                 ? "\(Int(night.temperature))K — gamma, not an overlay"
-                                 : "Cuts blue light after dark")
-                                .font(Theme.Font.caption).foregroundStyle(.secondary)
-                        }
-                        Spacer(minLength: 4)
-                        Toggle("", isOn: Binding(
-                            get: { night.isActive },
-                            set: { _ in night.toggle() }))
-                        .labelsHidden()
-                        .toggleStyle(.switch)
-                        .controlSize(.mini)
-                    }
-                    if night.isActive {
-                        HStack(spacing: 9) {
-                            Image(systemName: "thermometer.low")
-                                .font(.system(size: 11)).foregroundStyle(.secondary).frame(width: 15)
-                            Slider(value: Binding(
-                                get: { night.temperature },
-                                set: { night.temperature = $0 }
-                            ), in: 2400...6500)
-                            .controlSize(.small)
+                    HStack(spacing: 7) {
+                        Image(systemName: night.isActive ? "moon.fill" : "moon")
+                            .font(.system(size: 10))
+                            .foregroundStyle(night.isActive ? Color.orange : .secondary)
+                            .frame(width: 13)
+                        if night.isActive {
+                            Slider(value: Binding(get: { night.temperature },
+                                                  set: { night.temperature = $0 }),
+                                   in: 2400...6500)
+                            .controlSize(.mini)
                             Text("\(Int(night.temperature))K")
                                 .font(Theme.Font.numeric).foregroundStyle(.secondary)
-                                .frame(width: 40, alignment: .trailing)
+                                .frame(width: 38, alignment: .trailing)
+                        } else {
+                            Text("Night mode").font(Theme.Font.caption).foregroundStyle(.secondary)
+                            Spacer()
                         }
+                        Toggle("", isOn: Binding(get: { night.isActive }, set: { _ in night.toggle() }))
+                            .labelsHidden().toggleStyle(.switch).controlSize(.mini)
                     }
                 }
             }
@@ -255,8 +281,7 @@ struct MainPanelView: View {
 
     private var toolsSection: some View {
         VStack(alignment: .leading, spacing: Theme.Space.row) {
-            SectionHeader("Tools")
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 7), count: 3), spacing: 7) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 5), count: 3), spacing: 5) {
                 tool("sparkles.tv", "Screen clean", .cyan) { ScreenCleaner.shared.start() }
                 tool("keyboard", "Keyboard clean", .mint) { KeyboardCleaner.shared.start() }
                 tool("doc.on.clipboard", "Clipboard", .orange) { ClipboardPanelController.shared.toggle() }
@@ -270,105 +295,81 @@ struct MainPanelView: View {
     private func tool(_ symbol: String, _ title: String, _ tint: Color,
                      action: @escaping () -> Void) -> some View {
         HoverButton(action: action) {
-            VStack(spacing: 5) {
-                GlyphBadge(symbol: symbol, tint: tint, size: 25)
+            VStack(spacing: 3) {
+                GlyphBadge(symbol: symbol, tint: tint, size: 24)
                 Text(title)
-                    .font(.system(size: 9.5))
+                    .font(.system(size: 9))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.85)
+                    .minimumScaleFactor(0.8)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 9)
         }
     }
 
-    // MARK: - Updates
+    // MARK: - Footer
 
-    private var updateSection: some View {
-        VStack(alignment: .leading, spacing: Theme.Space.row) {
-            SectionHeader("Updates")
-            Card(padding: 9) {
-                HStack(spacing: 9) {
-                    updateIcon
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(updateTitle).font(Theme.Font.title)
-                        Text(updateSubtitle)
-                            .font(Theme.Font.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
-                    }
-                    Spacer(minLength: 4)
-                    updateAction
+    private var footer: some View {
+        HStack(spacing: 7) {
+            updateGlyph
+            Text(footerText)
+                .font(Theme.Font.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+            Spacer(minLength: 4)
+            if case .available = updater.state {
+                HoverButton(action: { updater.downloadLatest() }) {
+                    Text("Download").font(Theme.Font.keycap)
+                        .padding(.horizontal, 7).padding(.vertical, 3)
+                }
+            } else if !isBusy {
+                HoverButton(action: { updater.check() }) {
+                    Text("Check").font(Theme.Font.keycap)
+                        .padding(.horizontal, 7).padding(.vertical, 3)
                 }
             }
         }
+        .padding(.horizontal, 11)
+        .padding(.vertical, 6)
+    }
+
+    private var isBusy: Bool {
+        if case .checking = updater.state { return true }
+        if case .downloading = updater.state { return true }
+        return false
     }
 
     @ViewBuilder
-    private var updateIcon: some View {
+    private var updateGlyph: some View {
         switch updater.state {
         case .checking, .downloading:
-            ProgressView().controlSize(.small).frame(width: 25, height: 25)
+            ProgressView().controlSize(.mini).scaleEffect(0.7).frame(width: 13, height: 13)
         case .available:
-            GlyphBadge(symbol: "arrow.down.circle.fill", tint: .green, size: 25)
+            Image(systemName: "arrow.down.circle.fill")
+                .font(.system(size: 11)).foregroundStyle(.green)
+        case .ready:
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 11)).foregroundStyle(.green)
         case .failed:
-            GlyphBadge(symbol: "exclamationmark.triangle.fill", tint: .orange, size: 25)
-        case .ready:
-            GlyphBadge(symbol: "checkmark.circle.fill", tint: .green, size: 25)
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 11)).foregroundStyle(.orange)
         default:
-            GlyphBadge(symbol: "arrow.triangle.2.circlepath", tint: .gray, size: 25)
+            Image(systemName: "bird.fill")
+                .font(.system(size: 10)).foregroundStyle(.tertiary)
         }
     }
 
-    private var updateTitle: String {
+    private var footerText: String {
         switch updater.state {
-        case .checking: return "Checking…"
+        case .checking: return "Checking for updates…"
         case .available(let v): return "Perch \(v) available"
-        case .downloading: return "Downloading…"
-        case .ready: return "Downloaded"
-        case .upToDate: return "Up to date"
-        case .failed: return "Check failed"
-        case .idle: return "Check for updates"
-        }
-    }
-
-    private var updateSubtitle: String {
-        switch updater.state {
-        case .available: return "Verified download, then drag to Applications."
-        case .downloading(let p): return "\(Int(p * 100))% — verifying against published checksum."
-        case .ready: return "Revealed in Finder. Open it and drag Perch across."
-        case .upToDate: return "You're on \(updater.currentVersion)."
+        case .downloading(let p): return "Downloading… \(Int(p * 100))%"
+        case .ready: return "Downloaded — revealed in Finder"
+        case .upToDate: return "Perch \(updater.currentVersion) — up to date"
         case .failed(let why): return why
-        case .checking: return "Asking GitHub for the latest release."
-        case .idle:
-            if let last = updater.lastChecked {
-                return "Last checked \(last.formatted(date: .abbreviated, time: .shortened))."
-            }
-            return "Perch only contacts the network when you ask."
-        }
-    }
-
-    @ViewBuilder
-    private var updateAction: some View {
-        switch updater.state {
-        case .available:
-            HoverButton(action: { updater.downloadLatest() }) {
-                Text("Download").font(Theme.Font.caption)
-                    .padding(.horizontal, 10).padding(.vertical, 5)
-            }
-        case .ready:
-            HoverButton(action: { updater.openReleasePage() }) {
-                Text("Notes").font(Theme.Font.caption)
-                    .padding(.horizontal, 10).padding(.vertical, 5)
-            }
-        case .checking, .downloading:
-            EmptyView()
-        default:
-            HoverButton(action: { updater.check() }) {
-                Text("Check").font(Theme.Font.caption)
-                    .padding(.horizontal, 10).padding(.vertical, 5)
-            }
+        case .idle: return "Perch \(updater.currentVersion)"
         }
     }
 }
@@ -383,7 +384,7 @@ private struct PanelHeightKey: PreferenceKey {
 }
 
 /// Labelled bar with a faint sparkline of recent samples behind the fill.
-private struct StatBar: View {
+private struct StatRow: View {
     let title: String
     let value: Double
     let detail: String
@@ -391,12 +392,11 @@ private struct StatBar: View {
     let tint: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(title).font(Theme.Font.caption).foregroundStyle(.secondary)
-                Spacer()
-                Text(detail).font(Theme.Font.numeric)
-            }
+        HStack(spacing: 7) {
+            Text(title)
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(.tertiary)
+                .frame(width: 27, alignment: .leading)
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color.primary.opacity(0.09))
@@ -411,7 +411,11 @@ private struct StatBar: View {
                         .frame(width: max(3, geo.size.width * min(1, max(0, value))))
                 }
             }
-            .frame(height: 7)
+            .frame(height: 6)
+            Text(detail)
+                .font(Theme.Font.numeric)
+                .foregroundStyle(.secondary)
+                .frame(width: 62, alignment: .trailing)
         }
     }
 }
