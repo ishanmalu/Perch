@@ -9,7 +9,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 VERSION="${1:?usage: publish-cask.sh <version>}"
-REPO="ishanmalu/perch"
+REPO="ishanmalu/Perch"
 TAP="ishanmalu/homebrew-tap"
 DMG="Perch-$VERSION.dmg"
 

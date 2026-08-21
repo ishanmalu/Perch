@@ -48,7 +48,7 @@ final class Updater: ObservableObject {
     @Published private(set) var state: State = .idle
     private(set) var release: Release?
 
-    private let repo = "ishanmalu/perch"
+    private let repo = "ishanmalu/Perch"
 
     var currentVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"

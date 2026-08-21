@@ -9,9 +9,9 @@
 Window tiling · Clipboard history · Alt-Tab switcher · System monitoring
 Night mode · Disk cleaning · Screen, keyboard and trackpad cleaning
 
-[**perch website**](https://ishanmalu.github.io/perch/) · [**Download**](../../releases/latest) · [Changelog](CHANGELOG.md) · [Security](SECURITY.md)
+[**perch website**](https://ishanmalu.github.io/Perch/) · [**Download**](../../releases/latest) · [Changelog](CHANGELOG.md) · [Security](SECURITY.md)
 
-[![CI](https://github.com/ishanmalu/perch/actions/workflows/ci.yml/badge.svg)](https://github.com/ishanmalu/perch/actions/workflows/ci.yml)
+[![CI](https://github.com/ishanmalu/Perch/actions/workflows/ci.yml/badge.svg)](https://github.com/ishanmalu/Perch/actions/workflows/ci.yml)
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black)
 ![Universal](https://img.shields.io/badge/binary-universal-black)
 ![MIT](https://img.shields.io/badge/licence-MIT-black)
@@ -73,7 +73,7 @@ not a smoother first launch.
 ### From source
 
 ```bash
-git clone https://github.com/ishanmalu/perch.git
+git clone https://github.com/ishanmalu/Perch.git
 cd perch
 Scripts/install.sh
 ```
@@ -259,7 +259,7 @@ Verify any build yourself:
 ## Building from source
 
 ```bash
-git clone https://github.com/ishanmalu/perch.git
+git clone https://github.com/ishanmalu/Perch.git
 cd perch
 Scripts/make-dmg.sh 1.5.0
 ```
