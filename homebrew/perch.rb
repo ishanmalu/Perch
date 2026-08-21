@@ -2,11 +2,11 @@ cask "perch" do
   version "__VERSION__"
   sha256 "__SHA256__"
 
-  url "https://github.com/ishanmalu/perch/releases/download/v#{version}/Perch-#{version}.dmg",
-      verified: "github.com/ishanmalu/perch/"
+  url "https://github.com/ishanmalu/Perch/releases/download/v#{version}/Perch-#{version}.dmg",
+      verified: "github.com/ishanmalu/Perch/"
   name "Perch"
   desc "Menu bar utility for window tiling, clipboard history, and system tools"
-  homepage "https://github.com/ishanmalu/perch"
+  homepage "https://github.com/ishanmalu/Perch"
 
   livecheck do
     url :url
