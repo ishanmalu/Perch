@@ -13,7 +13,8 @@ cask "perch" do
     strategy :github_latest
   end
 
-  depends_on macos: ">= :sonoma"
+  # Minimum version; the string form is deprecated in current Homebrew.
+  depends_on macos: :sonoma
 
   app "Perch.app"
 
