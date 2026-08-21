@@ -164,8 +164,9 @@ final class WindowManager {
     private func requireAccess() -> Bool {
         if AX.isTrusted(prompt: false) { return true }
         _ = AX.isTrusted(prompt: true)
-        Notifier.show("Perch needs Accessibility access",
-                      "Enable Perch under System Settings → Privacy & Security → Accessibility, then try again.")
+        let (title, body) = AX.accessibilityMessage(
+            feature: "Window management moves windows through Accessibility.")
+        Notifier.show(title, body, duration: 8)
         return false
     }
 }

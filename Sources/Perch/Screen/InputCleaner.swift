@@ -76,8 +76,9 @@ final class InputCleaner {
     func start(_ mode: Mode) {
         guard !isActive else { return }
         guard AX.isTrusted(prompt: true) else {
-            Notifier.show("Accessibility access needed",
-                          "Cleaning mode has to intercept input. Enable Perch in System Settings → Privacy & Security → Accessibility.")
+            let (title, body) = AX.accessibilityMessage(
+                feature: "Cleaning mode has to intercept input.")
+            Notifier.show(title, body, duration: 8)
             return
         }
         self.mode = mode
