@@ -2,7 +2,7 @@
 
 All notable changes to Perch. Versions follow [semver](https://semver.org),
 and each heading below corresponds to a published
-[release](https://github.com/ishanmalu/perch/releases).
+[release](https://github.com/ishanmalu/Perch/releases).
 
 ## [1.5.0] — 2026-08-22
 
@@ -26,7 +26,7 @@ and each heading below corresponds to a published
 - Notarization pipeline (`Scripts/notarize.sh` plus release-workflow steps),
   inert until Apple Developer credentials are supplied. See
   [docs/NOTARIZING.md](docs/NOTARIZING.md).
-- A landing page at <https://ishanmalu.github.io/perch/>, served from `docs/`.
+- A landing page at <https://ishanmalu.github.io/Perch/>, served from `docs/`.
 
 ### Changed
 - Screen Recording, added in 1.4.0 and documented nowhere, is now covered in
@@ -219,8 +219,8 @@ built locally and never tagged; their contents ship here.
   appears when a feature actually needs the permission.
 - Guarded against a blank status item if the SF Symbol is unavailable.
 
-[1.3.1]: https://github.com/ishanmalu/perch/releases/tag/v1.3.1
-[1.2.1]: https://github.com/ishanmalu/perch/releases/tag/v1.2.1
-[1.2.0]: https://github.com/ishanmalu/perch/releases/tag/v1.2.0
-[1.1.1]: https://github.com/ishanmalu/perch/releases/tag/v1.1.1
-[1.1.0]: https://github.com/ishanmalu/perch/releases/tag/v1.1.0
+[1.3.1]: https://github.com/ishanmalu/Perch/releases/tag/v1.3.1
+[1.2.1]: https://github.com/ishanmalu/Perch/releases/tag/v1.2.1
+[1.2.0]: https://github.com/ishanmalu/Perch/releases/tag/v1.2.0
+[1.1.1]: https://github.com/ishanmalu/Perch/releases/tag/v1.1.1
+[1.1.0]: https://github.com/ishanmalu/Perch/releases/tag/v1.1.0

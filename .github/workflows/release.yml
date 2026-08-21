@@ -128,4 +128,4 @@ jobs:
             shasum -a 256 -c SHA256SUMS.txt
             ```
 
-            Full instructions: https://github.com/ishanmalu/perch#install
+            Full instructions: https://github.com/ishanmalu/Perch#install

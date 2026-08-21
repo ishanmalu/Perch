@@ -57,8 +57,8 @@ enum SelfTest {
         }
 
         print("\nUpdater — only trusts GitHub over TLS")
-        for allowed in ["https://github.com/ishanmalu/perch/releases/tag/v1.0.0",
-                        "https://api.github.com/repos/ishanmalu/perch/releases/latest",
+        for allowed in ["https://github.com/ishanmalu/Perch/releases/tag/v1.0.0",
+                        "https://api.github.com/repos/ishanmalu/Perch/releases/latest",
                         "https://objects.githubusercontent.com/x/y.dmg"] {
             expect(MainActor.assumeIsolated { Updater.isTrusted(URL(string: allowed)!) },
                    "allows \(URL(string: allowed)!.host!)")
