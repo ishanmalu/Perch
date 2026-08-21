@@ -36,6 +36,7 @@ struct HotkeySpec: Codable, Equatable {
         "nightMode":      .init(keyCode: UInt32(kVK_ANSI_N),     modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
         "screenClean":    .init(keyCode: UInt32(kVK_ANSI_K),     modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
         "keyboardClean":  .init(keyCode: UInt32(kVK_ANSI_L),     modifiers: NSEvent.ModifierFlags([.control, .option, .shift]).rawValue),
+        "trackpadClean":  .init(keyCode: UInt32(kVK_ANSI_T),     modifiers: NSEvent.ModifierFlags([.control, .option, .shift]).rawValue),
         "win.left":       .init(keyCode: UInt32(kVK_LeftArrow),  modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
         "win.right":      .init(keyCode: UInt32(kVK_RightArrow), modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
         "win.top":        .init(keyCode: UInt32(kVK_UpArrow),    modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),

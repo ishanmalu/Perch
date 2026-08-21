@@ -9,7 +9,7 @@ the clipboard, and intercept keyboard and trackpad input.
 | Capability | How it is used | Bounded by |
 | --- | --- | --- |
 | Accessibility (AX) | Read window frames, titles, and app names; set frames | Never reads window contents |
-| Event tap | Swallow input during keyboard cleaning | Counts presses only; key codes are discarded, never stored or logged |
+| Event tap | Swallow input during keyboard or trackpad cleaning | Counts events only; key codes are discarded, never stored or logged. In trackpad mode keyboard events pass through untouched so the unlock shortcut can reach Perch |
 | Pasteboard | Record clipboard history | Local file, `0600`; concealed types, ignored apps, and credential-shaped strings are skipped |
 | Filesystem | Measure and clear cache folders | Path guard + `trashItem` only; nothing is unlinked |
 | Private `DisplayServices` | Built-in display brightness | Resolved via `dlsym`; falls back to a software overlay if absent |
@@ -18,7 +18,7 @@ the clipboard, and intercept keyboard and trackpad input.
 ## Deliberate design choices
 
 - **The event tap is the highest-risk surface.** It is created only for a
-  keyboard-cleaning session and torn down on completion, on `Esc`-hold, on app
+  cleaning session and torn down on completion, on `Esc`-hold, on app
   termination, and by an independent `DispatchQueue` failsafe that runs even if
   the main run loop is starved. The callback never retains event contents.
 - **Disk targets are validated in the model, not the view.** `PathGuard` runs at

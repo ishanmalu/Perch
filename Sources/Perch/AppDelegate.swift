@@ -48,7 +48,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         BrightnessController.shared.clearAllDimming()
         NightMode.shared.shutdown()
         PreventSleep.shared.shutdown()
-        KeyboardCleaner.shared.stop(reason: "Perch quit")
+        InputCleaner.shared.stop(reason: "Perch quit")
     }
 
     // MARK: - Menu bar
@@ -191,7 +191,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         add("Window Switcher", "switcher") { WindowSwitcher.shared.toggle() }
         add("Night Mode", "nightMode") { NightMode.shared.toggle() }
         add("Screen Cleaning", "screenClean") { ScreenCleaner.shared.start() }
-        add("Keyboard Cleaning", "keyboardClean") { KeyboardCleaner.shared.start() }
+        add("Keyboard Cleaning", "keyboardClean") { InputCleaner.shared.start(.keyboard) }
+        add("Trackpad Cleaning", "trackpadClean") { InputCleaner.shared.start(.trackpad) }
         menu.addItem(.separator())
         add("Check for Updates…", "") { Task { @MainActor in Updater.shared.check() } }
         add("Disk Clean…", "") { SettingsWindow.shared.show(tab: .disk) }
@@ -218,7 +219,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hk.register("switcher.altTab") { WindowSwitcher.shared.holdToSwitch(modifier: .option) }
         hk.register("nightMode") { NightMode.shared.toggle() }
         hk.register("screenClean") { ScreenCleaner.shared.toggle() }
-        hk.register("keyboardClean") { KeyboardCleaner.shared.toggle() }
+        hk.register("keyboardClean") { InputCleaner.shared.toggle(.keyboard) }
+        hk.register("trackpadClean") { InputCleaner.shared.toggle(.trackpad) }
 
         let windowBindings: [(String, WindowAction)] = [
             ("win.left", .left), ("win.right", .right), ("win.top", .top), ("win.bottom", .bottom),
