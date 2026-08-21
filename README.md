@@ -29,16 +29,25 @@ you have to turn on.
 
 Three routes. Pick one — they all end in the same place.
 
-### Option A — Homebrew (easiest)
+### Option A — Homebrew (best for upgrades)
 
 ```bash
 brew tap ishanmalu/tap
-brew install --cask --no-quarantine perch
+brew trust ishanmalu/tap
+brew install --cask perch
+xattr -dr com.apple.quarantine /Applications/Perch.app
 open -a Perch
 ```
 
-`--no-quarantine` matters: it stops macOS attaching the download flag, so there
-is nothing to clear afterwards. Then jump to [First run](#first-run).
+`brew trust` is required for any third-party tap — current Homebrew refuses to
+load one without it.
+
+The `xattr` line is still needed. Homebrew 6 removed the `--no-quarantine`
+flag, and `HOMEBREW_CASK_OPTS` does not avoid the flag either: the app is
+quarantined regardless, because it is not notarized. Homebrew's advantage here
+is upgrades (`brew upgrade --cask perch`), not a smoother first launch.
+
+Then jump to [First run](#first-run).
 
 ### Option B — Download the DMG
 

@@ -582,10 +582,15 @@
 
     <div class="panel" id="p-brew" hidden>
       <p class="section-sub" style="margin-bottom:14px">
-        The smoothest route — <code>--no-quarantine</code> means there is nothing to clear afterwards.
+        <code>brew trust</code> is required for any third-party tap — current Homebrew refuses to
+        load one without it. The <code>xattr</code> line is still needed: Homebrew 6 removed
+        <code>--no-quarantine</code>, and the app is quarantined regardless because it is not
+        notarized. Homebrew's advantage here is upgrades, not a smoother first launch.
       </p>
       <pre>brew tap ishanmalu/tap
-brew install --cask --no-quarantine perch
+brew trust ishanmalu/tap
+brew install --cask perch
+xattr -dr com.apple.quarantine /Applications/Perch.app
 open -a Perch</pre>
       <p style="margin-top:16px;color:var(--muted);font-size:14.4px">
         Then grant Accessibility access under System Settings → Privacy &amp; Security →
