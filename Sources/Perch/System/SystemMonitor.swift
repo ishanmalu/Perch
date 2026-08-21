@@ -226,6 +226,8 @@ final class SystemMonitor: ObservableObject {
     static func bytes(_ v: UInt64) -> String {
         let f = ByteCountFormatter()
         f.countStyle = .file
+        // Otherwise zero renders as the word "Zero".
+        f.allowsNonnumericFormatting = false
         return f.string(fromByteCount: Int64(v))
     }
 

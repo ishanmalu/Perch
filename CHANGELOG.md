@@ -2,6 +2,34 @@
 
 All notable changes to Perch. Versions follow [semver](https://semver.org).
 
+## [1.1.1]
+
+### Changed
+- **The panel is now tabbed and compact** — System, Windows, Display, Tools.
+  It was a single 852pt column, taller than the usable height of a scaled
+  display, so macOS had nowhere to put it and the top was cut off above the
+  screen. Each tab is now 203–295pt.
+- System tab redrawn with circular ring gauges for CPU, memory, and disk, and
+  a compact list for network, battery, and uptime.
+- Panel width reduced to 300pt.
+
+### Fixed
+- **Popover could be laid out taller than the screen.** The hosting controller
+  now reports an explicit `preferredContentSize` capped to the display, and the
+  scroll area has a hard ceiling, so neither presentation path can overflow.
+- **Fallback panel could sit partly off-screen.** It now shrinks and clamps
+  fully inside the visible frame.
+- **Notification banner had a broken border.** It was laid out with manual
+  frames on a visual-effect view, which masks its material but not a border
+  drawn on it. Rebuilt with Auto Layout and a clipping container, so corners
+  and border are correct at any size.
+- `ByteCountFormatter` rendered zero as the word "Zero".
+
+### Added
+- `Perch --render-ui <dir>` renders each panel tab offscreen and reports its
+  measured height against the screen budget. A popover cannot be screenshotted
+  from a script, so this gives the layout a real regression check.
+
 ## [1.1.0]
 
 ### Added

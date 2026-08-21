@@ -139,6 +139,69 @@ struct GlyphBadge: View {
     }
 }
 
+/// Circular progress ring with an icon and label at its centre — the headline
+/// readout for CPU, memory, and disk.
+struct RingGauge: View {
+    let symbol: String
+    let label: String
+    let value: Double        // 0...1
+    let detail: String
+    var tint: Color = .accentColor
+    var diameter: CGFloat = 62
+
+    var body: some View {
+        VStack(spacing: 4) {
+            ZStack {
+                Circle()
+                    .stroke(Color.primary.opacity(0.10), lineWidth: 5)
+                Circle()
+                    .trim(from: 0, to: max(0.001, min(1, value)))
+                    .stroke(tint, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .animation(.easeOut(duration: 0.35), value: value)
+                VStack(spacing: 1) {
+                    Image(systemName: symbol)
+                        .font(.system(size: diameter * 0.24, weight: .regular))
+                        .foregroundStyle(.secondary)
+                    Text(label)
+                        .font(.system(size: diameter * 0.15, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(width: diameter, height: diameter)
+
+            Text(detail)
+                .font(.system(size: 10, weight: .medium, design: .rounded))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+/// Label + value row, the compact list style used under the gauges.
+struct InfoRow: View {
+    let symbol: String
+    let title: String
+    let value: String
+    var tint: Color = .secondary
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: symbol)
+                .font(.system(size: 10))
+                .foregroundStyle(tint)
+                .frame(width: 14)
+            Text(title).font(Theme.Font.body).foregroundStyle(.secondary)
+            Spacer(minLength: 6)
+            Text(value)
+                .font(.system(size: 11, weight: .medium, design: .rounded))
+                .foregroundStyle(.primary)
+        }
+    }
+}
+
 extension View {
     /// Standard page padding for the settings panes.
     func settingsPage() -> some View {

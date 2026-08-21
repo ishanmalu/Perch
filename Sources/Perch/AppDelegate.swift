@@ -99,7 +99,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// runs off the top. Leave room for the menu bar and a little breathing space.
     private func makePanelController(for screen: NSScreen?) -> NSViewController {
         let available = (screen ?? NSScreen.main)?.visibleFrame.height ?? 700
-        return NSHostingController(rootView: MainPanelView(
+        let controller = NSHostingController(rootView: MainPanelView(
             maxHeight: max(320, available - 32),
             onOpenSettings: { [weak self] in
                 self?.popover.performClose(nil)
@@ -107,6 +107,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             onQuit: { NSApp.terminate(nil) }
         ))
+        // Give AppKit a concrete size so a popover can never be laid out taller
+        // than the display it drops out of.
+        controller.view.layoutSubtreeIfNeeded()
+        let fitting = controller.view.fittingSize
+        controller.preferredContentSize = NSSize(width: fitting.width,
+                                                 height: min(fitting.height, available - 24))
+        return controller
     }
 
     func togglePopover() {
