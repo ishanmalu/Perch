@@ -76,24 +76,24 @@
   /* Centred in its own viewport-height block. Padding alone was guesswork —
      it read differently on every window size. */
   header {
-    min-height: min(76vh, 700px);
+    min-height: min(88vh, 820px);
     display: flex; flex-direction: column; justify-content: center;
-    padding: 56px 0 40px; text-align: center;
+    padding: 72px 0 56px; text-align: center;
   }
   h1 {
     font-size: clamp(34px, 5.8vw, 58px); line-height: 1.05;
-    letter-spacing: -.035em; margin: 0 0 22px; font-weight: 680;
+    letter-spacing: -.035em; margin: 0 0 26px; font-weight: 680;
     text-wrap: balance;
   }
   .lede {
     font-size: clamp(16px, 2.05vw, 18.5px); color: var(--muted);
-    max-width: 560px; margin: 0 auto 34px; line-height: 1.6;
+    max-width: 545px; margin: 0 auto 42px; line-height: 1.68;
   }
   /* Five pills competing with the buttons made the hero look busy. The same
      facts read fine as one quiet line. */
   .specs {
     display: flex; flex-wrap: wrap; gap: 6px 18px; justify-content: center;
-    margin: 0 0 32px; font-size: 13px; color: var(--faint);
+    margin: 0 0 40px; font-size: 13px; color: var(--faint);
   }
   .specs b { color: var(--free-fg); font-weight: 600; }
   .cta { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; align-items: center; }
@@ -109,9 +109,55 @@
   .btn-secondary { background: var(--card); color: var(--text); border-color: var(--line); }
   .sub { font-size: 13px; color: var(--faint); margin-top: 14px; }
 
+  /* ---------- hero animation ----------
+     Windows snapping into halves, thirds and quarters — the flagship feature,
+     drawn rather than described. Pure CSS: no library, no JS, ~1KB. */
+  .tiling {
+    width: 132px; height: 84px; margin: 0 auto 34px;
+    border: 1.5px solid var(--line); border-radius: 9px;
+    position: relative; padding: 6px; background: var(--bg-soft);
+  }
+  .tiling i {
+    position: absolute; display: block; border-radius: 4px;
+    background: var(--accent); opacity: .9;
+    animation: tile-cycle 9s cubic-bezier(.65,.05,.36,1) infinite;
+  }
+  .tiling i:nth-child(2) { animation-name: tile-cycle-2; }
+  .tiling i:nth-child(3) { animation-name: tile-cycle-3; }
+
+  /* Each keyframe holds its shape, then eases to the next arrangement:
+     full screen, halves, thirds, quarters, back to full. */
+  @keyframes tile-cycle {
+    0%,14%   { left:6px; top:6px; width:120px; height:72px; }
+    22%,36%  { left:6px; top:6px; width:58px;  height:72px; }
+    44%,58%  { left:6px; top:6px; width:37px;  height:72px; }
+    66%,80%  { left:6px; top:6px; width:58px;  height:34px; }
+    88%,100% { left:6px; top:6px; width:120px; height:72px; }
+  }
+  @keyframes tile-cycle-2 {
+    0%,14%   { left:6px;  top:6px;  width:120px; height:72px; opacity:0; }
+    22%,36%  { left:68px; top:6px;  width:58px;  height:72px; opacity:.9; }
+    44%,58%  { left:47px; top:6px;  width:37px;  height:72px; opacity:.9; }
+    66%,80%  { left:68px; top:6px;  width:58px;  height:34px; opacity:.9; }
+    88%,100% { left:6px;  top:6px;  width:120px; height:72px; opacity:0; }
+  }
+  @keyframes tile-cycle-3 {
+    0%,36%   { left:6px;  top:6px;  width:120px; height:72px; opacity:0; }
+    44%,58%  { left:89px; top:6px;  width:37px;  height:72px; opacity:.55; }
+    66%,80%  { left:6px;  top:44px; width:120px; height:34px; opacity:.55; }
+    88%,100% { left:6px;  top:6px;  width:120px; height:72px; opacity:0; }
+  }
+  /* Motion is decoration here, so it goes away entirely when unwanted. */
+  @media (prefers-reduced-motion: reduce) {
+    .tiling i { animation: none; }
+    .tiling i:nth-child(2) { left: 68px; width: 58px; opacity: .9; }
+    .tiling i:nth-child(3) { display: none; }
+    .tiling i:first-child { width: 58px; }
+  }
+
   /* ---------- early-stage notice ---------- */
   .notice {
-    margin: 40px auto 0; max-width: 560px;
+    margin: 52px auto 0; max-width: 560px;
     font-size: 13.2px; line-height: 1.6; color: var(--faint); text-align: center;
   }
   .notice b { color: var(--muted); font-weight: 600; }
@@ -379,6 +425,7 @@
 </nav>
 
 <header class="wrap">
+  <div class="tiling" aria-hidden="true"><i></i><i></i><i></i></div>
   <h1>A dozen Mac utilities. Meet Perch.</h1>
   <p class="lede">
     Window tiling, clipboard history, Alt-Tab, system stats, night mode and
