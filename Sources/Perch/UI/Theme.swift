@@ -222,6 +222,47 @@ struct CloseButton: View {
     }
 }
 
+/// Non-interactive stand-ins for Slider and Toggle.
+///
+/// `ImageRenderer` cannot draw AppKit-backed controls — they come out as a
+/// "prohibited" glyph — so `--render-ui` swaps in these, which match the real
+/// controls closely enough for documentation images.
+struct StaticSlider: View {
+    let value: Double
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color.primary.opacity(0.15)).frame(height: 3)
+                Capsule().fill(Color.accentColor)
+                    .frame(width: geo.size.width * min(1, max(0, value)), height: 3)
+                Circle()
+                    .fill(.white)
+                    .shadow(color: .black.opacity(0.25), radius: 1, y: 0.5)
+                    .frame(width: 11, height: 11)
+                    .offset(x: (geo.size.width - 11) * min(1, max(0, value)))
+            }
+            .frame(height: geo.size.height, alignment: .center)
+        }
+        .frame(height: 12)
+    }
+}
+
+struct StaticToggle: View {
+    let isOn: Bool
+    var body: some View {
+        Capsule()
+            .fill(isOn ? Color.accentColor : Color.primary.opacity(0.18))
+            .frame(width: 26, height: 15)
+            .overlay(
+                Circle().fill(.white)
+                    .shadow(color: .black.opacity(0.2), radius: 1, y: 0.5)
+                    .padding(1.5)
+                    .frame(width: 15, height: 15)
+                    .offset(x: isOn ? 5.5 : -5.5)
+            )
+    }
+}
+
 extension View {
     /// Standard page padding for the settings panes.
     func settingsPage() -> some View {

@@ -11,15 +11,28 @@ enum RenderUI {
         let dir = URL(fileURLWithPath: directory)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
 
+        SystemMonitor.shared.start()
+        BrightnessController.shared.refresh()
+        RunLoop.current.run(until: Date().addingTimeInterval(2.2))
+
         let screenHeight = NSScreen.main?.visibleFrame.height ?? 900
         print("main screen usable height: \(Int(screenHeight))pt\n")
 
-        for tab in MainPanelView.PanelTab.allCases {
-            render(AnyView(MainPanelView(maxHeight: screenHeight - 40,
-                                         onOpenSettings: {}, onQuit: {},
-                                         flattened: true, initialTab: tab)),
-                   width: 300, name: "panel-\(tab.rawValue)", into: dir, budget: 520)
+        // Render each tab in both appearances so documentation images can match
+        // whatever theme the reader is in.
+        for (suffix, appearance) in [("light", NSAppearance.Name.aqua),
+                                     ("dark", NSAppearance.Name.darkAqua)] {
+            NSApp.appearance = NSAppearance(named: appearance)
+            RunLoop.current.run(until: Date().addingTimeInterval(0.2))
+            for tab in MainPanelView.PanelTab.allCases {
+                render(AnyView(MainPanelView(maxHeight: screenHeight - 40,
+                                             onOpenSettings: {}, onQuit: {},
+                                             flattened: true, initialTab: tab)),
+                       width: 300, name: "panel-\(tab.rawValue)-\(suffix)",
+                       into: dir, budget: 520)
+            }
         }
+        NSApp.appearance = nil
 
         // A deliberately cramped display, to prove the cap engages.
         render(AnyView(MainPanelView(maxHeight: 520, onOpenSettings: {}, onQuit: {})),
@@ -43,11 +56,13 @@ enum RenderUI {
 
         // ...but draw through ImageRenderer, which renders SwiftUI text properly
         // where an offscreen view's cacheDisplay does not.
+        let isDark = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
         let renderer = ImageRenderer(content:
             view.frame(width: width, height: height)
                 .background(Color(nsColor: .windowBackgroundColor))
+                .environment(\.colorScheme, isDark ? .dark : .light)
         )
-        renderer.scale = 2
+        renderer.scale = 3
         guard let image = renderer.nsImage,
               let tiff = image.tiffRepresentation,
               let rep = NSBitmapImageRep(data: tiff),

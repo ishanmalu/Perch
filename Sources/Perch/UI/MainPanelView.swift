@@ -282,11 +282,15 @@ struct MainPanelView: View {
                         HStack(spacing: 7) {
                             Image(systemName: display.isBuiltin ? "laptopcomputer" : "display")
                                 .font(.system(size: 10)).foregroundStyle(.secondary).frame(width: 13)
-                            Slider(value: Binding(
-                                get: { display.level },
-                                set: { brightness.setLevel($0, for: display.id) }
-                            ), in: 0...1)
-                            .controlSize(.mini)
+                            if flattened {
+                                StaticSlider(value: display.level)
+                            } else {
+                                Slider(value: Binding(
+                                    get: { display.level },
+                                    set: { brightness.setLevel($0, for: display.id) }
+                                ), in: 0...1)
+                                .controlSize(.mini)
+                            }
                             Text("\(Int(display.level * 100))")
                                 .font(Theme.Font.numeric)
                                 .foregroundStyle(.secondary)
@@ -305,10 +309,14 @@ struct MainPanelView: View {
                             .foregroundStyle(night.isActive ? Color.orange : .secondary)
                             .frame(width: 13)
                         if night.isActive {
-                            Slider(value: Binding(get: { night.temperature },
-                                                  set: { night.temperature = $0 }),
-                                   in: 2400...6500)
-                            .controlSize(.mini)
+                            if flattened {
+                                StaticSlider(value: (night.temperature - 2400) / 4100)
+                            } else {
+                                Slider(value: Binding(get: { night.temperature },
+                                                      set: { night.temperature = $0 }),
+                                       in: 2400...6500)
+                                .controlSize(.mini)
+                            }
                             Text("\(Int(night.temperature))K")
                                 .font(Theme.Font.numeric)
                                 .foregroundStyle(.secondary)
@@ -319,8 +327,12 @@ struct MainPanelView: View {
                             Text("Night Mode").font(Theme.Font.caption).foregroundStyle(.secondary)
                             Spacer()
                         }
-                        Toggle("", isOn: Binding(get: { night.isActive }, set: { _ in night.toggle() }))
-                            .labelsHidden().toggleStyle(.switch).controlSize(.mini)
+                        if flattened {
+                            StaticToggle(isOn: night.isActive)
+                        } else {
+                            Toggle("", isOn: Binding(get: { night.isActive }, set: { _ in night.toggle() }))
+                                .labelsHidden().toggleStyle(.switch).controlSize(.mini)
+                        }
                     }
                 }
             }
@@ -377,8 +389,12 @@ struct MainPanelView: View {
                 .frame(width: 14)
             Text(title).font(Theme.Font.body).foregroundStyle(.secondary)
             Spacer(minLength: 6)
-            Toggle("", isOn: Binding(get: { isOn }, set: { _ in toggle() }))
-                .labelsHidden().toggleStyle(.switch).controlSize(.mini)
+            if flattened {
+                StaticToggle(isOn: isOn)
+            } else {
+                Toggle("", isOn: Binding(get: { isOn }, set: { _ in toggle() }))
+                    .labelsHidden().toggleStyle(.switch).controlSize(.mini)
+            }
         }
     }
 
