@@ -1,11 +1,28 @@
 # Changelog
 
-All notable changes to Perch. Versions follow [semver](https://semver.org).
+All notable changes to Perch. Versions follow [semver](https://semver.org),
+and each heading below corresponds to a published
+[release](https://github.com/ishanmalu/perch/releases).
 
-## [1.3.1]
+## [1.3.1] — 2026-08-21
 
 ### Added
 - Clipboard button in the panel header, beside the gear.
+- **Trackpad cleaning** (`⌃⌥⇧T`) — freezes the pointer (movement, clicks,
+  drags, scrolling) while leaving the keyboard live, so `Esc` or the shortcut
+  unlocks it. The escape hatch is on the keyboard precisely because your hands
+  are not near it while wiping a trackpad.
+
+### Changed
+- "Load Average" and "Memory Pressure" title-cased to match the rest.
+- `KeyboardCleaner` is now `InputCleaner`, with `keyboard`, `trackpad`, and
+  `both` modes over a single event tap. Which events are suppressed and how you
+  exit are the only differences; the countdown, overlay, and failsafe are shared.
+- Tool and switch labels are title-cased ("Trackpad Clean", "Prevent Sleep").
+- The two network rows are labelled "Network Down" / "Network Up". Sitting
+  beside the disk ring, plain "Download" / "Upload" read as storage.
+- The Tools grid swaps its Settings tile for Trackpad Clean — Settings was
+  already one click away on the header gear.
 
 ### Fixed
 - **The System tab scrolled for no reason.** The content area had been sized
@@ -17,28 +34,11 @@ All notable changes to Perch. Versions follow [semver](https://semver.org).
   front, which is what previously went stale on a tab change and left the
   popover clipping its own header.
 
-### Changed
-- "Load Average" and "Memory Pressure" title-cased to match the rest.
-
-## [1.3.0]
-
-### Added
-- **Trackpad cleaning** (`⌃⌥⇧T`) — freezes the pointer (movement, clicks,
-  drags, scrolling) while leaving the keyboard live, so `Esc` or the shortcut
-  unlocks it. The escape hatch is on the keyboard precisely because your hands
-  are not near it while wiping a trackpad.
+## [1.2.1] — 2026-08-21
 
 ### Changed
-- `KeyboardCleaner` is now `InputCleaner`, with `keyboard`, `trackpad`, and
-  `both` modes over a single event tap. Which events are suppressed and how you
-  exit are the only differences; the countdown, overlay, and failsafe are shared.
-- Tool and switch labels are title-cased ("Trackpad Clean", "Prevent Sleep").
-- The two network rows are labelled "Network Down" / "Network Up". Sitting
-  beside the disk ring, plain "Download" / "Upload" read as storage.
-- The Tools grid swaps its Settings tile for Trackpad Clean — Settings was
-  already one click away on the header gear.
-
-## [1.2.1]
+- Perch no longer scans disk-clean targets at launch. It walked a dozen cache
+  trees on every start for data only needed once Disk clean is opened.
 
 ### Security
 - **Clipboard images were written world-readable (`0644`)** while the history
@@ -46,11 +46,7 @@ All notable changes to Perch. Versions follow [semver](https://semver.org).
   now `0600`, and existing files are repaired on launch. The `0700` parent
   directory limited real exposure, but the store was not what the docs claimed.
 
-### Changed
-- Perch no longer scans disk-clean targets at launch. It walked a dozen cache
-  trees on every start for data only needed once Disk clean is opened.
-
-## [1.2.0]
+## [1.2.0] — 2026-08-21
 
 ### Added
 - **Prevent sleep** switch — holds an `IOPMAssertion` so the Mac and display
@@ -93,7 +89,12 @@ All notable changes to Perch. Versions follow [semver](https://semver.org).
   host before Perch fetches or opens them. Covered by `--selftest`.
 - Removed an unguarded index into the Downloads directory list.
 
-## [1.1.1]
+## [1.1.1] — 2026-08-21
+
+### Added
+- `Perch --render-ui <dir>` renders each panel tab offscreen and reports its
+  measured height against the screen budget. A popover cannot be screenshotted
+  from a script, so this gives the layout a real regression check.
 
 ### Changed
 - **The panel is now tabbed and compact** — System, Windows, Display, Tools.
@@ -116,12 +117,10 @@ All notable changes to Perch. Versions follow [semver](https://semver.org).
   and border are correct at any size.
 - `ByteCountFormatter` rendered zero as the word "Zero".
 
-### Added
-- `Perch --render-ui <dir>` renders each panel tab offscreen and reports its
-  measured height against the screen budget. A popover cannot be screenshotted
-  from a script, so this gives the layout a real regression check.
+## [1.1.0] — 2026-08-21
 
-## [1.1.0]
+First published release. Development versions 1.0.0 and 1.0.1 were
+built locally and never tagged; their contents ship here.
 
 ### Added
 - **Night mode** — warms the display via gamma ramps (the f.lux mechanism), so
@@ -151,8 +150,6 @@ All notable changes to Perch. Versions follow [semver](https://semver.org).
 - README and SECURITY.md corrected: Perch previously claimed no network access
   at all, which the update check made untrue.
 
-## [1.0.1]
-
 ### Fixed
 - **Crash roughly eight seconds after launch.** Programmatically created
   `NSWindow`s default to `isReleasedWhenClosed = true`, so closing one released
@@ -168,9 +165,8 @@ All notable changes to Perch. Versions follow [semver](https://semver.org).
   appears when a feature actually needs the permission.
 - Guarded against a blank status item if the SF Symbol is unavailable.
 
-## [1.0.0]
-
-Initial release — window tiling with size cycling and custom layouts, a
-searchable window switcher, clipboard history, system monitoring, disk cleaning
-with a path guard, screen cleaning, keyboard cleaning, and per-display
-brightness. Universal binary, no third-party dependencies, no Xcode project.
+[1.3.1]: https://github.com/ishanmalu/perch/releases/tag/v1.3.1
+[1.2.1]: https://github.com/ishanmalu/perch/releases/tag/v1.2.1
+[1.2.0]: https://github.com/ishanmalu/perch/releases/tag/v1.2.0
+[1.1.1]: https://github.com/ishanmalu/perch/releases/tag/v1.1.1
+[1.1.0]: https://github.com/ishanmalu/perch/releases/tag/v1.1.0
