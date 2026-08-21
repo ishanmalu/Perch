@@ -26,7 +26,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         SystemMonitor.shared.start()
         NightMode.shared.start()
         ClipboardStore.shared.start()
-        DiskCleaner.shared.scan()
+        // Deliberately not scanning disk targets here: it walks a dozen cache
+        // trees and is only needed once the user opens Disk clean.
         Task { @MainActor in Updater.shared.checkInBackgroundIfDue() }
 
         statTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in

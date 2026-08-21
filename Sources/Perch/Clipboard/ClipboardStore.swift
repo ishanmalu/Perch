@@ -63,6 +63,21 @@ final class ClipboardStore: ObservableObject {
     private init() {
         load()
         pruneExpired()
+        tightenExistingPermissions()
+    }
+
+    /// Images written before permissions were enforced are still on disk at
+    /// 0644; bring them in line rather than leaving a mixed store.
+    private func tightenExistingPermissions() {
+        let fm = FileManager.default
+        for dir in [dir, imagesDir] {
+            try? fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: dir.path)
+        }
+        guard let files = try? fm.contentsOfDirectory(atPath: imagesDir.path) else { return }
+        for file in files {
+            try? fm.setAttributes([.posixPermissions: 0o600],
+                                  ofItemAtPath: imagesDir.appendingPathComponent(file).path)
+        }
     }
 
     // MARK: - Lifecycle
@@ -125,6 +140,9 @@ final class ClipboardStore: ObservableObject {
                 if let rep = NSBitmapImageRep(data: data),
                    let png = rep.representation(using: .png, properties: [:]) {
                     try? png.write(to: url)
+                    // Match the history file: clipboard images are user data.
+                    try? FileManager.default.setAttributes([.posixPermissions: 0o600],
+                                                           ofItemAtPath: url.path)
                 } else { return nil }
             }
             return ClipItem(kind: .image, text: "Image", imageFile: name, date: Date(), hash: h)
