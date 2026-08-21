@@ -17,6 +17,8 @@ Disk cleaning · Screen, keyboard & trackpad cleaning · Night mode · Brightnes
 No accounts. No telemetry. Nothing leaves your Mac except an update check
 you have to turn on.
 
+**[perch website →](https://ishanmalu.github.io/perch/)**
+
 [Install](#install) · [Features](#features) · [Shortcuts](#shortcuts) · [Updating](#updating) · [Privacy](#privacy-and-security) · [Build](#building-from-source)
 
 </div>
