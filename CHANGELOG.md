@@ -2,6 +2,18 @@
 
 All notable changes to Perch. Versions follow [semver](https://semver.org).
 
+## [1.2.1]
+
+### Security
+- **Clipboard images were written world-readable (`0644`)** while the history
+  file was correctly `0600`. The permission call had never applied. Images are
+  now `0600`, and existing files are repaired on launch. The `0700` parent
+  directory limited real exposure, but the store was not what the docs claimed.
+
+### Changed
+- Perch no longer scans disk-clean targets at launch. It walked a dozen cache
+  trees on every start for data only needed once Disk clean is opened.
+
 ## [1.2.0]
 
 ### Added
