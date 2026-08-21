@@ -96,8 +96,9 @@ final class WindowSwitcher {
 
     func open(style: SwitcherStyle) {
         guard AX.isTrusted(prompt: true) else {
-            Notifier.show("Accessibility access needed",
-                          "The window switcher reads window titles through Accessibility.")
+            let (title, body) = AX.accessibilityMessage(
+                feature: "The window switcher reads window titles through Accessibility.")
+            Notifier.show(title, body, duration: 8)
             return
         }
         // close() clears holdModifier, but holdToSwitch has just set it — carry

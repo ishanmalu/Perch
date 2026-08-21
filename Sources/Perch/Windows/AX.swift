@@ -37,6 +37,48 @@ enum AX {
         return AXIsProcessTrustedWithOptions(opts)
     }
 
+    /// True when Perch appears in the Accessibility list but macOS still refuses
+    /// it — the state you land in after an update changes the code identity.
+    ///
+    /// The toggle looks switched on, so "enable Perch in Accessibility" is
+    /// useless advice; the entry has to be removed and re-added. There is no
+    /// API to read the list, so this infers it: an ad-hoc signature means the
+    /// identity changes with every build, which is exactly when this happens.
+    static var trustLikelyStale: Bool {
+        guard !isTrusted(prompt: false) else { return false }
+        return !hasStableSigningIdentity
+    }
+
+    /// Whether this build is signed with a certificate rather than ad-hoc.
+    /// An ad-hoc signature is derived from the binary, so it changes every build.
+    static let hasStableSigningIdentity: Bool = {
+        var codeRef: SecCode?
+        guard SecCodeCopySelf(SecCSFlags(), &codeRef) == errSecSuccess,
+              let codeRef else { return false }
+        var staticRef: SecStaticCode?
+        guard SecCodeCopyStaticCode(codeRef, SecCSFlags(), &staticRef) == errSecSuccess,
+              let staticRef else { return false }
+        var info: CFDictionary?
+        guard SecCodeCopySigningInformation(staticRef, SecCSFlags(rawValue: kSecCSSigningInformation),
+                                            &info) == errSecSuccess,
+              let dict = info as? [String: Any] else { return false }
+        // Ad-hoc signatures carry no certificate chain.
+        let certs = dict[kSecCodeInfoCertificates as String] as? [Any]
+        return (certs?.isEmpty == false)
+    }()
+
+    /// One message that tells the truth for whichever state we are in.
+    static func accessibilityMessage(feature: String) -> (String, String) {
+        if trustLikelyStale {
+            return ("Accessibility needs re-granting",
+                    "Perch was updated, which macOS treats as a new app. Remove Perch under "
+                    + "System Settings → Privacy & Security → Accessibility with the − button, "
+                    + "then add it again. The toggle may already look switched on.")
+        }
+        return ("Accessibility access needed",
+                "\(feature) Enable Perch under System Settings → Privacy & Security → Accessibility.")
+    }
+
     static func copyValue(_ el: AXUIElement, _ attr: String) -> CFTypeRef? {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(el, attr as CFString, &value) == .success else { return nil }
