@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: swift build -c release
+      - name: Self-test
+        run: "$(swift build -c release --show-bin-path)/Perch --selftest"
+      - name: Package
+        run: Scripts/make-dmg.sh "0.0.0-ci"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Perch-ci-dmg
+          path: dist/*.dmg

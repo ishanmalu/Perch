@@ -13,7 +13,7 @@ the clipboard, and intercept keyboard and trackpad input.
 | Pasteboard | Record clipboard history | Local file, `0600`; concealed types, ignored apps, and credential-shaped strings are skipped |
 | Filesystem | Measure and clear cache folders | Path guard + `trashItem` only; nothing is unlinked |
 | Private `DisplayServices` | Built-in display brightness | Resolved via `dlsym`; falls back to a software overlay if absent |
-| Network | — | None. No `URLSession`, no analytics, no update check, no subprocess execution |
+| Network | Update check only | Off by default; `api.github.com` plus GitHub's asset CDN, nothing else. No analytics, no telemetry, no subprocess execution |
 
 ## Deliberate design choices
 
@@ -24,6 +24,10 @@ the clipboard, and intercept keyboard and trackpad input.
 - **Disk targets are validated in the model, not the view.** `PathGuard` runs at
   both scan and clean time, so editing `UserDefaults` by hand cannot widen the
   blast radius.
+- **Updates are checked, never applied.** Perch downloads the DMG, verifies it
+  against the checksum published with the release, and reveals it in Finder. It
+  does not replace its own bundle. A utility holding Accessibility and event-tap
+  permissions should not also be able to rewrite itself from the network.
 - **Clipboard history is not encrypted.** Encrypting it with a key that also
   lives on the same disk would be theatre. It is instead permission-restricted
   and filtered, and documented as plaintext so you can decide accordingly.
