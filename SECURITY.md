@@ -32,6 +32,23 @@ the clipboard, and intercept keyboard and trackpad input.
   lives on the same disk would be theatre. It is instead permission-restricted
   and filtered, and documented as plaintext so you can decide accordingly.
 
+## Gatekeeper status
+
+Perch is **ad-hoc signed and not notarized**, which is why a fresh download is
+blocked until you clear the quarantine flag:
+
+```
+$ spctl -a -t exec Perch.app
+Perch.app: rejected
+$ codesign -dv Perch.app
+TeamIdentifier=not set
+```
+
+That is the honest state of it: the signature proves the bundle has not been
+altered since it was built, but nothing ties it to a verified developer
+identity, and Apple has not scanned it. Build it yourself if that matters to
+you — `Scripts/make-dmg.sh` takes about a minute and needs no Xcode.
+
 ## Verifying a build
 
 ```bash

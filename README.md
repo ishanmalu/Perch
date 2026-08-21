@@ -39,15 +39,24 @@ approve the app by hand.
 
 1. Grab the latest `Perch-x.y.z.dmg` from [Releases](../../releases).
 2. Open it, drag **Perch** to Applications.
-3. First launch: right-click Perch → **Open** → **Open**. Perch is signed
-   ad-hoc rather than with a paid Apple Developer certificate, so Gatekeeper
-   asks once.
-
-   If macOS refuses outright:
+3. **Clear the quarantine flag**, then open it:
 
    ```bash
    xattr -dr com.apple.quarantine /Applications/Perch.app
    ```
+
+   Perch is signed ad-hoc rather than with a paid Apple Developer certificate,
+   so it is not notarized and Gatekeeper blocks it on first launch. Verified:
+   `spctl -a -t exec Perch.app` → `rejected`.
+
+   If you would rather not use the terminal, open Perch once, dismiss the
+   warning, then go to **System Settings → Privacy & Security**, scroll to
+   **Security**, and click **Open Anyway** next to the message about Perch.
+
+   > On macOS 15 and later — including macOS 26 — Control-clicking an app and
+   > choosing **Open** no longer bypasses this. Apple removed that shortcut for
+   > unnotarized apps. Older guides (and earlier versions of this README) still
+   > say to do it; it will not work.
 
 ### From source
 
@@ -348,9 +357,12 @@ Then `Scripts/publish-cask.sh 1.1.0` pushes the cask to the tap.
 
 ## Known limitations
 
-- **Ad-hoc signing** means Gatekeeper warns on first open. Because an ad-hoc
-  signature derives from the binary itself, every rebuild is a different code
-  identity and macOS forgets the Accessibility grant — the toggle looks enabled
+- **Not notarized.** Notarization needs a paid Apple Developer account, so
+  Gatekeeper blocks the download until you clear the quarantine flag or click
+  Open Anyway. This is the one thing standing between Perch and a genuinely
+  one-click install for anyone else. Because an ad-hoc signature derives from
+  the binary itself, every rebuild is also a different code identity and macOS
+  forgets the Accessibility grant — the toggle looks enabled
   while the app still reads as untrusted. Run
   `Scripts/setup-signing-identity.sh` once if you build locally.
 - **Clipboard capture polls** twice a second; macOS offers no change
