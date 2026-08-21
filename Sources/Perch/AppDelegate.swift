@@ -191,7 +191,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             menu.addItem(item)
         }
         add("Clipboard History", "clipboard") { ClipboardPanelController.shared.toggle() }
-        add("Window Switcher", "switcher") { WindowSwitcher.shared.toggle() }
+        add("Window Switcher", "switcher") { WindowSwitcher.shared.toggleList() }
         add("Night Mode", "nightMode") { NightMode.shared.toggle() }
         add("Screen Cleaning", "screenClean") { ScreenCleaner.shared.start() }
         add("Keyboard Cleaning", "keyboardClean") { InputCleaner.shared.start(.keyboard) }
@@ -218,7 +218,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let hk = HotkeyManager.shared
         hk.register("panel") { [weak self] in self?.togglePopover() }
         hk.register("clipboard") { ClipboardPanelController.shared.toggle() }
-        hk.register("switcher") { WindowSwitcher.shared.toggle() }
+        hk.register("switcher") { WindowSwitcher.shared.toggleList() }
         hk.register("switcher.altTab") { WindowSwitcher.shared.holdToSwitch(modifier: .option) }
         hk.register("nightMode") { NightMode.shared.toggle() }
         hk.register("screenClean") { ScreenCleaner.shared.toggle() }
