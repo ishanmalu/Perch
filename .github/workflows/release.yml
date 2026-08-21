@@ -34,7 +34,34 @@ jobs:
             dist/*.dmg
             dist/SHA256SUMS.txt
           body: |
-            Download the DMG, drag Perch to Applications, then right-click → Open
-            on first launch (the build is ad-hoc signed, not notarized).
+            ### Install
 
-            Verify the download against `SHA256SUMS.txt`.
+            1. Download `Perch-${{ steps.version.outputs.value }}.dmg` below.
+            2. Open it and drag **Perch** to **Applications**.
+            3. Clear the download flag, then open Perch:
+
+               ```
+               xattr -dr com.apple.quarantine /Applications/Perch.app
+               ```
+
+            Perch is signed but not notarized (that needs a paid Apple Developer
+            account), so macOS blocks it until the flag is cleared. Without a
+            terminal: open Perch, dismiss the warning, then System Settings →
+            Privacy & Security → **Open Anyway**.
+
+            On macOS 15 and later, Control-click → Open no longer works for
+            unnotarized apps.
+
+            ### Then
+
+            Grant Accessibility access in System Settings → Privacy & Security →
+            Accessibility for window management, the switcher, and cleaning modes.
+            Press **⌃⌥Space** to open the panel.
+
+            ### Verify the download
+
+            ```
+            shasum -a 256 -c SHA256SUMS.txt
+            ```
+
+            Full instructions: https://github.com/ishanmalu/perch#install

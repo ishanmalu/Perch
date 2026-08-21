@@ -25,40 +25,59 @@ you have to turn on.
 
 ## Install
 
-### Homebrew
+Three routes. Pick one — they all end in the same place.
+
+### Option A — Homebrew (easiest)
 
 ```bash
 brew tap ishanmalu/tap
 brew install --cask --no-quarantine perch
+open -a Perch
 ```
 
-`--no-quarantine` skips the Gatekeeper prompt. Leave it off if you'd rather
-approve the app by hand.
+`--no-quarantine` matters: it stops macOS attaching the download flag, so there
+is nothing to clear afterwards. Then jump to [First run](#first-run).
 
-### Download
+### Option B — Download the DMG
 
-1. Grab the latest `Perch-x.y.z.dmg` from [Releases](../../releases).
-2. Open it, drag **Perch** to Applications.
-3. **Clear the quarantine flag**, then open it:
+1. Open [**Releases**](../../releases) and download `Perch-x.y.z.dmg` from the
+   newest one.
+2. Double-click the DMG, then drag **Perch** onto the **Applications** shortcut.
+3. Eject the DMG (⌘E in Finder, or drag it to the Bin).
+4. **Clear the quarantine flag** — paste this into Terminal:
 
    ```bash
    xattr -dr com.apple.quarantine /Applications/Perch.app
    ```
 
-   Perch is signed ad-hoc rather than with a paid Apple Developer certificate,
-   so it is not notarized and Gatekeeper blocks it on first launch. Verified:
-   `spctl -a -t exec Perch.app` → `rejected`.
+5. Open Perch from Applications.
 
-   If you would rather not use the terminal, open Perch once, dismiss the
-   warning, then go to **System Settings → Privacy & Security**, scroll to
-   **Security**, and click **Open Anyway** next to the message about Perch.
+<details>
+<summary>Why step 4 is needed, and what to do without a terminal</summary>
 
-   > On macOS 15 and later — including macOS 26 — Control-clicking an app and
-   > choosing **Open** no longer bypasses this. Apple removed that shortcut for
-   > unnotarized apps. Older guides (and earlier versions of this README) still
-   > say to do it; it will not work.
+Perch is signed, but not *notarized* — notarizing requires a paid Apple
+Developer account. macOS therefore blocks it on first launch:
 
-### From source
+```
+$ spctl -a -t exec Perch.app
+Perch.app: rejected
+```
+
+Clearing the flag removes the block. The signature still verifies, so the app
+is unaltered since it was built.
+
+**Without the terminal:** open Perch and dismiss the warning, then go to
+**System Settings → Privacy & Security**, scroll down to **Security**, and click
+**Open Anyway** beside the message about Perch. Enter your password, then open
+Perch again.
+
+**Note:** on macOS 15 and later — including macOS 26 — Control-clicking the app
+and choosing **Open** no longer works for unnotarized apps. Apple removed that
+shortcut. Many guides still recommend it.
+
+</details>
+
+### Option C — Build it yourself
 
 ```bash
 git clone https://github.com/ishanmalu/perch.git
@@ -66,17 +85,61 @@ cd perch
 Scripts/install.sh
 ```
 
-Builds, self-tests, and installs to `/Applications` in one step. Command Line
-Tools are enough — full Xcode is not required.
+Builds, self-tests, installs to `/Applications`, and launches it. Needs Swift 6
+and the macOS SDK — Command Line Tools are enough, full Xcode is not required.
+Nothing is downloaded, so there is no quarantine flag to clear.
 
-### Then grant Accessibility
+---
 
-System Settings → Privacy & Security → **Accessibility** → add Perch.
+## First run
 
-Window management, the switcher, Alt-Tab, keyboard cleaning, and paste-on-pick
-need it. Everything else works without.
+1. **Find the icon.** Perch lives in the menu bar as a small bird — no Dock icon.
+   Press **⌃⌥Space** to open its panel at any time.
 
-**Requires macOS 14+. Universal binary — Apple silicon and Intel.**
+   *Can't see the icon?* A notch or a full menu bar can hide it, and macOS gives
+   apps no control over placement. ⌃⌥Space still works, and Perch shows the panel
+   at the top right when it detects the icon is unreachable.
+
+2. **Grant Accessibility access.** Open **System Settings → Privacy & Security →
+   Accessibility**, click **+**, and add `/Applications/Perch.app`. Toggle it on.
+
+   This is required for window tiling, the window switcher, Alt-Tab, keyboard and
+   trackpad cleaning, and paste-on-pick. Everything else works without it. Perch
+   reads window positions, titles, and app names — never window contents.
+
+3. **Try it.** With any window focused:
+
+   | Press | What happens |
+   | --- | --- |
+   | `⌃⌥←` | Window snaps to the left half — press again to cycle ⅓ and ⅔ |
+   | `⌃⌥↩` | Window fills the screen |
+   | `⌃⌥⌫` | Window returns to its original size |
+   | `⌥Tab` | Hold Option, tap Tab, release to switch window |
+   | `⌘⇧V` | Clipboard history |
+   | `⌃⌥N` | Night mode on/off |
+
+4. **Turn on Launch at Login** — Tools tab in the panel, or Settings → General.
+
+5. **Make the shortcuts yours** — Settings → Shortcuts. Click any shortcut and
+   press a new combination; `Esc` cancels.
+
+> If you also run Rectangle, Magnet, or AltTab, their defaults overlap Perch's.
+> Whichever registered a shortcut first wins, so change one side or quit the
+> other.
+
+---
+
+## Using it
+
+The panel has three tabs, plus a clipboard button and settings in its header.
+
+| Tab | What's there |
+| --- | --- |
+| **System** | CPU, memory and disk rings; network, battery, uptime, load average, thermal state, swap, memory pressure |
+| **Screen** | Window layout grid, saved layouts, per-display brightness, night mode |
+| **Tools** | Screen Clean, Keyboard Clean, Trackpad Clean, Clipboard, Switcher, Disk Clean, plus Prevent Sleep / Record Clipboard / Launch at Login switches |
+
+Right-clicking the menu bar icon opens the same actions as a plain menu.
 
 ---
 
