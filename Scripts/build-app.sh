@@ -36,8 +36,11 @@ sed "s/__VERSION__/$VERSION/g" Resources/Info.plist > "$APP/Contents/Info.plist"
 # creates one; without it we fall back to ad-hoc.
 # Preference order: an explicit override, then a real Developer ID (the only
 # kind Apple will notarize), then the local self-signed identity, then ad-hoc.
+# `|| true` matters: with `set -euo pipefail`, grep finding nothing returns 1
+# and would abort the build on any machine without a Developer ID — which is
+# every CI runner.
 DEVELOPER_ID="$(security find-identity -v -p codesigning 2>/dev/null \
-  | grep -o '"Developer ID Application: [^"]*"' | head -1 | tr -d '"')"
+  | grep -o '"Developer ID Application: [^"]*"' | head -1 | tr -d '"' || true)"
 IDENTITY="${PERCH_SIGN_IDENTITY:-${DEVELOPER_ID:-Perch Dev}}"
 
 if [ -n "$DEVELOPER_ID" ] && [ "$IDENTITY" = "$DEVELOPER_ID" ]; then

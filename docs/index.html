@@ -73,7 +73,9 @@
   @media (max-width: 640px) { nav a.link.hide-sm { display: none; } }
 
   /* ---------- hero ---------- */
-  header { padding: 96px 0 8px; text-align: center; }
+  /* Scales with the viewport so the hero sits nearer the middle on a tall
+     screen without pushing the fold off a short one. */
+  header { padding: clamp(72px, 16vh, 180px) 0 8px; text-align: center; }
   h1 {
     font-size: clamp(32px, 5.6vw, 54px); line-height: 1.06;
     letter-spacing: -.033em; margin: 0 0 18px; font-weight: 680;
@@ -373,14 +375,14 @@
     <a class="btn btn-primary" href="https://github.com/ishanmalu/perch/releases/latest"><svg class="ico"><use href="#i-download"/></svg>Download for macOS</a>
     <a class="btn btn-secondary" href="https://github.com/ishanmalu/perch">View source</a>
   </div>
-  <p class="sub">Free to download and free to use. Always. No trial, no Pro tier, no subscription.</p>
+  <p class="sub">Free and open source.</p>
 
   <div class="notice">
     <b>Early stage.</b> Perch is a personal project, built and used daily on one Mac.
     It works, and every release is checked by an automated self-test — but it has not
-    been through wide testing, and it is <b>not notarized by Apple</b>, so the first
-    launch takes one extra step (<a href="#install">shown below</a>). Bugs and rough
-    edges are likely. Issues and pull requests are welcome.
+    been through wide testing. Bugs and rough edges are likely.
+    <a href="https://github.com/ishanmalu/perch/issues">Issues</a> and pull requests
+    are welcome.
   </div>
 </header>
 
