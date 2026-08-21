@@ -186,6 +186,27 @@ private struct WindowSettings: View {
                 Text("Animation adds a short delay because each frame is a separate Accessibility call.")
                     .font(.caption).foregroundStyle(.secondary)
             }
+            Section("Window switcher") {
+                Picker("Alt-Tab shows", selection: Binding(
+                    get: { prefs.switcherStyle }, set: { prefs.switcherStyle = $0 })) {
+                    ForEach(SwitcherStyle.allCases) { style in
+                        Text(style.title).tag(style)
+                    }
+                }
+                Toggle("Separate title switcher on its own shortcut", isOn: Binding(
+                    get: { prefs.listSwitcherEnabled }, set: { prefs.listSwitcherEnabled = $0 }))
+                LabeledContent("Live previews") {
+                    HStack {
+                        Text(WindowThumbnails.shared.isAuthorized ? "Enabled" : "Needs permission")
+                            .foregroundStyle(WindowThumbnails.shared.isAuthorized ? .green : .orange)
+                        if !WindowThumbnails.shared.isAuthorized {
+                            Button("Grant…") { WindowThumbnails.shared.requestAuthorization() }
+                        }
+                    }
+                }
+                Text("Thumbnails need Screen Recording permission — macOS has no other way to show you another app's window. Without it the switcher falls back to large app icons, and everything else keeps working. Perch captures a window only while the switcher is on screen.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             Section("Layouts") {
                 ForEach(layouts) { layout in
                     HStack(spacing: 12) {

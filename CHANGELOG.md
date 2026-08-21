@@ -4,6 +4,29 @@ All notable changes to Perch. Versions follow [semver](https://semver.org),
 and each heading below corresponds to a published
 [release](https://github.com/ishanmalu/perch/releases).
 
+## [1.4.0] — 2026-08-22
+
+### Added
+- **Alt-Tab now shows live window thumbnails**, in an auto-sizing grid — fewer
+  windows means bigger previews. Type to filter, arrows and Tab to move.
+- **Per-window actions while the modifier is held**: `W` closes the window, `M`
+  minimises it, `Q` quits the app. The list refreshes in place rather than
+  closing.
+- **The title list is now a separate switcher** on its own shortcut, and can be
+  switched off entirely in Settings → Windows for anyone who only wants Alt-Tab.
+- Settings → Windows chooses what Alt-Tab shows: Thumbnails or Titles.
+
+### Fixed
+- Alt-Tab lost hold mode as it opened, because `open()` calls `close()`, which
+  cleared the modifier that had just been set. The per-window actions never
+  appeared as a result.
+- The switcher could not be dismissed if another app took focus, since its key
+  monitor only sees events aimed at Perch. It now closes when focus leaves,
+  after a short grace period so it cannot close itself while appearing.
+- Window previews were missing for anything on another Space: both the
+  ScreenCaptureKit query and the window-ID lookup were filtering to on-screen
+  windows only.
+
 ## [1.3.1] — 2026-08-21
 
 ### Added

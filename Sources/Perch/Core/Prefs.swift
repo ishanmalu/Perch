@@ -38,6 +38,16 @@ final class Prefs: ObservableObject {
     /// Off by default — the network check is opt-in, not assumed.
     var autoCheckUpdates: Bool { get { get("update.auto", false) } set { set("update.auto", newValue) } }
 
+    // MARK: Switcher
+    /// What Alt-Tab shows: live thumbnails, or a compact title list.
+    var switcherStyle: SwitcherStyle {
+        get { SwitcherStyle(rawValue: get("switcher.style", "thumbnails")) ?? .thumbnails }
+        set { set("switcher.style", newValue.rawValue) }
+    }
+    /// The separate title-list switcher on its own shortcut. Can be turned off
+    /// entirely for anyone who only wants Alt-Tab.
+    var listSwitcherEnabled: Bool { get { get("switcher.listEnabled", true) } set { set("switcher.listEnabled", newValue) } }
+
     // MARK: Night mode
     var nightTemperature: Double { get { get("night.kelvin", 3600.0) } set { set("night.kelvin", newValue) } }
     var nightSchedule: Int { get { get("night.schedule", 0) } set { set("night.schedule", newValue) } }
