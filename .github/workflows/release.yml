@@ -41,8 +41,22 @@ jobs:
             -s -k "$KEYCHAIN_PWD" "$KEYCHAIN" >/dev/null
           security list-keychains -d user -s "$KEYCHAIN" \
             $(security list-keychains -d user | tr -d '"')
-          rm -f "$RUNNER_TEMP/cert.p12"
-          security find-identity -v -p codesigning "$KEYCHAIN"
+
+          # A self-signed certificate chains to nothing, so `find-identity -v`
+          # -- which lists only trusted identities -- reports none and the build
+          # silently falls back to ad-hoc. Trusting it in this throwaway
+          # keychain is what makes it usable for signing.
+          openssl pkcs12 -in "$RUNNER_TEMP/cert.p12" -clcerts -nokeys -legacy \
+            -passin pass:"$MACOS_CERTIFICATE_PWD" -out "$RUNNER_TEMP/cert.pem" 2>/dev/null \
+            || openssl pkcs12 -in "$RUNNER_TEMP/cert.p12" -clcerts -nokeys \
+                 -passin pass:"$MACOS_CERTIFICATE_PWD" -out "$RUNNER_TEMP/cert.pem"
+          security add-trusted-cert -r trustRoot -p codeSign \
+            -k "$KEYCHAIN" "$RUNNER_TEMP/cert.pem" || \
+            echo "note: could not add trust settings; relying on the identity alone"
+
+          rm -f "$RUNNER_TEMP/cert.p12" "$RUNNER_TEMP/cert.pem"
+          echo "identities in the build keychain:"
+          security find-identity -p codesigning "$KEYCHAIN"
           echo "enabled=true" >> "$GITHUB_OUTPUT"
 
       - name: Build DMG
