@@ -9,6 +9,8 @@ struct MainPanelView: View {
     @ObservedObject var prefs = Prefs.shared
     @ObservedObject var updater = Updater.shared
     @ObservedObject var night = NightMode.shared
+    @ObservedObject var sleepBlocker = PreventSleep.shared
+    @State private var launchAtLogin = LoginItem.isEnabled
 
     /// How tall the popover may grow before its contents start scrolling.
     /// Passed in from the screen the menu bar item sits on.
@@ -21,27 +23,29 @@ struct MainPanelView: View {
     /// Which tab to open on; only used by `--render-ui`.
     var initialTab: PanelTab? = nil
 
-    @State private var contentHeight: CGFloat = 0
     @State private var tab: PanelTab = .system
 
     enum PanelTab: String, CaseIterable, Identifiable {
-        case system, windows, display, tools
+        case system, screen, tools
         var id: String { rawValue }
         var title: String { rawValue.capitalized }
         var symbol: String {
             switch self {
             case .system: return "gauge.medium"
-            case .windows: return "macwindow"
-            case .display: return "sun.max"
+            case .screen: return "macwindow"
             case .tools: return "wrench.and.screwdriver"
             }
         }
     }
 
-    /// The scrollable middle gets what's left after the header, footer, and a
-    /// margin from the menu bar. Hard-capped so the panel can never be taller
-    /// than the display it drops out of.
-    private var scrollBudget: CGFloat { max(180, min(maxHeight - 120, 420)) }
+    /// Every tab renders into the same fixed-height area. Tabs have different
+    /// natural heights, and letting the popover resize on each switch made it
+    /// jump and — because NSPopover caches the content size — sometimes clip its
+    /// own header off the top of the screen. A constant height removes both.
+    private var contentBudget: CGFloat { max(150, min(maxHeight - 120, 296)) }
+
+    /// Total panel height, which stays constant for the life of the popover.
+    var panelHeight: CGFloat { contentBudget + 116 }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -49,18 +53,17 @@ struct MainPanelView: View {
             tabBar
             Divider()
             if flattened {
-                sections
+                // ImageRenderer draws a ScrollView's contents as blank, so
+                // `--render-ui` previews bypass it.
+                sections.frame(height: contentBudget, alignment: .top)
             } else {
                 ScrollView(.vertical) {
                     sections
-                        .background(GeometryReader { geo in
-                            Color.clear.preference(key: PanelHeightKey.self, value: geo.size.height)
-                        })
                 }
                 .scrollBounceBehavior(.basedOnSize)
-                .onPreferenceChange(PanelHeightKey.self) { contentHeight = $0 }
-                .frame(height: min(max(contentHeight, 100), scrollBudget))
+                .frame(height: contentBudget)
             }
+
             Divider()
             footer
         }
@@ -72,7 +75,7 @@ struct MainPanelView: View {
         HStack(spacing: 3) {
             ForEach(PanelTab.allCases) { item in
                 Button {
-                    withAnimation(.easeOut(duration: 0.12)) { tab = item }
+                    tab = item
                 } label: {
                     VStack(spacing: 2) {
                         Image(systemName: item.symbol).font(.system(size: 11.5))
@@ -97,14 +100,13 @@ struct MainPanelView: View {
         Group {
             switch tab {
             case .system: statsSection
-            case .windows: windowsSection
-            case .display: displaySection
+            case .screen: screenSection
             case .tools: toolsSection
             }
         }
         .padding(.horizontal, 11)
         .padding(.vertical, 10)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 
     // MARK: - Header
@@ -161,6 +163,22 @@ struct MainPanelView: View {
                             value: SystemMonitor.duration(s.uptime), tint: .orange)
                 }
             }
+            Card(padding: 9) {
+                VStack(spacing: 6) {
+                    InfoRow(symbol: "speedometer", title: "Load average",
+                            value: s.loadAverage.map { String(format: "%.2f", $0) }.joined(separator: "  "),
+                            tint: .blue)
+                    InfoRow(symbol: "thermometer.medium", title: "Thermal",
+                            value: s.thermalPressure,
+                            tint: s.thermalPressure == "Nominal" ? .green : .orange)
+                    InfoRow(symbol: "arrow.left.arrow.right.square", title: "Swap",
+                            value: SystemMonitor.bytes(s.swapUsed),
+                            tint: s.swapUsed > 2_000_000_000 ? .orange : .secondary)
+                    InfoRow(symbol: "memorychip", title: "Memory pressure",
+                            value: "\(Int(s.memPressure * 100))%",
+                            tint: memoryTint(s.memPressure))
+                }
+            }
         }
     }
 
@@ -186,8 +204,18 @@ struct MainPanelView: View {
 
     // MARK: - Windows
 
+    /// Windows and display controls together: everything about the screen
+    /// in front of you.
+    private var screenSection: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            windowsSection
+            displaySection
+        }
+    }
+
     private var windowsSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 5) {
+            SectionHeader("Layout")
             Card(padding: 8) {
                 VStack(spacing: 5) {
                     ForEach(tileRows, id: \.first) { row in
@@ -231,7 +259,8 @@ struct MainPanelView: View {
     // MARK: - Brightness
 
     private var displaySection: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 5) {
+            SectionHeader("Brightness & night")
             Card(padding: 9) {
                 VStack(spacing: 7) {
                     ForEach(brightness.displays) { display in
@@ -244,8 +273,11 @@ struct MainPanelView: View {
                             ), in: 0...1)
                             .controlSize(.mini)
                             Text("\(Int(display.level * 100))")
-                                .font(Theme.Font.numeric).foregroundStyle(.secondary)
-                                .frame(width: 22, alignment: .trailing)
+                                .font(Theme.Font.numeric)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .fixedSize()
+                                .frame(width: 26, alignment: .trailing)
                         }
                         .help(display.isBuiltin ? display.name : "\(display.name) — software dimming")
                     }
@@ -263,8 +295,11 @@ struct MainPanelView: View {
                                    in: 2400...6500)
                             .controlSize(.mini)
                             Text("\(Int(night.temperature))K")
-                                .font(Theme.Font.numeric).foregroundStyle(.secondary)
-                                .frame(width: 38, alignment: .trailing)
+                                .font(Theme.Font.numeric)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .fixedSize()
+                                .frame(width: 44, alignment: .trailing)
                         } else {
                             Text("Night mode").font(Theme.Font.caption).foregroundStyle(.secondary)
                             Spacer()
@@ -280,15 +315,53 @@ struct MainPanelView: View {
     // MARK: - Tools
 
     private var toolsSection: some View {
-        VStack(alignment: .leading, spacing: Theme.Space.row) {
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 5), count: 3), spacing: 5) {
-                tool("sparkles.tv", "Screen clean", .cyan) { ScreenCleaner.shared.start() }
-                tool("keyboard", "Keyboard clean", .mint) { KeyboardCleaner.shared.start() }
-                tool("doc.on.clipboard", "Clipboard", .orange) { ClipboardPanelController.shared.toggle() }
-                tool("macwindow.on.rectangle", "Switcher", .blue) { WindowSwitcher.shared.toggle() }
-                tool("internaldrive", "Disk clean", .purple) { SettingsWindow.shared.show(tab: .disk) }
-                tool("gearshape", "Settings", .gray, action: onOpenSettings)
+        VStack(alignment: .leading, spacing: 9) {
+            VStack(alignment: .leading, spacing: 5) {
+                SectionHeader("Tools")
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 5), count: 3), spacing: 5) {
+                    tool("sparkles.tv", "Screen clean", .cyan) { ScreenCleaner.shared.start() }
+                    tool("keyboard", "Keyboard clean", .mint) { KeyboardCleaner.shared.start() }
+                    tool("doc.on.clipboard", "Clipboard", .orange) { ClipboardPanelController.shared.toggle() }
+                    tool("macwindow.on.rectangle", "Switcher", .blue) { WindowSwitcher.shared.toggle() }
+                    tool("internaldrive", "Disk clean", .purple) { SettingsWindow.shared.show(tab: .disk) }
+                    tool("gearshape", "Settings", .gray, action: onOpenSettings)
+                }
             }
+
+            VStack(alignment: .leading, spacing: 5) {
+                SectionHeader("Switches")
+                Card(padding: 9) {
+                    VStack(spacing: 8) {
+                        switchRow("cup.and.saucer.fill", "Prevent sleep", .brown,
+                                  isOn: sleepBlocker.isActive) { sleepBlocker.toggle() }
+                        Divider().opacity(0.4)
+                        switchRow("doc.on.clipboard.fill", "Record clipboard", .orange,
+                                  isOn: prefs.clipboardEnabled) {
+                            prefs.clipboardEnabled.toggle()
+                            prefs.clipboardEnabled ? ClipboardStore.shared.start() : ClipboardStore.shared.stop()
+                        }
+                        Divider().opacity(0.4)
+                        switchRow("power", "Launch at login", .green, isOn: launchAtLogin) {
+                            launchAtLogin.toggle()
+                            LoginItem.set(enabled: launchAtLogin)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func switchRow(_ symbol: String, _ title: String, _ tint: Color,
+                           isOn: Bool, toggle: @escaping () -> Void) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: symbol)
+                .font(.system(size: 10))
+                .foregroundStyle(isOn ? tint : .secondary)
+                .frame(width: 14)
+            Text(title).font(Theme.Font.body).foregroundStyle(.secondary)
+            Spacer(minLength: 6)
+            Toggle("", isOn: Binding(get: { isOn }, set: { _ in toggle() }))
+                .labelsHidden().toggleStyle(.switch).controlSize(.mini)
         }
     }
 
@@ -371,15 +444,6 @@ struct MainPanelView: View {
         case .failed(let why): return why
         case .idle: return "Perch \(updater.currentVersion)"
         }
-    }
-}
-
-/// Reports the natural height of the panel contents so the popover can cap
-/// itself to the screen instead of running off the top of it.
-private struct PanelHeightKey: PreferenceKey {
-    static let defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = max(value, nextValue())
     }
 }
 

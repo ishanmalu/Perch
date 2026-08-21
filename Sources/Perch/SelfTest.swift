@@ -56,6 +56,22 @@ enum SelfTest {
             expect(ok, "action fits at every cycle step: \(action.rawValue)")
         }
 
+        print("\nUpdater — only trusts GitHub over TLS")
+        for allowed in ["https://github.com/ishanmalu/perch/releases/tag/v1.0.0",
+                        "https://api.github.com/repos/ishanmalu/perch/releases/latest",
+                        "https://objects.githubusercontent.com/x/y.dmg"] {
+            expect(MainActor.assumeIsolated { Updater.isTrusted(URL(string: allowed)!) },
+                   "allows \(URL(string: allowed)!.host!)")
+        }
+        for blocked in ["http://github.com/x",                 // not TLS
+                        "https://evil.example.com/perch.dmg",  // wrong host
+                        "https://github.com.evil.test/x.dmg",  // lookalike host
+                        "file:///tmp/perch.dmg",               // local file
+                        "ftp://github.com/x.dmg"] {
+            expect(!(MainActor.assumeIsolated { Updater.isTrusted(URL(string: blocked)!) }),
+                   "refuses \(blocked)")
+        }
+
         print("\nShortcuts — defaults are usable")
         var seen: [String: String] = [:]
         for (name, spec) in HotkeySpec.defaults.sorted(by: { $0.key < $1.key }) {

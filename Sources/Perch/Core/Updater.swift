@@ -22,6 +22,19 @@ final class Updater: ObservableObject {
         let checksumURL: URL?
     }
 
+    /// Everything the updater fetches or opens has to live on one of these.
+    /// The release JSON is attacker-controlled if GitHub is ever compromised,
+    /// so URLs taken from it are checked rather than trusted.
+    private static let allowedHosts: Set<String> = [
+        "github.com", "www.github.com", "api.github.com",
+        "objects.githubusercontent.com", "release-assets.githubusercontent.com",
+    ]
+
+    static func isTrusted(_ url: URL) -> Bool {
+        guard url.scheme?.lowercased() == "https", let host = url.host?.lowercased() else { return false }
+        return allowedHosts.contains(host)
+    }
+
     enum State: Equatable {
         case idle
         case checking
@@ -110,20 +123,21 @@ final class Updater: ObservableObject {
                 .flatMap(URL.init(string:))
         }
 
+        guard Self.isTrusted(page) else { throw UpdateError.untrustedURL }
         return Release(
             version: tag.hasPrefix("v") ? String(tag.dropFirst()) : tag,
             notes: (json["body"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines),
             pageURL: page,
-            dmgURL: asset { $0.hasSuffix(".dmg") },
-            checksumURL: asset { $0.contains("sha256") }
+            dmgURL: asset { $0.hasSuffix(".dmg") }.flatMap { Self.isTrusted($0) ? $0 : nil },
+            checksumURL: asset { $0.contains("sha256") }.flatMap { Self.isTrusted($0) ? $0 : nil }
         )
     }
 
     // MARK: - Downloading
 
     func downloadLatest() {
-        guard let release, let dmgURL = release.dmgURL else {
-            if let release { NSWorkspace.shared.open(release.pageURL) }
+        guard let release, let dmgURL = release.dmgURL, Self.isTrusted(dmgURL) else {
+            openReleasePage()
             return
         }
         state = .downloading(progress: 0)
@@ -139,18 +153,20 @@ final class Updater: ObservableObject {
                 let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
 
                 // A published checksum is the only thing standing between a
-                // download and running whatever a compromised CDN handed back.
-                if let checksumURL = release.checksumURL {
-                    let expected = try await expectedChecksum(from: checksumURL, dmgName: dmgURL.lastPathComponent)
-                    guard let expected else { throw UpdateError.checksumMissing }
-                    guard expected.caseInsensitiveCompare(digest) == .orderedSame else {
-                        throw UpdateError.checksumMismatch
-                    }
+                // download and whatever a compromised CDN handed back, so a
+                // release without one is refused rather than trusted.
+                guard let checksumURL = release.checksumURL else { throw UpdateError.checksumMissing }
+                guard let expected = try await expectedChecksum(from: checksumURL,
+                                                                dmgName: dmgURL.lastPathComponent)
+                else { throw UpdateError.checksumMissing }
+                guard expected.caseInsensitiveCompare(digest) == .orderedSame else {
+                    throw UpdateError.checksumMismatch
                 }
 
-                let destination = FileManager.default
-                    .urls(for: .downloadsDirectory, in: .userDomainMask)[0]
-                    .appendingPathComponent(dmgURL.lastPathComponent)
+                let downloads = FileManager.default
+                    .urls(for: .downloadsDirectory, in: .userDomainMask).first
+                    ?? FileManager.default.temporaryDirectory
+                let destination = downloads.appendingPathComponent(dmgURL.lastPathComponent)
                 try? FileManager.default.removeItem(at: destination)
                 try FileManager.default.moveItem(at: tempURL, to: destination)
 
@@ -178,8 +194,9 @@ final class Updater: ObservableObject {
     }
 
     func openReleasePage() {
-        NSWorkspace.shared.open(release?.pageURL
-            ?? URL(string: "https://github.com/\(repo)/releases/latest")!)
+        let fallback = URL(string: "https://github.com/\(repo)/releases/latest")!
+        let target = release?.pageURL ?? fallback
+        NSWorkspace.shared.open(Self.isTrusted(target) ? target : fallback)
     }
 
     // MARK: - Version comparison
@@ -200,14 +217,17 @@ final class Updater: ObservableObject {
     }
 
     enum UpdateError: LocalizedError {
-        case badResponse, noReleases, status(Int), checksumMismatch, checksumMissing
+        case badResponse, noReleases, status(Int), checksumMismatch, checksumMissing, untrustedURL
 
         var errorDescription: String? {
             switch self {
             case .badResponse: return "GitHub returned something unexpected."
             case .noReleases: return "No releases published yet."
             case .status(let code): return "GitHub returned HTTP \(code)."
-            case .checksumMissing: return "The release has no checksum for this file."
+            case .checksumMissing:
+                return "That release publishes no checksum for this file, so the download was refused."
+            case .untrustedURL:
+                return "The release pointed somewhere other than GitHub. Nothing was downloaded."
             case .checksumMismatch: return "The download did not match its published checksum. It was discarded."
             }
         }

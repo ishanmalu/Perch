@@ -18,12 +18,12 @@ enum RenderUI {
             render(AnyView(MainPanelView(maxHeight: screenHeight - 40,
                                          onOpenSettings: {}, onQuit: {},
                                          flattened: true, initialTab: tab)),
-                   width: 300, name: "panel-\(tab.rawValue)", into: dir, budget: 420)
+                   width: 300, name: "panel-\(tab.rawValue)", into: dir, budget: 520)
         }
 
         // A deliberately cramped display, to prove the cap engages.
-        render(AnyView(MainPanelView(maxHeight: 420, onOpenSettings: {}, onQuit: {})),
-               width: 300, name: "panel-small", into: dir, budget: 420)
+        render(AnyView(MainPanelView(maxHeight: 520, onOpenSettings: {}, onQuit: {})),
+               width: 300, name: "panel-small", into: dir, budget: 520)
 
         exit(0)
     }

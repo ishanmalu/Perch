@@ -13,7 +13,10 @@ final class FloatingPanel: NSPanel {
     /// an NSHostingController and keep its state.
     init(size: CGSize, hosting view: NSView) {
         super.init(contentRect: CGRect(origin: .zero, size: size),
-                   styleMask: [.nonactivatingPanel, .fullSizeContentView, .borderless],
+                   // Not .nonactivatingPanel: these panels are keyboard-driven,
+                   // and a non-activating panel does not reliably become key, so
+                   // Escape and type-to-filter would leak to the app underneath.
+                   styleMask: [.fullSizeContentView, .borderless],
                    backing: .buffered, defer: false)
         // ARC owns this panel; without this AppKit would release it again on close.
         isReleasedWhenClosed = false
