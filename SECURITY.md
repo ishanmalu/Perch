@@ -9,6 +9,7 @@ the clipboard, and intercept keyboard and trackpad input.
 | Capability | How it is used | Bounded by |
 | --- | --- | --- |
 | Accessibility (AX) | Read window frames, titles, and app names; set frames | Never reads window contents |
+| Screen Recording | Window previews in the Alt-Tab switcher | Optional. Captures a window only while the switcher is on screen; images are held in memory, never written to disk |
 | Event tap | Swallow input during keyboard or trackpad cleaning | Counts events only; key codes are discarded, never stored or logged. In trackpad mode keyboard events pass through untouched so the unlock shortcut can reach Perch |
 | Pasteboard | Record clipboard history | Local file, `0600`; concealed types, ignored apps, and credential-shaped strings are skipped |
 | Filesystem | Measure and clear cache folders | Path guard + `trashItem` only; nothing is unlinked |
@@ -28,6 +29,10 @@ the clipboard, and intercept keyboard and trackpad input.
   against the checksum published with the release, and reveals it in Finder. It
   does not replace its own bundle. A utility holding Accessibility and event-tap
   permissions should not also be able to rewrite itself from the network.
+- **Window previews are captured on demand, not continuously.** Screen Recording
+  is only used while the switcher is open, one capture per listed window, and
+  the images live in memory for the life of that switcher session. Nothing is
+  written to disk. Decline the permission and the switcher uses app icons.
 - **Clipboard history is not encrypted.** Encrypting it with a key that also
   lives on the same disk would be theatre. It is instead permission-restricted
   and filtered, and documented as plaintext so you can decide accordingly.
