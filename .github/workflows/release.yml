@@ -12,18 +12,17 @@ jobs:
     runs-on: macos-15
     env:
       MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
     steps:
       - uses: actions/checkout@v4
       - name: Derive version
         id: version
         run: echo "value=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
-      - name: Build DMG
-        run: Scripts/make-dmg.sh "${{ steps.version.outputs.value }}"
-
-      # Signing and notarisation only run when the secrets exist. Without them
-      # the release still ships, ad-hoc signed, exactly as before — so the
-      # pipeline is inert until an Apple Developer account is available.
-      - name: Import Developer ID certificate
+      # Imported before the build so Scripts/build-app.sh finds the identity
+      # in the keychain and signs with it instead of falling back to ad-hoc.
+      # A stable identity is what stops macOS dropping the Accessibility grant
+      # on every update.
+      - name: Import signing certificate
         id: signing
         if: ${{ env.MACOS_CERTIFICATE != '' }}
         env:
@@ -37,21 +36,36 @@ jobs:
           security unlock-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN"
           echo "$MACOS_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/cert.p12"
           security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" \
-            -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+            -P "$MACOS_CERTIFICATE_PWD" -A -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: \
             -s -k "$KEYCHAIN_PWD" "$KEYCHAIN" >/dev/null
-          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          security list-keychains -d user -s "$KEYCHAIN" \
+            $(security list-keychains -d user | tr -d '"')
           rm -f "$RUNNER_TEMP/cert.p12"
+          security find-identity -v -p codesigning "$KEYCHAIN"
           echo "enabled=true" >> "$GITHUB_OUTPUT"
 
-      - name: Sign, notarize and staple
-        if: ${{ steps.signing.outputs.enabled == 'true' }}
+      - name: Build DMG
+        env:
+          PERCH_SIGN_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+        run: Scripts/make-dmg.sh "${{ steps.version.outputs.value }}"
+
+      # Only runs with an Apple Developer account behind it. Without the Apple
+      # ID secrets the release still ships, signed but not notarized.
+      - name: Notarize and staple
+        if: ${{ steps.signing.outputs.enabled == 'true' && env.APPLE_ID != '' }}
         env:
           SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
         run: Scripts/notarize.sh dist/Perch.app "${{ steps.version.outputs.value }}"
+
+      - name: Report signing identity
+        run: |
+          echo "Shipped signature:"
+          codesign -dv --verbose=2 dist/Perch.app 2>&1 | grep -E "Authority|Signature|Identifier" || true
+
       - name: Self-test the shipped binary
         run: dist/Perch.app/Contents/MacOS/Perch --selftest
       - name: Checksum
