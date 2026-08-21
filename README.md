@@ -7,7 +7,7 @@
 **One menu bar icon for the small things macOS makes you hunt for.**
 
 Window tiling · Clipboard history · Alt-Tab window switcher · System stats
-Disk cleaning · Screen & keyboard cleaning · Night mode · Per-display brightness
+Disk cleaning · Screen, keyboard & trackpad cleaning · Night mode · Brightness
 
 [![CI](https://github.com/ishanmalu/perch/actions/workflows/ci.yml/badge.svg)](https://github.com/ishanmalu/perch/actions/workflows/ci.yml)
 ![Platform](https://img.shields.io/badge/macOS-14%2B-black)
@@ -156,6 +156,17 @@ Locks out the keyboard and trackpad for a countdown so you can wipe the keys
 without typing into whatever was focused. Hold `Esc` for a second to finish
 early. Perch counts the presses it blocked but never records which keys.
 
+### 🖱️ Trackpad cleaning
+
+The complement: the pointer is frozen — no movement, clicks, drags, or
+scrolling — while **the keyboard stays live**, so a single press of `Esc` or
+`⌃⌥⇧T` unlocks it. Your hands are nowhere near the keys while you wipe a
+trackpad, which is exactly why the escape hatch lives there.
+
+Both modes run on one event tap, share the same countdown, and share the same
+failsafe: an independent timer ends the session even if the UI wedges, and the
+tap dies with the process, so input can never stay locked.
+
 ### 🌙 Night mode
 
 Warms the screen by rewriting each display's gamma ramp — the same mechanism
@@ -186,6 +197,7 @@ of DDC/CI support.
 | `⌃⌥N` | Night mode |
 | `⌃⌥K` | Screen cleaning |
 | `⌃⌥⇧L` | Keyboard cleaning |
+| `⌃⌥⇧T` | Trackpad cleaning |
 | `⌃⌥←` `→` | Left / right half — press again to cycle ⅓, ⅔ |
 | `⌃⌥↑` `↓` | Top / bottom half |
 | `⌃⌥D` `F` `G` | Left / center / right third |
@@ -241,7 +253,7 @@ Full detail in [SECURITY.md](SECURITY.md).
 | Capability | Used for | Bounded by |
 | --- | --- | --- |
 | Accessibility | Window frames, titles, app names | Never reads window contents |
-| Event tap | Swallowing input while cleaning keys | Counts presses; key codes discarded |
+| Event tap | Swallowing input while cleaning keys or trackpad | Counts events; key codes discarded |
 | Pasteboard | Clipboard history | `0600` file, filtered (below) |
 | Filesystem | Cache measurement and clearing | Path guard, Trash only |
 | Network | Update check | Off by default; GitHub only |

@@ -127,7 +127,7 @@ private struct GeneralSettings: View {
                     Text("Black").tag("black")
                     Text("White").tag("white")
                 }
-                Stepper("Keyboard lock: \(prefs.keyboardCleanSeconds)s",
+                Stepper("Cleaning lock lasts \(prefs.keyboardCleanSeconds)s",
                         value: Binding(get: { prefs.keyboardCleanSeconds }, set: { prefs.keyboardCleanSeconds = $0 }),
                         in: 5...300, step: 5)
             }
@@ -426,6 +426,7 @@ private struct ShortcutSettings: View {
         ("nightMode", "Night mode"),
         ("screenClean", "Screen cleaning"),
         ("keyboardClean", "Keyboard cleaning"),
+        ("trackpadClean", "Trackpad cleaning"),
         ("win.left", "Window: left half"),
         ("win.right", "Window: right half"),
         ("win.top", "Window: top half"),
@@ -468,6 +469,7 @@ private struct ShortcutSettings: View {
         case "switcher": return "macwindow.on.rectangle"
         case "screenClean": return "sparkles.tv"
         case "keyboardClean": return "keyboard"
+        case "trackpadClean": return "rectangle.and.hand.point.up.left"
         case "switcher.altTab": return "arrow.left.arrow.right"
         case "nightMode": return "moon.fill"
         default: return "macwindow"
@@ -481,6 +483,7 @@ private struct ShortcutSettings: View {
         case "switcher": return .blue
         case "screenClean": return .cyan
         case "keyboardClean": return .mint
+        case "trackpadClean": return .pink
         case "switcher.altTab": return .blue
         case "nightMode": return .orange
         default: return .gray

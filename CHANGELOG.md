@@ -2,6 +2,24 @@
 
 All notable changes to Perch. Versions follow [semver](https://semver.org).
 
+## [1.3.0]
+
+### Added
+- **Trackpad cleaning** (`⌃⌥⇧T`) — freezes the pointer (movement, clicks,
+  drags, scrolling) while leaving the keyboard live, so `Esc` or the shortcut
+  unlocks it. The escape hatch is on the keyboard precisely because your hands
+  are not near it while wiping a trackpad.
+
+### Changed
+- `KeyboardCleaner` is now `InputCleaner`, with `keyboard`, `trackpad`, and
+  `both` modes over a single event tap. Which events are suppressed and how you
+  exit are the only differences; the countdown, overlay, and failsafe are shared.
+- Tool and switch labels are title-cased ("Trackpad Clean", "Prevent Sleep").
+- The two network rows are labelled "Network Down" / "Network Up". Sitting
+  beside the disk ring, plain "Download" / "Upload" read as storage.
+- The Tools grid swaps its Settings tile for Trackpad Clean — Settings was
+  already one click away on the header gear.
+
 ## [1.2.1]
 
 ### Security

@@ -150,9 +150,11 @@ struct MainPanelView: View {
             }
             Card(padding: 9) {
                 VStack(spacing: 6) {
-                    InfoRow(symbol: "arrow.down", title: "Download",
+                    // "Download / Upload" alone reads as storage next to the
+                    // disk ring; these are network rates.
+                    InfoRow(symbol: "arrow.down.circle", title: "Network Down",
                             value: SystemMonitor.rate(s.netIn), tint: .teal)
-                    InfoRow(symbol: "arrow.up", title: "Upload",
+                    InfoRow(symbol: "arrow.up.circle", title: "Network Up",
                             value: SystemMonitor.rate(s.netOut), tint: .indigo)
                     if let b = s.batteryPercent {
                         InfoRow(symbol: s.batteryCharging ? "bolt.fill" : "battery.50",
@@ -301,7 +303,7 @@ struct MainPanelView: View {
                                 .fixedSize()
                                 .frame(width: 44, alignment: .trailing)
                         } else {
-                            Text("Night mode").font(Theme.Font.caption).foregroundStyle(.secondary)
+                            Text("Night Mode").font(Theme.Font.caption).foregroundStyle(.secondary)
                             Spacer()
                         }
                         Toggle("", isOn: Binding(get: { night.isActive }, set: { _ in night.toggle() }))
@@ -319,12 +321,14 @@ struct MainPanelView: View {
             VStack(alignment: .leading, spacing: 5) {
                 SectionHeader("Tools")
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 5), count: 3), spacing: 5) {
-                    tool("sparkles.tv", "Screen clean", .cyan) { ScreenCleaner.shared.start() }
-                    tool("keyboard", "Keyboard clean", .mint) { KeyboardCleaner.shared.start() }
+                    tool("sparkles.tv", "Screen Clean", .cyan) { ScreenCleaner.shared.start() }
+                    tool("keyboard", "Keyboard Clean", .mint) { InputCleaner.shared.start(.keyboard) }
                     tool("doc.on.clipboard", "Clipboard", .orange) { ClipboardPanelController.shared.toggle() }
                     tool("macwindow.on.rectangle", "Switcher", .blue) { WindowSwitcher.shared.toggle() }
-                    tool("internaldrive", "Disk clean", .purple) { SettingsWindow.shared.show(tab: .disk) }
-                    tool("gearshape", "Settings", .gray, action: onOpenSettings)
+                    tool("internaldrive", "Disk Clean", .purple) { SettingsWindow.shared.show(tab: .disk) }
+                    tool("rectangle.and.hand.point.up.left", "Trackpad Clean", .pink) {
+                        InputCleaner.shared.start(.trackpad)
+                    }
                 }
             }
 
@@ -332,16 +336,16 @@ struct MainPanelView: View {
                 SectionHeader("Switches")
                 Card(padding: 9) {
                     VStack(spacing: 8) {
-                        switchRow("cup.and.saucer.fill", "Prevent sleep", .brown,
+                        switchRow("cup.and.saucer.fill", "Prevent Sleep", .brown,
                                   isOn: sleepBlocker.isActive) { sleepBlocker.toggle() }
                         Divider().opacity(0.4)
-                        switchRow("doc.on.clipboard.fill", "Record clipboard", .orange,
+                        switchRow("doc.on.clipboard.fill", "Record Clipboard", .orange,
                                   isOn: prefs.clipboardEnabled) {
                             prefs.clipboardEnabled.toggle()
                             prefs.clipboardEnabled ? ClipboardStore.shared.start() : ClipboardStore.shared.stop()
                         }
                         Divider().opacity(0.4)
-                        switchRow("power", "Launch at login", .green, isOn: launchAtLogin) {
+                        switchRow("power", "Launch at Login", .green, isOn: launchAtLogin) {
                             launchAtLogin.toggle()
                             LoginItem.set(enabled: launchAtLogin)
                         }

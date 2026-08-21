@@ -63,7 +63,7 @@ final class NightMode: ObservableObject {
             // A manual flip while on a schedule would be undone a minute later.
             Prefs.shared.nightSchedule = Schedule.manual.rawValue
         }
-        Notifier.show(isActive ? "Night mode on" : "Night mode off",
+        Notifier.show(isActive ? "Night Mode on" : "Night Mode off",
                       isActive ? "\(Int(temperature))K" : nil, duration: 1.5)
     }
 
