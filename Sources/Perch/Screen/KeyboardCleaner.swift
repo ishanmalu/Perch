@@ -111,6 +111,7 @@ final class KeyboardCleaner {
         for screen in NSScreen.screens {
             let w = NSWindow(contentRect: screen.frame, styleMask: [.borderless],
                              backing: .buffered, defer: false, screen: screen)
+            w.isReleasedWhenClosed = false
             w.level = .init(Int(CGShieldingWindowLevel()))
             w.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary]
             w.backgroundColor = NSColor.black.withAlphaComponent(0.92)

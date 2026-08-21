@@ -7,6 +7,8 @@ final class FloatingPanel: NSPanel {
         super.init(contentRect: CGRect(origin: .zero, size: size),
                    styleMask: [.nonactivatingPanel, .fullSizeContentView, .borderless],
                    backing: .buffered, defer: false)
+        // ARC owns this panel; without this AppKit would release it again on close.
+        isReleasedWhenClosed = false
         isFloatingPanel = true
         level = .floating
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]

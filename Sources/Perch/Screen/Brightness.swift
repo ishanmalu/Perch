@@ -107,6 +107,7 @@ final class BrightnessController: ObservableObject {
         let window = overlays[id] ?? {
             let w = NSWindow(contentRect: screen.frame, styleMask: [.borderless],
                              backing: .buffered, defer: false, screen: screen)
+            w.isReleasedWhenClosed = false
             w.level = .init(Int(CGShieldingWindowLevel()) - 1)
             w.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
             w.ignoresMouseEvents = true

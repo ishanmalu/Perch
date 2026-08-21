@@ -23,11 +23,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         RunLoop.main.add(statTimer!, forMode: .common)
 
+        // Only mention it; the system prompt appears when a feature actually
+        // needs the permission, so launching never nags on its own.
         if !AX.isTrusted(prompt: false) {
             Notifier.show("Perch needs Accessibility access",
-                          "System Settings → Privacy & Security → Accessibility. Window management and the switcher stay disabled until then.",
-                          duration: 8)
-            _ = AX.isTrusted(prompt: true)
+                          "Open Settings → General to grant it. Window management, the switcher, and keyboard cleaning stay off until then.",
+                          duration: 6)
         }
     }
 
@@ -41,10 +42,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         guard let button = statusItem.button else { return }
-        button.image = NSImage(systemSymbolName: "bird.fill", accessibilityDescription: "Perch")
-            ?? NSImage(systemSymbolName: "square.grid.2x2", accessibilityDescription: "Perch")
-        button.image?.isTemplate = true
-        button.imagePosition = .imageLeading
+        if let icon = NSImage(systemSymbolName: "bird.fill", accessibilityDescription: "Perch")
+            ?? NSImage(systemSymbolName: "square.grid.2x2", accessibilityDescription: "Perch") {
+            icon.isTemplate = true
+            button.image = icon
+            button.imagePosition = .imageLeading
+        } else {
+            // Never leave the item blank — a zero-width status item is invisible.
+            button.title = "Perch"
+        }
         button.action = #selector(statusClicked(_:))
         button.target = self
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
@@ -79,7 +85,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover = NSPopover()
         popover.behavior = .transient
         popover.animates = true
-        popover.contentViewController = NSHostingController(rootView: MainPanelView(
+    }
+
+    /// The popover must never be taller than the screen it drops out of, or it
+    /// runs off the top. Leave room for the menu bar and a little breathing space.
+    private func makePanelController(for screen: NSScreen?) -> NSViewController {
+        let available = (screen ?? NSScreen.main)?.visibleFrame.height ?? 700
+        return NSHostingController(rootView: MainPanelView(
+            maxHeight: max(320, available - 32),
             onOpenSettings: { [weak self] in
                 self?.popover.performClose(nil)
                 SettingsWindow.shared.show()
@@ -94,6 +107,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             popover.performClose(nil)
         } else {
             BrightnessController.shared.refresh()
+            popover.contentViewController = makePanelController(for: button.window?.screen)
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
             popover.contentViewController?.view.window?.makeKey()
         }

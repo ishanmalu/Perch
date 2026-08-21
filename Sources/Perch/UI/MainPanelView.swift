@@ -7,29 +7,41 @@ struct MainPanelView: View {
     @ObservedObject var monitor = SystemMonitor.shared
     @ObservedObject var brightness = BrightnessController.shared
     @ObservedObject var prefs = Prefs.shared
+    /// How tall the popover may grow before its contents start scrolling.
+    /// Passed in from the screen the menu bar item sits on.
+    var maxHeight: CGFloat = 700
     var onOpenSettings: () -> Void
     var onQuit: () -> Void
 
+    @State private var contentHeight: CGFloat = 0
+
     var body: some View {
-        VStack(spacing: 14) {
-            statsSection
-            Divider()
-            layoutSection
-            Divider()
-            brightnessSection
-            Divider()
-            actionsSection
-            footer
+        ScrollView(.vertical) {
+            VStack(spacing: 11) {
+                statsSection
+                Divider()
+                layoutSection
+                Divider()
+                brightnessSection
+                Divider()
+                actionsSection
+                footer
+            }
+            .padding(13)
+            .background(GeometryReader { geo in
+                Color.clear.preference(key: PanelHeightKey.self, value: geo.size.height)
+            })
         }
-        .padding(14)
-        .frame(width: 340)
+        .scrollBounceBehavior(.basedOnSize)
+        .onPreferenceChange(PanelHeightKey.self) { contentHeight = $0 }
+        .frame(width: 340, height: min(max(contentHeight, 120), maxHeight))
     }
 
     // MARK: - Stats
 
     private var statsSection: some View {
         let s = monitor.snapshot
-        return VStack(spacing: 9) {
+        return VStack(spacing: 7) {
             Gauge(title: "CPU", value: s.cpuUsed / 100,
                   detail: String(format: "%.0f%%  ·  %.0f%% sys", s.cpuUsed, s.cpuSystem),
                   history: monitor.cpuHistory, tint: .blue)
@@ -67,7 +79,7 @@ struct MainPanelView: View {
     // MARK: - Layouts
 
     private var layoutSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 5) {
             sectionTitle("Windows")
             HStack(spacing: 6) {
                 ForEach([WindowAction.left, .right, .top, .bottom], id: \.self) { tile($0) }
@@ -92,7 +104,7 @@ struct MainPanelView: View {
             WindowManager.shared.apply(action)
         } label: {
             TileGlyph(pane: action.unitRect(step: 0))
-                .frame(width: 34, height: 22)
+                .frame(width: 32, height: 20)
         }
         .buttonStyle(.plain)
         .help(action.title)
@@ -123,7 +135,7 @@ struct MainPanelView: View {
     // MARK: - Actions
 
     private var actionsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             sectionTitle("Tools")
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
                 action("sparkles.tv", "Screen clean") { ScreenCleaner.shared.start() }
@@ -142,7 +154,7 @@ struct MainPanelView: View {
                 Image(systemName: symbol).font(.system(size: 15))
                 Text(title).font(.system(size: 9.5)).lineLimit(1)
             }
-            .frame(maxWidth: .infinity).padding(.vertical, 8)
+            .frame(maxWidth: .infinity).padding(.vertical, 6)
             .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(.plain)
@@ -158,6 +170,15 @@ struct MainPanelView: View {
 
     private func sectionTitle(_ s: String) -> some View {
         Text(s.uppercased()).font(.system(size: 9.5, weight: .semibold)).foregroundStyle(.tertiary)
+    }
+}
+
+/// Reports the natural height of the panel contents so the popover can cap
+/// itself to the screen instead of running off the top of it.
+private struct PanelHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }
 

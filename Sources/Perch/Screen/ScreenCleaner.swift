@@ -22,6 +22,7 @@ final class ScreenCleaner {
         for screen in NSScreen.screens {
             let w = OverlayWindow(contentRect: screen.frame, styleMask: [.borderless],
                                   backing: .buffered, defer: false, screen: screen)
+            w.isReleasedWhenClosed = false
             w.level = .init(Int(CGShieldingWindowLevel()))
             w.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
             w.backgroundColor = testColors[colorIndex]

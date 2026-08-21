@@ -31,8 +31,16 @@ fi
 cp Resources/Perch.icns "$APP/Contents/Resources/Perch.icns"
 sed "s/__VERSION__/$VERSION/g" Resources/Info.plist > "$APP/Contents/Info.plist"
 
-echo "==> Signing (ad-hoc)"
-codesign --force --deep --sign - --options runtime "$APP" 2>/dev/null \
-  || codesign --force --deep --sign - "$APP"
+# A stable identity keeps macOS from treating each rebuild as a brand new app,
+# which would reset the Accessibility grant every time. Scripts/setup-signing-identity.sh
+# creates one; without it we fall back to ad-hoc.
+IDENTITY="${PERCH_SIGN_IDENTITY:-Perch Dev}"
+if security find-identity -v -p codesigning 2>/dev/null | grep -q "$IDENTITY"; then
+  echo "==> Signing as '$IDENTITY'"
+  codesign --force --deep --sign "$IDENTITY" "$APP"
+else
+  echo "==> Signing (ad-hoc; run Scripts/setup-signing-identity.sh for a stable identity)"
+  codesign --force --deep --sign - "$APP"
+fi
 
 echo "==> Built $APP ($VERSION)"

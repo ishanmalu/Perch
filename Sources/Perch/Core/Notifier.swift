@@ -47,6 +47,8 @@ enum Notifier {
 
         let w = NSWindow(contentRect: effect.frame, styleMask: [.borderless], backing: .buffered, defer: false)
         w.contentView = effect
+        // ARC owns this window; without this AppKit would release it again on close.
+        w.isReleasedWhenClosed = false
         w.isOpaque = false
         w.backgroundColor = .clear
         w.level = .statusBar
