@@ -362,6 +362,13 @@ extension SystemDetailView {
     /// System row is excluded because those belong to root.
     fileprivate func quit(_ group: ProcessGroup, force: Bool) {
         guard !group.isSystem, group.pid > 0 else { return }
+        // Readings can be a couple of seconds old and pids get reused, so
+        // confirm this is still the same process before signalling it.
+        guard ProcessMonitor.stillMatches(pid: group.pid, command: group.command) else {
+            Notifier.show("\(group.name) is no longer running",
+                          "Nothing was ended.", duration: 3)
+            return
+        }
 
         if let app = NSRunningApplication(processIdentifier: group.pid) {
             let ended = force ? app.forceTerminate() : app.terminate()

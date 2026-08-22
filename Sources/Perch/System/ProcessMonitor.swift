@@ -25,6 +25,9 @@ struct ProcessGroup: Identifiable {
     var cpu: Double
     var memory: UInt64
     var children: [ProcessInfoRow]
+    /// The kernel's short name for the owning process, used to confirm the pid
+    /// has not been recycled before the process is signalled.
+    var command: String = ""
     /// True for the synthetic row covering processes owned by other users.
     var isSystem: Bool = false
 
@@ -102,6 +105,27 @@ final class ProcessMonitor: ObservableObject {
                 self.isSampling = false
             }
         }
+    }
+
+    /// Confirms a pid still belongs to this user and still runs the command we
+    /// sampled, immediately before it is signalled.
+    ///
+    /// Readings can be two seconds old, and pids are reused. Without this, a
+    /// recycled pid would mean ending a process the user never selected.
+    static func stillMatches(pid: pid_t, command: String) -> Bool {
+        guard pid > 0 else { return false }
+        var info = kinfo_proc()
+        var size = MemoryLayout<kinfo_proc>.stride
+        var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_PID, pid]
+        guard sysctl(&mib, 4, &info, &size, nil, 0) == 0, size > 0 else { return false }
+        guard info.kp_eproc.e_ucred.cr_uid == getuid() else { return false }
+
+        let comm = info.kp_proc.p_comm
+        let running = withUnsafeBytes(of: comm) { raw in
+            raw.baseAddress.map { String(cString: $0.assumingMemoryBound(to: CChar.self)) } ?? ""
+        }
+        // p_comm is truncated, so compare on the prefix it can hold.
+        return command.hasPrefix(running) || running.hasPrefix(command)
     }
 
     /// Every process the kernel will tell us about.
@@ -225,7 +249,8 @@ final class ProcessMonitor: ObservableObject {
                 buckets[ownerPID] = ProcessGroup(
                     id: "\(ownerPID)", name: name, icon: app?.icon, pid: ownerPID,
                     cpu: row.cpu, memory: row.memory,
-                    children: row.pid == ownerPID ? [] : [row])
+                    children: row.pid == ownerPID ? [] : [row],
+                    command: byPID[ownerPID]?.command ?? row.command)
             }
         }
 
@@ -245,7 +270,7 @@ final class ProcessMonitor: ObservableObject {
             result.append(ProcessGroup(
                 id: "system", name: "System", icon: nil, pid: 0,
                 cpu: systemCPU, memory: systemMemory,
-                children: [], isSystem: true))
+                children: [], command: "", isSystem: true))
         }
         return result.sorted { $0.cpu > $1.cpu }
     }
