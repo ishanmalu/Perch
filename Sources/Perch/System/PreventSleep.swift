@@ -24,7 +24,10 @@ final class PreventSleep: ObservableObject {
             let result = IOPMAssertionCreateWithName(
                 kIOPMAssertionTypeNoDisplaySleep as CFString,
                 IOPMAssertionLevel(kIOPMAssertionLevelOn),
-                "Perch — sleep prevented by the user" as CFString,
+                // ASCII only: pmset renders this string in a context that mangles
+                // anything outside it, so an em dash shows up as a replacement
+                // character in the assertion list.
+                "Perch: sleep prevented by the user" as CFString,
                 &id)
             guard result == kIOReturnSuccess else {
                 Notifier.show("Could not prevent sleep", "macOS refused the power assertion.")

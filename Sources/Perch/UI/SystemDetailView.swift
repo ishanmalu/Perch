@@ -38,12 +38,27 @@ struct SystemDetailView: View {
     @ObservedObject var processes = ProcessMonitor.shared
     @Binding var metric: SystemMetric
     @State private var query = ""
+    @State private var pendingKill: ProcessGroup?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
             selector
             headline
             detail
+        }
+        .confirmationDialog(
+            pendingKill.map { "Force quit \($0.name)?" } ?? "",
+            isPresented: Binding(get: { pendingKill != nil },
+                                 set: { if !$0 { pendingKill = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("Force Quit", role: .destructive) {
+                if let group = pendingKill { quit(group, force: true) }
+                pendingKill = nil
+            }
+            Button("Cancel", role: .cancel) { pendingKill = nil }
+        } message: {
+            Text("The app closes immediately. Unsaved work is lost.")
         }
     }
 
@@ -187,9 +202,6 @@ struct SystemDetailView: View {
                     InfoRow(symbol: "thermometer.medium", title: "Thermal",
                             value: monitor.snapshot.thermalPressure,
                             tint: monitor.snapshot.thermalPressure == "Nominal" ? .green : .orange)
-                    Divider().opacity(0.4)
-                    Text("Die temperature is not available to unprivileged apps — the sensors sit behind the SMC. macOS's thermal state is the closest honest substitute.")
-                        .font(.system(size: 10)).foregroundStyle(.tertiary)
                 }
             }
         }
@@ -321,9 +333,48 @@ struct SystemDetailView: View {
                                 .font(.system(size: 10, design: .monospaced))
                                 .foregroundStyle(.secondary)
                         }
+                        .contentShape(Rectangle())
+                        .contextMenu {
+                            if group.isSystem {
+                                Text("System processes cannot be ended from here")
+                            } else {
+                                Button("Quit \(group.name)") { quit(group, force: false) }
+                                Button("Force Quit \(group.name)…", role: .destructive) {
+                                    pendingKill = group
+                                }
+                                Divider()
+                                Text(verbatim: "PID \(String(group.pid))")
+                            }
+                        }
                     }
                 }
             }
+        }
+    }
+}
+
+extension SystemDetailView {
+    /// Ends a process group.
+    ///
+    /// Quit asks the application to close, the way ⌘Q does, so it can save and
+    /// clean up. Force Quit does not ask — hence the confirmation in front of
+    /// it. Only processes owned by this user can be signalled at all; the
+    /// System row is excluded because those belong to root.
+    fileprivate func quit(_ group: ProcessGroup, force: Bool) {
+        guard !group.isSystem, group.pid > 0 else { return }
+
+        if let app = NSRunningApplication(processIdentifier: group.pid) {
+            let ended = force ? app.forceTerminate() : app.terminate()
+            if !ended {
+                Notifier.show("Could not end \(group.name)",
+                              "macOS refused the request.", duration: 3)
+            }
+            return
+        }
+        // Not a registered application, so signal it directly.
+        if kill(group.pid, force ? SIGKILL : SIGTERM) != 0 {
+            Notifier.show("Could not end \(group.name)",
+                          "It may belong to another user.", duration: 3)
         }
     }
 }

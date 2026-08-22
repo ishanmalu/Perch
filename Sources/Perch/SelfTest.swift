@@ -50,6 +50,23 @@ enum SelfTest {
         exit(0)
     }
 
+    /// `--probe-windows` reports what the layout code sees, which is otherwise
+    /// invisible when a layout silently does nothing.
+    static func probeWindows() -> Never {
+        guard AX.isTrusted(prompt: false) else {
+            print("Accessibility not granted — nothing to see."); exit(1)
+        }
+        let all = WindowManager.shared.orderedWindows()
+        print("orderedWindows(): \(all.count)")
+        for w in all.prefix(12) {
+            let app = NSRunningApplication(processIdentifier: w.pid)?.localizedName ?? "?"
+            let f = w.frame.map { "\(Int($0.minX)),\(Int($0.minY)) \(Int($0.width))x\(Int($0.height))" } ?? "no frame"
+            print("  \(app) — \(w.title.isEmpty ? "(untitled)" : w.title) — \(f)")
+        }
+        print("\nscreens: \(NSScreen.screens.count), main = \(NSScreen.main?.frame ?? .zero)")
+        exit(0)
+    }
+
     static func run() -> Never {
         print("Perch self-test\n")
 
