@@ -4,6 +4,11 @@ if CommandLine.arguments.contains("--selftest") {
     SelfTest.run()
 }
 
+if CommandLine.arguments.contains("--probe-stats") {
+    _ = NSApplication.shared
+    MainActor.assumeIsolated { SelfTest.probeStats() }
+}
+
 let app = NSApplication.shared
 
 if let i = CommandLine.arguments.firstIndex(of: "--render-ui") {

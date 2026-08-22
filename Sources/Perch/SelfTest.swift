@@ -11,6 +11,45 @@ enum SelfTest {
         condition ? print("  ok   \(what)") : { failures.append(what); print("  FAIL \(what)") }()
     }
 
+    /// `--probe-stats` dumps live readings so the collectors can be checked
+    /// against Activity Monitor without building any UI first.
+    static func probeStats() -> Never {
+        SystemMonitor.shared.start()
+        HardwareStats.shared.start()
+        ProcessMonitor.shared.start()
+        RunLoop.current.run(until: Date().addingTimeInterval(5))
+
+        let hw = HardwareStats.shared
+        print("CPU cores (\(hw.cores.count)):")
+        for core in hw.cores {
+            let bar = String(repeating: "█", count: Int(core.usage / 5)) 
+            print(String(format: "  core %-2d %5.1f%%  %@", core.id, core.usage, bar))
+        }
+        print("\nGPU: \(hw.gpuName ?? "unknown") — "
+              + (hw.gpuUsage.map { String(format: "%.0f%%", $0) } ?? "unreadable"))
+        print(String(format: "Disk: read %@/s  write %@/s",
+                     SystemMonitor.bytes(UInt64(hw.diskRead)),
+                     SystemMonitor.bytes(UInt64(hw.diskWrite))))
+        print("\nInterfaces:")
+        for i in hw.interfaces.prefix(5) {
+            print(String(format: "  %-16s in %@/s  out %@/s", (i.name as NSString).utf8String!,
+                         SystemMonitor.bytes(UInt64(i.rateIn)), SystemMonitor.bytes(UInt64(i.rateOut))))
+        }
+
+        let groups = ProcessMonitor.shared.groups
+        print("\nTop processes (\(groups.count) groups):")
+        for g in groups.prefix(12) {
+            let extra = g.childCount > 0 ? " +\(g.childCount)" : ""
+            print(String(format: "  %-26s %5.2f%%  %@",
+                         ((g.name + extra) as NSString).utf8String!, g.cpu,
+                         SystemMonitor.bytes(g.memory)))
+        }
+        let total = groups.reduce(0.0) { $0 + $1.cpu }
+        print(String(format: "\n  sum of groups: %.1f%%   system-wide: %.1f%%",
+                     total, SystemMonitor.shared.snapshot.cpuUsed))
+        exit(0)
+    }
+
     static func run() -> Never {
         print("Perch self-test\n")
 
