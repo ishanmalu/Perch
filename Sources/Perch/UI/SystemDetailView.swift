@@ -1,0 +1,359 @@
+import SwiftUI
+import AppKit
+
+/// Which metric the System tab is showing in detail.
+enum SystemMetric: String, CaseIterable, Identifiable {
+    case cpu, gpu, memory, disk, network
+    var id: String { rawValue }
+
+    var short: String {
+        switch self {
+        case .cpu: return "CPU"
+        case .gpu: return "GPU"
+        case .memory: return "Mem"
+        case .disk: return "Disk"
+        case .network: return "Net"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .cpu: return .blue
+        case .gpu: return .pink
+        case .memory: return .green
+        case .disk: return .orange
+        case .network: return .teal
+        }
+    }
+}
+
+/// The System tab: pick a metric, see it in detail.
+///
+/// Each metric gets a headline gauge, a history trace, the specifics that only
+/// make sense for that metric, and — for CPU and memory — what is actually
+/// responsible, grouped by application.
+struct SystemDetailView: View {
+    @ObservedObject var monitor = SystemMonitor.shared
+    @ObservedObject var hardware = HardwareStats.shared
+    @ObservedObject var processes = ProcessMonitor.shared
+    @Binding var metric: SystemMetric
+    @State private var query = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            selector
+            headline
+            detail
+        }
+    }
+
+    // MARK: - Selector
+
+    private var selector: some View {
+        HStack(spacing: 3) {
+            ForEach(SystemMetric.allCases) { item in
+                Button { metric = item } label: {
+                    Text(item.short)
+                        .font(.system(size: 10.5, weight: metric == item ? .semibold : .regular))
+                        .foregroundStyle(metric == item ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 4)
+                        .background(metric == item ? item.tint : .clear,
+                                    in: RoundedRectangle(cornerRadius: 6))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(3)
+        .background(Theme.cardFill, in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    // MARK: - Headline gauge and trace
+
+    private var headline: some View {
+        let s = monitor.snapshot
+        return Card(padding: 9) {
+            VStack(spacing: 8) {
+                HStack(alignment: .firstTextBaseline, spacing: 7) {
+                    Text(headlineValue)
+                        .font(.system(size: 25, weight: .semibold, design: .rounded))
+                        .foregroundStyle(metric.tint)
+                    Text(headlineCaption)
+                        .font(Theme.Font.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+                Trace(values: history, tint: metric.tint)
+                    .frame(height: 34)
+            }
+        }
+        .id(metric)          // reset the trace cleanly when the metric changes
+        .onAppear { _ = s }
+    }
+
+    private var headlineValue: String {
+        let s = monitor.snapshot
+        switch metric {
+        case .cpu: return String(format: "%.0f%%", s.cpuUsed)
+        case .gpu: return hardware.gpuUsage.map { String(format: "%.0f%%", $0) } ?? "—"
+        case .memory: return SystemMonitor.bytes(s.memUsed)
+        case .disk: return SystemMonitor.bytes(s.diskFree)
+        case .network:
+            let total = hardware.interfaces.reduce(0.0) { $0 + $1.rateIn + $1.rateOut }
+            return SystemMonitor.rate(total)
+        }
+    }
+
+    private var headlineCaption: String {
+        let s = monitor.snapshot
+        switch metric {
+        case .cpu: return String(format: "%.0f%% system · %d cores", s.cpuSystem, hardware.cores.count)
+        case .gpu: return hardware.gpuName ?? "no reading"
+        case .memory: return "of \(SystemMonitor.bytes(s.memTotal))"
+        case .disk: return "free of \(SystemMonitor.bytes(s.diskTotal))"
+        case .network: return "\(hardware.interfaces.count) active"
+        }
+    }
+
+    private var history: [Double] {
+        switch metric {
+        case .cpu: return monitor.cpuHistory
+        case .gpu: return hardware.gpuHistory
+        case .memory: return monitor.memHistory
+        case .disk: return hardware.diskHistory
+        case .network: return hardware.netHistory
+        }
+    }
+
+    // MARK: - Per-metric detail
+
+    @ViewBuilder
+    private var detail: some View {
+        switch metric {
+        case .cpu:
+            cores
+            processList(byMemory: false)
+        case .gpu:
+            gpuDetail
+        case .memory:
+            memoryDetail
+            processList(byMemory: true)
+        case .disk:
+            diskDetail
+        case .network:
+            networkDetail
+        }
+    }
+
+    private var cores: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            SectionHeader("Per core")
+            Card(padding: 9) {
+                VStack(spacing: 4) {
+                    ForEach(hardware.cores) { core in
+                        HStack(spacing: 7) {
+                            Text("\(core.id)")
+                                .font(.system(size: 9, design: .monospaced))
+                                .foregroundStyle(.tertiary)
+                                .frame(width: 12, alignment: .trailing)
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    Capsule().fill(Color.primary.opacity(0.09))
+                                    Capsule().fill(SystemMetric.cpu.tint.opacity(0.85))
+                                        .frame(width: max(2, geo.size.width * core.usage / 100))
+                                }
+                            }
+                            .frame(height: 5)
+                            Text(String(format: "%.0f%%", core.usage))
+                                .font(Theme.Font.numeric).foregroundStyle(.secondary)
+                                .frame(width: 30, alignment: .trailing)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var gpuDetail: some View {
+        Card(padding: 9) {
+            VStack(spacing: 6) {
+                if hardware.gpuUsage == nil {
+                    Text("This Mac's GPU does not publish a utilisation figure.")
+                        .font(Theme.Font.caption).foregroundStyle(.secondary)
+                } else {
+                    InfoRow(symbol: "cpu", title: "Renderer",
+                            value: hardware.gpuName ?? "GPU", tint: .pink)
+                    InfoRow(symbol: "thermometer.medium", title: "Thermal",
+                            value: monitor.snapshot.thermalPressure,
+                            tint: monitor.snapshot.thermalPressure == "Nominal" ? .green : .orange)
+                    Divider().opacity(0.4)
+                    Text("Die temperature is not available to unprivileged apps — the sensors sit behind the SMC. macOS's thermal state is the closest honest substitute.")
+                        .font(.system(size: 10)).foregroundStyle(.tertiary)
+                }
+            }
+        }
+    }
+
+    private var memoryDetail: some View {
+        let s = monitor.snapshot
+        return Card(padding: 9) {
+            VStack(spacing: 6) {
+                InfoRow(symbol: "memorychip", title: "Pressure",
+                        value: "\(Int(s.memPressure * 100))%",
+                        tint: s.memPressure > 0.8 ? .red : (s.memPressure > 0.6 ? .orange : .green))
+                InfoRow(symbol: "arrow.left.arrow.right.square", title: "Swap used",
+                        value: SystemMonitor.bytes(s.swapUsed),
+                        tint: s.swapUsed > 2_000_000_000 ? .orange : .secondary)
+                InfoRow(symbol: "square.stack.3d.up", title: "Total",
+                        value: SystemMonitor.bytes(s.memTotal), tint: .green)
+            }
+        }
+    }
+
+    private var diskDetail: some View {
+        let s = monitor.snapshot
+        return Card(padding: 9) {
+            VStack(spacing: 6) {
+                InfoRow(symbol: "arrow.down.circle", title: "Read",
+                        value: SystemMonitor.rate(hardware.diskRead), tint: .teal)
+                InfoRow(symbol: "arrow.up.circle", title: "Write",
+                        value: SystemMonitor.rate(hardware.diskWrite), tint: .indigo)
+                Divider().opacity(0.4)
+                InfoRow(symbol: "internaldrive", title: "Used",
+                        value: SystemMonitor.bytes(s.diskTotal - s.diskFree), tint: .orange)
+                InfoRow(symbol: "externaldrive", title: "Capacity",
+                        value: SystemMonitor.bytes(s.diskTotal), tint: .secondary)
+            }
+        }
+    }
+
+    private var networkDetail: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            SectionHeader("Interfaces")
+            Card(padding: 9) {
+                VStack(spacing: 6) {
+                    if hardware.interfaces.isEmpty {
+                        Text("No active interfaces").font(Theme.Font.caption).foregroundStyle(.tertiary)
+                    }
+                    ForEach(hardware.interfaces.prefix(4)) { iface in
+                        VStack(spacing: 2) {
+                            HStack(spacing: 7) {
+                                Image(systemName: iface.name == "Wi-Fi" ? "wifi" : "cable.connector")
+                                    .font(.system(size: 10)).foregroundStyle(.teal).frame(width: 14)
+                                Text(iface.name).font(Theme.Font.body).foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                                Spacer(minLength: 6)
+                                // Down and up on one baseline, right-aligned in
+                                // equal columns so the numbers line up.
+                                Text(SystemMonitor.rate(iface.rateIn))
+                                    .font(.system(size: 9.5, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 58, alignment: .trailing)
+                                Text(SystemMonitor.rate(iface.rateOut))
+                                    .font(.system(size: 9.5, design: .monospaced))
+                                    .foregroundStyle(.tertiary)
+                                    .frame(width: 58, alignment: .trailing)
+                            }
+                        }
+                    }
+                    HStack(spacing: 7) {
+                        Spacer(minLength: 0)
+                        Text("down").font(.system(size: 8.5)).foregroundStyle(.quaternary)
+                            .frame(width: 58, alignment: .trailing)
+                        Text("up").font(.system(size: 8.5)).foregroundStyle(.quaternary)
+                            .frame(width: 58, alignment: .trailing)
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Processes
+
+    private func processList(byMemory: Bool) -> some View {
+        let all = processes.groups
+            .filter { byMemory ? $0.memory > 0 : $0.cpu > 0.05 }
+            .sorted { byMemory ? $0.memory > $1.memory : $0.cpu > $1.cpu }
+        let shown = query.isEmpty
+            ? Array(all.prefix(6))
+            : Array(all.filter { $0.name.localizedCaseInsensitiveContains(query) }.prefix(6))
+
+        return VStack(alignment: .leading, spacing: 5) {
+            SectionHeader(byMemory ? "By memory" : "By CPU")
+            Card(padding: 8) {
+                VStack(spacing: 5) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 9)).foregroundStyle(.tertiary)
+                        TextField("Search process", text: $query)
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 11))
+                    }
+                    .padding(.horizontal, 7).padding(.vertical, 4)
+                    .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 6))
+
+                    if shown.isEmpty {
+                        Text("Nothing matching").font(Theme.Font.caption).foregroundStyle(.tertiary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    ForEach(shown) { group in
+                        HStack(spacing: 7) {
+                            if let icon = group.icon {
+                                Image(nsImage: icon).resizable().frame(width: 15, height: 15)
+                            } else {
+                                Image(systemName: group.isSystem ? "gearshape.2" : "terminal")
+                                    .font(.system(size: 9.5)).foregroundStyle(.tertiary)
+                                    .frame(width: 15)
+                            }
+                            Text(group.name).font(.system(size: 11)).lineLimit(1)
+                            if group.childCount > 0 {
+                                Text("+\(group.childCount)")
+                                    .font(.system(size: 8.5, weight: .medium))
+                                    .foregroundStyle(.tertiary)
+                                    .padding(.horizontal, 3).padding(.vertical, 1)
+                                    .background(Theme.cardFill, in: RoundedRectangle(cornerRadius: 3))
+                            }
+                            Spacer(minLength: 4)
+                            Text(byMemory
+                                 ? (group.isSystem ? "—" : SystemMonitor.bytes(group.memory))
+                                 : String(format: "%.2f%%", group.cpu))
+                                .font(.system(size: 10, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Filled history trace used behind each headline figure.
+struct Trace: Shape, @unchecked Sendable {
+    let values: [Double]
+    var tint: Color = .accentColor
+
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        guard values.count > 1 else { return p }
+        let step = rect.width / CGFloat(values.count - 1)
+        p.move(to: CGPoint(x: 0, y: rect.height))
+        for (i, v) in values.enumerated() {
+            let y = rect.height * (1 - min(1, max(0, v / 100)))
+            p.addLine(to: CGPoint(x: CGFloat(i) * step, y: y))
+        }
+        p.addLine(to: CGPoint(x: rect.width, y: rect.height))
+        p.closeSubpath()
+        return p
+    }
+}
+
+extension Trace: View {
+    var body: some View {
+        ZStack {
+            self.fill(LinearGradient(colors: [tint.opacity(0.35), tint.opacity(0.03)],
+                                     startPoint: .top, endPoint: .bottom))
+            self.stroke(tint.opacity(0.7), lineWidth: 1.2)
+        }
+    }
+}

@@ -26,6 +26,7 @@ struct MainPanelView: View {
     var initialTab: PanelTab? = nil
 
     @State private var tab: PanelTab = .system
+    @State private var metric: SystemMetric = .cpu
 
     enum PanelTab: String, CaseIterable, Identifiable {
         case system, screen, tools
@@ -77,7 +78,27 @@ struct MainPanelView: View {
             footer
         }
         .frame(width: 300)
-        .onAppear { if let initialTab { tab = initialTab } }
+        .onAppear {
+            if let initialTab { tab = initialTab }
+            syncSampling()
+        }
+        .onChange(of: tab) { _, _ in syncSampling() }
+        .onDisappear {
+            HardwareStats.shared.stop()
+            ProcessMonitor.shared.stop()
+        }
+    }
+
+    /// Per-core, GPU and per-process sampling walks a lot of kernel structures,
+    /// so it runs only while the System tab is actually visible.
+    private func syncSampling() {
+        if tab == .system {
+            HardwareStats.shared.start()
+            ProcessMonitor.shared.start()
+        } else {
+            HardwareStats.shared.stop()
+            ProcessMonitor.shared.stop()
+        }
     }
 
     private var tabBar: some View {
@@ -151,70 +172,7 @@ struct MainPanelView: View {
     // MARK: - Stats
 
     private var statsSection: some View {
-        let s = monitor.snapshot
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                RingGauge(symbol: "cpu", label: "CPU", value: s.cpuUsed / 100,
-                          detail: String(format: "%.0f%%", s.cpuUsed), tint: .blue)
-                RingGauge(symbol: "memorychip", label: "MEM", value: s.memPercent / 100,
-                          detail: SystemMonitor.bytes(s.memUsed), tint: memoryTint(s.memPressure))
-                RingGauge(symbol: "internaldrive", label: "DISK", value: s.diskPercent / 100,
-                          detail: SystemMonitor.bytes(s.diskFree), tint: .orange)
-            }
-            Card(padding: 9) {
-                VStack(spacing: 6) {
-                    // "Download / Upload" alone reads as storage next to the
-                    // disk ring; these are network rates.
-                    InfoRow(symbol: "arrow.down.circle", title: "Network Down",
-                            value: SystemMonitor.rate(s.netIn), tint: .teal)
-                    InfoRow(symbol: "arrow.up.circle", title: "Network Up",
-                            value: SystemMonitor.rate(s.netOut), tint: .indigo)
-                    if let b = s.batteryPercent {
-                        InfoRow(symbol: s.batteryCharging ? "bolt.fill" : "battery.50",
-                                title: s.batteryCharging ? "Charging" : "Battery",
-                                value: batteryDetail(s), tint: b < 20 && !s.batteryCharging ? .red : .green)
-                    }
-                    InfoRow(symbol: "clock", title: "Uptime",
-                            value: SystemMonitor.duration(s.uptime), tint: .orange)
-                }
-            }
-            Card(padding: 9) {
-                VStack(spacing: 6) {
-                    InfoRow(symbol: "speedometer", title: "Load Average",
-                            value: s.loadAverage.map { String(format: "%.2f", $0) }.joined(separator: "  "),
-                            tint: .blue)
-                    InfoRow(symbol: "thermometer.medium", title: "Thermal",
-                            value: s.thermalPressure,
-                            tint: s.thermalPressure == "Nominal" ? .green : .orange)
-                    InfoRow(symbol: "arrow.left.arrow.right.square", title: "Swap",
-                            value: SystemMonitor.bytes(s.swapUsed),
-                            tint: s.swapUsed > 2_000_000_000 ? .orange : .secondary)
-                    InfoRow(symbol: "memorychip", title: "Memory Pressure",
-                            value: "\(Int(s.memPressure * 100))%",
-                            tint: memoryTint(s.memPressure))
-                }
-            }
-        }
-    }
-
-    private func batteryDetail(_ s: SystemSnapshot) -> String {
-        var text = "\(s.batteryPercent ?? 0)%"
-        if let mins = s.batteryTimeMinutes, mins > 0 {
-            text += "  ·  \(mins / 60)h \(mins % 60)m"
-        }
-        return text
-    }
-
-    private func memoryTint(_ pressure: Double) -> Color {
-        pressure > 0.8 ? .red : (pressure > 0.6 ? .orange : .green)
-    }
-
-    private func chip(_ symbol: String, _ text: String, _ tint: Color) -> some View {
-        HStack(spacing: 3) {
-            Image(systemName: symbol).font(.system(size: 8.5)).foregroundStyle(tint)
-            Text(text).font(Theme.Font.numeric).foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
+        SystemDetailView(metric: $metric)
     }
 
     // MARK: - Windows

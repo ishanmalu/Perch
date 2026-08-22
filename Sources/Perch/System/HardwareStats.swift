@@ -32,6 +32,10 @@ final class HardwareStats: ObservableObject {
     @Published private(set) var diskRead: Double = 0       // bytes/sec
     @Published private(set) var diskWrite: Double = 0
     @Published private(set) var interfaces: [Interface] = []
+    /// Rolling history for the detail sparklines.
+    @Published private(set) var gpuHistory: [Double] = []
+    @Published private(set) var diskHistory: [Double] = []
+    @Published private(set) var netHistory: [Double] = []
 
     private var previousCoreTicks: [UInt32] = []
     private var previousDisk: (read: UInt64, write: UInt64, at: Date)?
@@ -63,12 +67,18 @@ final class HardwareStats: ObservableObject {
             if let gpu {
                 self.gpuUsage = gpu.usage
                 self.gpuName = gpu.name
+                self.gpuHistory = Array((self.gpuHistory + [gpu.usage]).suffix(60))
             }
             if let disk {
                 self.diskRead = disk.read
                 self.diskWrite = disk.write
+                // Scaled so the sparkline is readable next to percentage traces.
+                let mbps = (disk.read + disk.write) / 1_048_576
+                self.diskHistory = Array((self.diskHistory + [min(100, mbps * 2)]).suffix(60))
             }
             self.interfaces = nets
+            let netTotal = nets.reduce(0.0) { $0 + $1.rateIn + $1.rateOut } / 1_048_576
+            self.netHistory = Array((self.netHistory + [min(100, netTotal * 20)]).suffix(60))
         }
     }
 
@@ -204,8 +214,10 @@ final class HardwareStats: ObservableObject {
         }
         previousInterfaces = totals
         previousInterfaceAt = now
-        // Only interfaces that have actually moved traffic are worth a row.
-        return result.filter { $0.bytesIn > 0 || $0.bytesOut > 0 }
+        // Idle VPN tunnels have lifetime bytes but no current traffic, and
+        // listing five of them buries the interface actually in use.
+        return result
+            .filter { $0.rateIn + $0.rateOut > 0 || $0.bytesIn + $0.bytesOut > 10_000_000 }
             .sorted { ($0.rateIn + $0.rateOut) > ($1.rateIn + $1.rateOut) }
     }
 
