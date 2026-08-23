@@ -283,149 +283,142 @@
 
 
   /* ---------- Perch panel replica ----------
-     All three feature rows render the actual panel: same header, same tab bar,
-     same footer. The point of these is to show what the app looks like, so the
-     chrome is part of the demo rather than something abstracted away. */
+     Sizes here are the app's own. SwiftUI points map 1:1 to CSS pixels, so the
+     values are lifted straight from MainPanelView and Theme rather than eyeballed:
+     header 12.5px semibold with 11/7 padding, tabs 11.5px icon over a 9px label,
+     section headers 10px semibold uppercase tracked 0.6, tiles 26px tall. */
   .pp {
-    width: 300px; border-radius: 15px; overflow: hidden;
+    width: 300px; border-radius: 12px; overflow: hidden;
     background: var(--card); border: 1px solid var(--line);
     box-shadow: var(--shadow); user-select: none;
+    font-size: 12px; line-height: 1.25;
   }
-  .pp-head {
-    display: flex; align-items: center; gap: 8px; padding: 11px 12px 10px;
-  }
-  .pp .pp-head img {
-    width: 19px; height: 19px; max-width: none; border-radius: 4px;
-    border: 0; box-shadow: none;
-  }
-  .pp-head b { font-size: 14px; font-weight: 640; letter-spacing: -.015em; color: var(--text); }
+  .pp-head { display: flex; align-items: center; gap: 8px; padding: 7px 11px; }
+  .pp .pp-head svg.bird { width: 15px; height: 15px; color: var(--accent); }
+  .pp-head b { font-size: 12.5px; font-weight: 600; letter-spacing: -.01em; color: var(--text); }
   .pp-head .sp { flex: 1; }
   .pp-head s {
-    width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center;
-    border: 1px solid var(--line); background: var(--bg-soft);
+    width: 20px; height: 20px; border-radius: 5px; display: grid; place-items: center;
+    border: 1px solid var(--line); background: color-mix(in srgb, var(--muted) 7%, transparent);
   }
-  .pp-head s svg { width: 11px; height: 11px; color: var(--muted); }
+  .pp .pp-head s svg { width: 11px; height: 11px; color: var(--muted); }
   .pp-tabs {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
-    padding: 0 9px 9px; border-bottom: 1px solid var(--line);
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px;
+    padding: 0 8px 7px; border-bottom: 1px solid var(--line);
   }
   .pp-tab {
-    display: grid; place-items: center; gap: 3px; padding: 7px 0 6px;
-    border-radius: 8px; cursor: default;
-    font-size: 10.5px; font-weight: 560; color: var(--muted);
+    display: grid; place-items: center; gap: 2px; padding: 5px 0;
+    border-radius: 6px; cursor: default; color: var(--muted);
   }
-  .pp-tab svg { width: 14px; height: 14px; }
-  .pp-tab.on { background: var(--accent-soft); color: var(--accent); }
-  .pp-body { padding: 11px 12px 12px; }
+  .pp .pp-tab svg { width: 11.5px; height: 11.5px; }
+  .pp-tab u { text-decoration: none; font-size: 9px; }
+  .pp-tab.on { background: color-mix(in srgb, var(--accent) 13%, transparent); color: var(--accent); }
+  .pp-body { padding: 9px 11px 10px; }
   .pp-sect {
     display: flex; align-items: center; gap: 8px;
-    font-size: 9px; font-weight: 700; letter-spacing: .1em;
-    color: var(--faint); margin: 0 0 7px;
+    font-size: 10px; font-weight: 600; letter-spacing: .6px;
+    color: var(--faint); margin: 0 0 5px; text-transform: uppercase;
   }
-  .pp-sect::after {
-    content: ''; flex: 1; height: 1px; background: var(--line);
-  }
-  .pp-sect + .pp-sect, .pp-card + .pp-sect { margin-top: 13px; }
+  .pp-sect::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+  .pp-card + .pp-sect { margin-top: 11px; }
   .pp-card {
-    border: 1px solid var(--line); border-radius: 11px;
-    background: var(--bg-soft); padding: 9px;
+    border: 1px solid var(--line); border-radius: 9px;
+    background: color-mix(in srgb, var(--muted) 6%, transparent); padding: 9px;
   }
+  .pp-divider { height: 1px; background: var(--line); opacity: .4; margin: 7px 0; }
   .pp-foot {
     display: flex; align-items: center; gap: 7px;
-    padding: 9px 12px; border-top: 1px solid var(--line);
+    padding: 7px 11px; border-top: 1px solid var(--line);
     font-size: 11px; color: var(--muted);
   }
-  .pp .pp-foot img {
-    width: 15px; height: 15px; max-width: none; opacity: .5;
-    border: 0; box-shadow: none; border-radius: 0;
-  }
+  .pp .pp-foot svg.bird { width: 13px; height: 13px; color: var(--muted); opacity: .55; }
   .pp-foot .sp { flex: 1; }
   .pp-foot em {
     font-style: normal; font-size: 10.5px; font-weight: 600; color: var(--text);
     border: 1px solid var(--line); background: var(--card);
-    border-radius: 6px; padding: 3px 9px;
+    border-radius: 5px; padding: 2px 8px;
   }
-  /* Rows in the app's own style: icon, label, control. */
-  .pp-row { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--text); }
-  .pp-row + .pp-row { margin-top: 8px; }
-  .pp-row svg.ico { width: 14px; height: 14px; color: var(--muted); flex: none; }
+  .pp-row { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text); }
+  .pp-row + .pp-row { margin-top: 7px; }
+  .pp .pp-row svg.ico { width: 13px; height: 13px; color: var(--muted); flex: none; }
   .pp-row .sp { flex: 1; }
+  .pp-row .num {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10.5px; color: var(--muted); width: 26px; text-align: right;
+  }
   .pp-toggle {
-    width: 28px; height: 16px; border-radius: 9px; flex: none;
-    background: color-mix(in srgb, var(--muted) 30%, transparent); position: relative;
-    transition: background .22s ease;
+    width: 26px; height: 15px; border-radius: 8px; flex: none; cursor: pointer;
+    background: color-mix(in srgb, var(--muted) 32%, transparent); position: relative;
+    transition: background .2s ease;
   }
   .pp-toggle::after {
     content: ''; position: absolute; top: 2px; left: 2px;
-    width: 12px; height: 12px; border-radius: 50%; background: #fff;
-    box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform .22s ease;
+    width: 11px; height: 11px; border-radius: 50%; background: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform .2s ease;
   }
   .pp-toggle.on { background: var(--accent); }
-  .pp-toggle.on::after { transform: translateX(12px); }
-  .pp-slider { flex: 1; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--muted) 26%, transparent); position: relative; }
+  .pp-toggle.on::after { transform: translateX(11px); }
+  .pp-slider { flex: 1; height: 3px; border-radius: 2px; background: color-mix(in srgb, var(--muted) 28%, transparent); position: relative; }
   .pp-slider i { position: absolute; inset: 0 auto 0 0; border-radius: 2px; background: var(--accent); }
   .pp-slider b {
     position: absolute; top: 50%; width: 11px; height: 11px; border-radius: 50%;
-    background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transform: translate(-50%, -50%);
+    background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.35); transform: translate(-50%,-50%);
   }
 
-  /* ---------- interactive demos (windows + tools) ---------- */
-  .demo { width: 300px; }
-  .demo-grid {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;
-    padding: 9px; border: 1px solid var(--line); border-radius: 11px;
-    background: var(--bg-soft);
-  }
-  .demo-grid.tools { grid-template-columns: repeat(3, 1fr); gap: 6px; }
-  /* One tile: a miniature screen with the target region marked. */
-  /* Layout picker: a group selector above a single row of tiles, so four
-     options are on screen at a time instead of eighteen at once. */
-  .demo-grid.layouts { grid-template-columns: repeat(4, 1fr); gap: 7px; }
+  /* ---------- layout tiles ----------
+     The app draws a 26pt tile glyph for each window action, then a divider and
+     a row of 22pt layout previews. Same here. */
+  .lay-rows { display: grid; gap: 5px; }
+  .lay-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+  .lay-row.builtins { grid-template-columns: repeat(5, 1fr); }
   .tile {
-    aspect-ratio: 4 / 3; border-radius: 6px; cursor: pointer;
-    border: 1px solid var(--line); background: var(--card);
-    position: relative; overflow: hidden;
-    transition: border-color .2s ease, box-shadow .2s ease, opacity .2s ease;
+    height: 32px; border-radius: 6px; cursor: pointer; position: relative;
+    border: 1px solid var(--line);
+    background: color-mix(in srgb, var(--muted) 6%, transparent);
+    transition: border-color .16s ease, background .16s ease;
   }
-  .tile:hover { border-color: var(--accent); }
-  .tile.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
-  .tile.empty { visibility: hidden; }
-  .tile i {
+  .lay-row.builtins .tile { height: 28px; }
+  .tile:hover { border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+  .tile.on {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+  }
+  /* The pane rectangles inside a tile, inset so the tile reads as a screen. */
+  .tile em {
     position: absolute; border-radius: 2px; background: var(--accent);
-    opacity: .5; transition: opacity .2s ease;
+    opacity: .78; transition: opacity .16s ease;
   }
-  .tile:hover i, .tile.on i { opacity: 1; }
-  /* Tool buttons carry a label, so they are taller than the layout tiles. */
+  .tile:hover em, .tile.on em { opacity: 1; }
   .tool {
-    display: grid; place-items: center; gap: 4px; padding: 9px 4px;
-    border-radius: 9px; border: 1px solid var(--line); background: var(--card);
-    cursor: pointer; text-align: center;
-    transition: border-color .18s ease, transform .18s ease;
+    display: grid; place-items: center; gap: 4px; padding: 8px 4px;
+    border-radius: 8px; border: 1px solid var(--line); cursor: pointer;
+    background: color-mix(in srgb, var(--muted) 6%, transparent); text-align: center;
+    transition: border-color .16s ease, background .16s ease;
   }
-  .tool:hover { transform: translateY(-1px); border-color: var(--accent); }
-  .tool.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
-  .tool svg.ico { width: 17px; height: 17px; color: var(--accent); }
-  .tool span { font-size: 9.5px; font-weight: 600; color: var(--muted); line-height: 1.2; }
+  .tool:hover { border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+  .tool.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  .pp .tool svg.ico { width: 15px; height: 15px; color: var(--accent); }
+  .tool span { font-size: 9px; color: var(--muted); line-height: 1.25; }
   .tool.on span { color: var(--text); }
+  .demo-grid.tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
 
-  /* The preview: a small Mac screen showing the result of the click. */
-  /* A window inside the preview, positioned as a percentage of the stage. */
-  /* Free-form preview contents for the tools, in place of window rectangles. */
-  /* Caption under the preview. Fixed height so the page never reflows. */
-  .demo-cap {
+  .demo { width: 300px; }
+  /* Scoped past `.row p`, which otherwise zeroes the top margin and forces
+     the row's 15.5px body size onto the caption. */
+  .row p.demo-cap {
     /* Fixed height, sized to the longest description, so picking a different
        control never reflows the page. */
-    width: 300px; margin: 11px 0 0; height: 100px; overflow: hidden;
+    width: 300px; margin: 20px 0 0; height: 92px; overflow: hidden;
+    font-size: 13px; line-height: 1.5;
   }
-  .demo-cap b { display: block; margin-bottom: 2px; }
-  .demo-cap b { font-size: 12.5px; color: var(--text); letter-spacing: -.01em; }
-  .demo-cap span { font-size: 11.5px; color: var(--muted); line-height: 1.45; }
+  .demo-cap b { display: block; margin-bottom: 4px; font-size: 13px; color: var(--text); font-weight: 600; }
+  .demo-cap span { font-size: 13px; color: var(--muted); line-height: 1.5; }
   .demo-cap kbd {
     font: inherit; font-size: 10px; padding: 1px 5px; border-radius: 4px;
     border: 1px solid var(--line); background: var(--bg-soft); color: var(--muted);
-    margin-left: 6px;
+    margin-left: 7px;
   }
-  @media (max-width: 900px) { .demo { width: 100%; max-width: 320px; } }
+  @media (max-width: 900px) { .pp, .demo, .demo-cap { width: 100%; max-width: 320px; } }
 
   /* ---------- theme toggle ---------- */
   .theme-toggle {
@@ -579,6 +572,11 @@
   <defs>
     <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></symbol>
 <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.4 6.4a8 8 0 1 0 11.2 0"/></symbol>
+<symbol id="i-gauge" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 12l3.5-3.5"/><path d="M12 5.5v1.2M18.5 12h-1.2M12 18.5v-1.2M5.5 12h1.2"/></symbol>
+<symbol id="i-macwindow" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 9.5h18"/><circle cx="6.4" cy="7.2" r=".55" fill="currentColor"/><circle cx="8.6" cy="7.2" r=".55" fill="currentColor"/><circle cx="10.8" cy="7.2" r=".55" fill="currentColor"/></symbol>
+<symbol id="i-tools" viewBox="0 0 24 24"><path d="M14.5 5.8a3.4 3.4 0 0 0 4.5 4.4l-8.8 8.8a1.9 1.9 0 1 1-2.7-2.7z"/><path d="M5.6 5.1l2.6 2.6"/><path d="M4.4 8.9a3.4 3.4 0 0 0 4.6 4.5"/><path d="M15.4 15.6l3.9 3.9"/></symbol>
+<symbol id="i-laptop" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="10" rx="1.5"/><path d="M2 19h20"/></symbol>
+<symbol id="i-bird" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" d="M15.6 3.2a3.9 3.9 0 0 0-3.9 3.9c0 .2 0 .4.1.6L4.1 12c-.5.3-.7.9-.4 1.4.2.4.6.6 1 .5l2.6-.5-2.4 6.3c-.2.5.1 1.1.6 1.3.5.2 1.1-.1 1.3-.6l1.3-3.5 2.6 3.7c.3.4 1 .5 1.4.2.4-.3.5-.9.2-1.4l-2.2-3.1 4.8-1c2.8-.6 4.8-3 4.8-5.9V6.4l1.6-1.7c.3-.3.2-.7-.2-.8l-1.9-.4a3.9 3.9 0 0 0-3.6-.3zm.7 3.2a.9.9 0 1 1 0 1.8.9.9 0 0 1 0-1.8z"/></symbol>
 <symbol id="i-window" viewBox="0 0 24 24">
       <rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16M3 10h9"/>
     </symbol>
@@ -705,25 +703,27 @@
       <div class="row-shot">
         <div class="pp">
           <div class="pp-head">
-            <img src="perch-icon.png" alt=""><b>Perch</b><span class="sp"></span>
+            <svg class="bird"><use href="#i-bird"/></svg><b>Perch</b><span class="sp"></span>
             <s><svg class="ico"><use href="#i-clipboard"/></svg></s>
             <s><svg class="ico"><use href="#i-gear"/></svg></s>
             <s><svg class="ico"><use href="#i-power"/></svg></s>
           </div>
           <div class="pp-tabs">
-            <div class="pp-tab "><svg class="ico"><use href="#i-activity"/></svg>System</div>
-            <div class="pp-tab on"><svg class="ico"><use href="#i-window"/></svg>Screen</div>
-            <div class="pp-tab "><svg class="ico"><use href="#i-layout"/></svg>Tools</div>
+            <div class="pp-tab "><svg class="ico"><use href="#i-gauge"/></svg><u>System</u></div>
+            <div class="pp-tab on"><svg class="ico"><use href="#i-macwindow"/></svg><u>Screen</u></div>
+            <div class="pp-tab "><svg class="ico"><use href="#i-tools"/></svg><u>Tools</u></div>
           </div>
           <div class="pp-body">
             <p class="pp-sect">Layout</p>
-            <div class="demo-grid layouts" id="winGrid"></div>
-            <p class="pp-sect">Brightness &amp; Night</p>
+            <div class="pp-card" style="padding:6px">
+              <div class="lay-rows" id="winGrid"></div>
+            </div>
+            <p class="pp-sect">Brightness &amp; night</p>
             <div class="pp-card">
               <div class="pp-row">
-                <svg class="ico"><use href="#i-sun"/></svg>
-                <span class="pp-slider"><i style="width:49%"></i><b style="left:49%"></b></span>
-                <span style="font-size:11px;color:var(--muted);width:18px;text-align:right">49</span>
+                <svg class="ico"><use href="#i-laptop"/></svg>
+                <span class="pp-slider"><i style="width:100%"></i><b style="left:100%"></b></span>
+                <span class="num">100</span>
               </div>
               <div class="pp-row">
                 <svg class="ico"><use href="#i-moon"/></svg>
@@ -733,7 +733,7 @@
             </div>
           </div>
           <div class="pp-foot">
-            <img src="perch-icon.png" alt=""><span>Perch 1.6.0</span>
+            <svg class="bird"><use href="#i-bird"/></svg><span>Perch 1.6.0 — up to date</span>
             <span class="sp"></span><em>Check</em>
           </div>
         </div>
@@ -755,15 +755,15 @@
 <div class="live" id="live">
         <div class="pp">
           <div class="pp-head">
-            <img src="perch-icon.png" alt=""><b>Perch</b><span class="sp"></span>
+            <svg class="bird"><use href="#i-bird"/></svg><b>Perch</b><span class="sp"></span>
             <s><svg class="ico"><use href="#i-clipboard"/></svg></s>
             <s><svg class="ico"><use href="#i-gear"/></svg></s>
             <s><svg class="ico"><use href="#i-power"/></svg></s>
           </div>
           <div class="pp-tabs">
-            <div class="pp-tab on"><svg class="ico"><use href="#i-activity"/></svg>System</div>
-            <div class="pp-tab "><svg class="ico"><use href="#i-window"/></svg>Screen</div>
-            <div class="pp-tab "><svg class="ico"><use href="#i-layout"/></svg>Tools</div>
+            <div class="pp-tab on"><svg class="ico"><use href="#i-gauge"/></svg><u>System</u></div>
+            <div class="pp-tab "><svg class="ico"><use href="#i-macwindow"/></svg><u>Screen</u></div>
+            <div class="pp-tab "><svg class="ico"><use href="#i-tools"/></svg><u>Tools</u></div>
           </div>
           <div class="pp-body">
             <div class="live-tabs" id="liveTabs"></div>
@@ -782,7 +782,7 @@
             <div class="live-rows" id="liveRows"></div>
           </div>
           <div class="pp-foot">
-            <img src="perch-icon.png" alt=""><span>Perch 1.6.0</span>
+            <svg class="bird"><use href="#i-bird"/></svg><span>Perch 1.6.0 — up to date</span>
             <span class="sp"></span><em>Check</em>
           </div>
         </div>
@@ -805,15 +805,15 @@
       <div class="row-shot">
         <div class="pp">
           <div class="pp-head">
-            <img src="perch-icon.png" alt=""><b>Perch</b><span class="sp"></span>
+            <svg class="bird"><use href="#i-bird"/></svg><b>Perch</b><span class="sp"></span>
             <s><svg class="ico"><use href="#i-clipboard"/></svg></s>
             <s><svg class="ico"><use href="#i-gear"/></svg></s>
             <s><svg class="ico"><use href="#i-power"/></svg></s>
           </div>
           <div class="pp-tabs">
-            <div class="pp-tab "><svg class="ico"><use href="#i-activity"/></svg>System</div>
-            <div class="pp-tab "><svg class="ico"><use href="#i-window"/></svg>Screen</div>
-            <div class="pp-tab on"><svg class="ico"><use href="#i-layout"/></svg>Tools</div>
+            <div class="pp-tab "><svg class="ico"><use href="#i-gauge"/></svg><u>System</u></div>
+            <div class="pp-tab "><svg class="ico"><use href="#i-macwindow"/></svg><u>Screen</u></div>
+            <div class="pp-tab on"><svg class="ico"><use href="#i-tools"/></svg><u>Tools</u></div>
           </div>
           <div class="pp-body">
             <p class="pp-sect">Tools</p>
@@ -822,7 +822,7 @@
             <div class="pp-card" id="switchCard"></div>
           </div>
           <div class="pp-foot">
-            <img src="perch-icon.png" alt=""><span>Perch 1.6.0</span>
+            <svg class="bird"><use href="#i-bird"/></svg><span>Perch 1.6.0 — up to date</span>
             <span class="sp"></span><em>Check</em>
           </div>
         </div>
@@ -1191,39 +1191,45 @@ Scripts/install.sh</pre>
 
   /* ---- Screen tab: the layout grid ---- */
   if (winGrid) {
+    // The app's own grid: three rows of window actions, then a divider and the
+    // five built-in layouts. Panes are [x, y, w, h] in fractions of the screen.
     var L = [
-      { n:'Left half',    k:'⌃⌥←', w:[[0,0,.5,1]],  d:'Press again and the width cycles through a half, a third and two thirds.' },
-      { n:'Right half',   k:'⌃⌥→', w:[[.5,0,.5,1]], d:'Press again and the width cycles through a half, a third and two thirds.' },
-      { n:'Top half',     k:'⌃⌥↑', w:[[0,0,1,.5]],  d:'Fills the upper half of whichever display the window is on.' },
-      { n:'Bottom half',  k:'⌃⌥↓', w:[[0,.5,1,.5]], d:'Fills the lower half of whichever display the window is on.' },
-      { n:'Top left',     k:'⌃⌥U', w:[[0,0,.5,.5]],   d:'A quarter, pinned to the top left corner.' },
-      { n:'Top right',    k:'⌃⌥I', w:[[.5,0,.5,.5]],  d:'A quarter, pinned to the top right corner.' },
-      { n:'Bottom left',  k:'⌃⌥J', w:[[0,.5,.5,.5]], d:'A quarter, pinned to the bottom left corner.' },
-      { n:'Bottom right', k:'⌃⌥K', w:[[.5,.5,.5,.5]],d:'A quarter, pinned to the bottom right corner.' },
-      { n:'Left third',   k:'⌃⌥D', w:[[0,0,.34,1]],   d:'Thirds get their own shortcuts, for three windows side by side.' },
-      { n:'Centre third', k:'⌃⌥F', w:[[.33,0,.34,1]],  d:'The middle column, leaving room either side.' },
-      { n:'Right third',  k:'⌃⌥G', w:[[.66,0,.34,1]],  d:'The right column, leaving room either side.' },
+      { n:'Left half',    k:'⌃⌥←', w:[[0,0,.5,1]],   d:'Press again and the width cycles through a half, a third and two thirds.' },
+      { n:'Right half',   k:'⌃⌥→', w:[[.5,0,.5,1]],  d:'Press again and the width cycles through a half, a third and two thirds.' },
+      { n:'Top half',     k:'⌃⌥↑', w:[[0,0,1,.5]],   d:'Fills the upper half of whichever display the window is on.' },
+      { n:'Bottom half',  k:'⌃⌥↓', w:[[0,.5,1,.5]],  d:'Fills the lower half of whichever display the window is on.' },
+      { n:'Top left',     k:'⌃⌥U', w:[[0,0,.5,.5]],    d:'A quarter, pinned to the top left corner.' },
+      { n:'Top right',    k:'⌃⌥I', w:[[.5,0,.5,.5]],   d:'A quarter, pinned to the top right corner.' },
+      { n:'Bottom left',  k:'⌃⌥J', w:[[0,.5,.5,.5]],  d:'A quarter, pinned to the bottom left corner.' },
+      { n:'Bottom right', k:'⌃⌥K', w:[[.5,.5,.5,.5]], d:'A quarter, pinned to the bottom right corner.' },
+      { n:'Left third',   k:'⌃⌥D', w:[[0,0,.3333,1]],      d:'Thirds get their own shortcuts, for three windows side by side.' },
+      { n:'Centre third', k:'⌃⌥F', w:[[.3333,0,.3333,1]], d:'The middle column, leaving room either side.' },
+      { n:'Right third',  k:'⌃⌥G', w:[[.6666,0,.3333,1]], d:'The right column, leaving room either side.' },
       { n:'Full screen',  k:'⌃⌥↩', w:[[0,0,1,1]],
         d:'Fills the screen without entering macOS full screen, so the menu bar stays put.' },
-      { n:'Two columns',  k:'⌃⌥1', w:[[0,0,.5,1],[.5,0,.5,1]], d:'Tiles every window on the display at once.' },
-      { n:'Three columns',k:'⌃⌥2', w:[[0,0,.34,1],[.33,0,.34,1],[.66,0,.34,1]], d:'Tiles every window on the display at once.' },
-      { n:'Main and stack',k:'⌃⌥3',w:[[0,0,.6,1],[.6,0,.4,.5],[.6,.5,.4,.5]],
-        d:'The frontmost window keeps the large pane; the rest stack beside it.' },
-      { n:'Grid',         k:'⌃⌥4', w:[[0,0,.5,.5],[.5,0,.5,.5],[0,.5,.5,.5],[.5,.5,.5,.5]], d:'Four windows, one per quarter.' },
-      { n:'Centre',       k:'⌃⌥C', w:[[.16,.14,.68,.72]], d:'Centres the window without resizing it to fill the screen.' },
-      { n:'Restore',      k:'⌃⌥⌫', w:[[.24,.22,.52,.56]], d:'Puts the window back where it was before Perch moved it.' }
+      // Built-in layouts: these tile every window at once rather than moving one.
+      { n:'Halves',       k:'⌃⌥1', b:true, w:[[0,0,.5,1],[.5,0,.5,1]], d:'Tiles the frontmost windows into two halves.' },
+      { n:'Thirds',       k:'⌃⌥2', b:true, w:[[0,0,.3333,1],[.3333,0,.3333,1],[.6666,0,.3333,1]], d:'Tiles the frontmost windows into three columns.' },
+      { n:'Main + Stack', k:'⌃⌥3', b:true, w:[[0,0,.62,1],[.62,0,.38,.5],[.62,.5,.38,.5]],
+        d:'The frontmost window keeps the large pane; the next two stack beside it.' },
+      { n:'Quarters',     k:'⌃⌥4', b:true, w:[[0,0,.5,.5],[.5,0,.5,.5],[0,.5,.5,.5],[.5,.5,.5,.5]], d:'Four windows, one per quarter.' },
+      { n:'Focus',        k:'⌃⌥5', b:true, w:[[.15,.05,.7,.9]], d:'Centres one window and leaves a margin around it.' }
     ];
     var wName = document.getElementById('winName'), wDesc = document.getElementById('winDesc');
-    var wTiles = L.map(function (item, i) {
+    var wTiles = [];
+
+    function makeTile(item, i) {
       var t = document.createElement('div');
       t.className = 'tile';
       t.setAttribute('role','button'); t.setAttribute('tabindex','0');
       t.setAttribute('aria-label', item.n + ' — ' + item.k);
       item.w.forEach(function (r) {
-        var b = document.createElement('i');
-        b.style.left = (r[0]*100)+'%'; b.style.top = (r[1]*100)+'%';
-        b.style.width = (r[2]*100)+'%'; b.style.height = (r[3]*100)+'%';
-        b.style.transform = 'scale(.86)';
+        var b = document.createElement('em');
+        // 4px inset all round so the tile reads as a screen holding windows.
+        b.style.left   = 'calc(' + (r[0]*100) + '% + 4px)';
+        b.style.top    = 'calc(' + (r[1]*100) + '% + 4px)';
+        b.style.width  = 'calc(' + (r[2]*100) + '% - 8px)';
+        b.style.height = 'calc(' + (r[3]*100) + '% - 8px)';
         t.appendChild(b);
       });
       function pick(){ selectWin(i); }
@@ -1231,9 +1237,24 @@ Scripts/install.sh</pre>
       t.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); }
       });
-      winGrid.appendChild(t);
+      wTiles.push(t);
       return t;
-    });
+    }
+
+    for (var r = 0; r < 3; r++) {
+      var row = document.createElement('div');
+      row.className = 'lay-row';
+      for (var c = 0; c < 4; c++) { var i = r * 4 + c; row.appendChild(makeTile(L[i], i)); }
+      winGrid.appendChild(row);
+    }
+    var div = document.createElement('div');
+    div.className = 'pp-divider';
+    winGrid.appendChild(div);
+    var brow = document.createElement('div');
+    brow.className = 'lay-row builtins';
+    for (var j = 12; j < L.length; j++) brow.appendChild(makeTile(L[j], j));
+    winGrid.appendChild(brow);
+
     function selectWin(i) {
       wTiles.forEach(function (t,k){ t.classList.toggle('on', k===i); });
       wName.innerHTML = L[i].n + '<kbd>' + L[i].k + '</kbd>';
