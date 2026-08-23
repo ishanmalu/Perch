@@ -281,6 +281,94 @@
   @media (max-width: 900px) { .live { width: 100%; max-width: 320px; } }
 
 
+
+  /* ---------- Perch panel replica ----------
+     All three feature rows render the actual panel: same header, same tab bar,
+     same footer. The point of these is to show what the app looks like, so the
+     chrome is part of the demo rather than something abstracted away. */
+  .pp {
+    width: 300px; border-radius: 15px; overflow: hidden;
+    background: var(--card); border: 1px solid var(--line);
+    box-shadow: var(--shadow); user-select: none;
+  }
+  .pp-head {
+    display: flex; align-items: center; gap: 8px; padding: 11px 12px 10px;
+  }
+  .pp .pp-head img {
+    width: 19px; height: 19px; max-width: none; border-radius: 4px;
+    border: 0; box-shadow: none;
+  }
+  .pp-head b { font-size: 14px; font-weight: 640; letter-spacing: -.015em; color: var(--text); }
+  .pp-head .sp { flex: 1; }
+  .pp-head s {
+    width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center;
+    border: 1px solid var(--line); background: var(--bg-soft);
+  }
+  .pp-head s svg { width: 11px; height: 11px; color: var(--muted); }
+  .pp-tabs {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+    padding: 0 9px 9px; border-bottom: 1px solid var(--line);
+  }
+  .pp-tab {
+    display: grid; place-items: center; gap: 3px; padding: 7px 0 6px;
+    border-radius: 8px; cursor: default;
+    font-size: 10.5px; font-weight: 560; color: var(--muted);
+  }
+  .pp-tab svg { width: 14px; height: 14px; }
+  .pp-tab.on { background: var(--accent-soft); color: var(--accent); }
+  .pp-body { padding: 11px 12px 12px; }
+  .pp-sect {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 9px; font-weight: 700; letter-spacing: .1em;
+    color: var(--faint); margin: 0 0 7px;
+  }
+  .pp-sect::after {
+    content: ''; flex: 1; height: 1px; background: var(--line);
+  }
+  .pp-sect + .pp-sect, .pp-card + .pp-sect { margin-top: 13px; }
+  .pp-card {
+    border: 1px solid var(--line); border-radius: 11px;
+    background: var(--bg-soft); padding: 9px;
+  }
+  .pp-foot {
+    display: flex; align-items: center; gap: 7px;
+    padding: 9px 12px; border-top: 1px solid var(--line);
+    font-size: 11px; color: var(--muted);
+  }
+  .pp .pp-foot img {
+    width: 15px; height: 15px; max-width: none; opacity: .5;
+    border: 0; box-shadow: none; border-radius: 0;
+  }
+  .pp-foot .sp { flex: 1; }
+  .pp-foot em {
+    font-style: normal; font-size: 10.5px; font-weight: 600; color: var(--text);
+    border: 1px solid var(--line); background: var(--card);
+    border-radius: 6px; padding: 3px 9px;
+  }
+  /* Rows in the app's own style: icon, label, control. */
+  .pp-row { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--text); }
+  .pp-row + .pp-row { margin-top: 8px; }
+  .pp-row svg.ico { width: 14px; height: 14px; color: var(--muted); flex: none; }
+  .pp-row .sp { flex: 1; }
+  .pp-toggle {
+    width: 28px; height: 16px; border-radius: 9px; flex: none;
+    background: color-mix(in srgb, var(--muted) 30%, transparent); position: relative;
+    transition: background .22s ease;
+  }
+  .pp-toggle::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 12px; height: 12px; border-radius: 50%; background: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform .22s ease;
+  }
+  .pp-toggle.on { background: var(--accent); }
+  .pp-toggle.on::after { transform: translateX(12px); }
+  .pp-slider { flex: 1; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--muted) 26%, transparent); position: relative; }
+  .pp-slider i { position: absolute; inset: 0 auto 0 0; border-radius: 2px; background: var(--accent); }
+  .pp-slider b {
+    position: absolute; top: 50%; width: 11px; height: 11px; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transform: translate(-50%, -50%);
+  }
+
   /* ---------- interactive demos (windows + tools) ---------- */
   .demo { width: 300px; }
   .demo-grid {
@@ -290,19 +378,23 @@
   }
   .demo-grid.tools { grid-template-columns: repeat(3, 1fr); gap: 6px; }
   /* One tile: a miniature screen with the target region marked. */
+  /* Layout picker: a group selector above a single row of tiles, so four
+     options are on screen at a time instead of eighteen at once. */
+  .demo-grid.layouts { grid-template-columns: repeat(4, 1fr); gap: 7px; }
   .tile {
-    aspect-ratio: 4 / 3; border-radius: 5px; cursor: pointer;
+    aspect-ratio: 4 / 3; border-radius: 6px; cursor: pointer;
     border: 1px solid var(--line); background: var(--card);
     position: relative; overflow: hidden;
-    transition: border-color .18s ease, transform .18s ease;
+    transition: border-color .2s ease, box-shadow .2s ease, opacity .2s ease;
   }
-  .tile:hover { transform: translateY(-1px); border-color: var(--accent); }
+  .tile:hover { border-color: var(--accent); }
   .tile.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+  .tile.empty { visibility: hidden; }
   .tile i {
     position: absolute; border-radius: 2px; background: var(--accent);
-    opacity: .85; transition: opacity .18s ease;
+    opacity: .5; transition: opacity .2s ease;
   }
-  .tile.on i { opacity: 1; }
+  .tile:hover i, .tile.on i { opacity: 1; }
   /* Tool buttons carry a label, so they are taller than the layout tiles. */
   .tool {
     display: grid; place-items: center; gap: 4px; padding: 9px 4px;
@@ -317,69 +409,15 @@
   .tool.on span { color: var(--text); }
 
   /* The preview: a small Mac screen showing the result of the click. */
-  .demo-label {
-    font-size: 9.5px; font-weight: 700; letter-spacing: .09em;
-    color: var(--faint); margin: 13px 0 6px;
-  }
-  .screen {
-    border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
-    background: var(--bg-soft); height: 132px; position: relative;
-  }
-  .screen-bar {
-    height: 15px; display: flex; align-items: center; gap: 4px; padding: 0 7px;
-    background: color-mix(in srgb, var(--muted) 12%, transparent);
-    border-bottom: 1px solid var(--line);
-  }
-  .screen-bar b { width: 6px; height: 6px; border-radius: 50%; display: block; }
-  .screen-stage { position: absolute; inset: 15px 0 0; }
   /* A window inside the preview, positioned as a percentage of the stage. */
-  .win {
-    position: absolute; border-radius: 4px;
-    background: linear-gradient(160deg,
-      color-mix(in srgb, var(--accent) 88%, white),
-      var(--accent));
-    box-shadow: 0 2px 6px rgba(0,0,0,.18);
-    transition: left .42s cubic-bezier(.4,0,.2,1), top .42s cubic-bezier(.4,0,.2,1),
-                width .42s cubic-bezier(.4,0,.2,1), height .42s cubic-bezier(.4,0,.2,1);
-    display: grid; place-items: center;
-    font-size: 8.5px; font-weight: 700; color: #fff; letter-spacing: .02em;
-  }
-  .win.ghost {
-    background: color-mix(in srgb, var(--muted) 26%, transparent);
-    box-shadow: none; color: var(--muted);
-  }
   /* Free-form preview contents for the tools, in place of window rectangles. */
-  .screen-note {
-    position: absolute; inset: 15px 0 0; display: grid; place-items: center;
-    text-align: center; padding: 10px; gap: 5px; align-content: center;
-  }
-  .screen-note .big { font-size: 12.5px; font-weight: 650; color: var(--text); }
-  .screen-note .small { font-size: 10px; color: var(--muted); line-height: 1.45; }
-  .screen.blackout { background: #08090b; border-color: #23262c; }
-  .screen.blackout .screen-bar { display: none; }
-  .screen.blackout .screen-note { inset: 0; }
-  .screen.blackout .big { color: #f2f4f8; }
-  .screen.blackout .small { color: #7a828f; }
-  .clip-row {
-    display: flex; align-items: center; gap: 6px; width: 100%;
-    padding: 4px 7px; border-radius: 5px; background: var(--card);
-    border: 1px solid var(--line); font-size: 9.5px; color: var(--text);
-  }
-  .clip-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .switch-strip { display: flex; gap: 5px; }
-  .switch-card {
-    width: 40px; height: 30px; border-radius: 5px; background: var(--card);
-    border: 1px solid var(--line);
-  }
-  .switch-card.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
   /* Caption under the preview. Fixed height so the page never reflows. */
   .demo-cap {
-    /* Fixed so the page never reflows when a different tool is picked.
-       Sized to the longest description; overflow is clipped rather than
-       allowed to push the layout. */
-    margin-top: 9px; height: 76px; overflow: hidden;
-    display: flex; flex-direction: column; gap: 3px; justify-content: flex-start;
+    /* Fixed height, sized to the longest description, so picking a different
+       control never reflows the page. */
+    width: 300px; margin: 11px 0 0; height: 100px; overflow: hidden;
   }
+  .demo-cap b { display: block; margin-bottom: 2px; }
   .demo-cap b { font-size: 12.5px; color: var(--text); letter-spacing: -.01em; }
   .demo-cap span { font-size: 11.5px; color: var(--muted); line-height: 1.45; }
   .demo-cap kbd {
@@ -434,7 +472,7 @@
   }
   .row p { margin: 0 0 16px; color: var(--muted); font-size: 15.5px; line-height: 1.62; }
   .row .keys { display: flex; flex-wrap: wrap; gap: 7px; }
-  .row-shot { display: flex; justify-content: center; }
+  .row-shot { display: flex; flex-direction: column; align-items: center; }
   .row-shot img {
     width: 292px; max-width: 88%; height: auto; display: block;
     border-radius: 16px; border: 1px solid var(--line);
@@ -539,7 +577,9 @@
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
-    <symbol id="i-window" viewBox="0 0 24 24">
+    <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></symbol>
+<symbol id="i-power" viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.4 6.4a8 8 0 1 0 11.2 0"/></symbol>
+<symbol id="i-window" viewBox="0 0 24 24">
       <rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16M3 10h9"/>
     </symbol>
     <symbol id="i-layout" viewBox="0 0 24 24">
@@ -657,21 +697,47 @@
         <p>Halves, thirds, quarters, full screen. Press the same shortcut again
         and the width cycles — one key finds the size you meant. Five layouts
         tile everything at once, and one shortcut puts a window back.
-        Pick any tile below to see where the window lands.</p>
+        This is the panel itself — every control works.</p>
         <div class="keys">
           <kbd>⌃⌥←</kbd> <kbd>⌃⌥→</kbd> <kbd>⌃⌥↩</kbd> <kbd>⌃⌥⌫</kbd>
         </div>
       </div>
       <div class="row-shot">
-        <div class="demo">
-          <div class="demo-grid" id="winGrid"></div>
-          <p class="demo-label">Preview</p>
-          <div class="screen">
-            <div class="screen-bar"><b style="background:#ff5f57"></b><b style="background:#febc2e"></b><b style="background:#28c840"></b></div>
-            <div class="screen-stage" id="winStage"></div>
+        <div class="pp">
+          <div class="pp-head">
+            <img src="perch-icon.png" alt=""><b>Perch</b><span class="sp"></span>
+            <s><svg class="ico"><use href="#i-clipboard"/></svg></s>
+            <s><svg class="ico"><use href="#i-gear"/></svg></s>
+            <s><svg class="ico"><use href="#i-power"/></svg></s>
           </div>
-          <div class="demo-cap"><b id="winName"></b><span id="winDesc"></span></div>
+          <div class="pp-tabs">
+            <div class="pp-tab "><svg class="ico"><use href="#i-activity"/></svg>System</div>
+            <div class="pp-tab on"><svg class="ico"><use href="#i-window"/></svg>Screen</div>
+            <div class="pp-tab "><svg class="ico"><use href="#i-layout"/></svg>Tools</div>
+          </div>
+          <div class="pp-body">
+            <p class="pp-sect">Layout</p>
+            <div class="demo-grid layouts" id="winGrid"></div>
+            <p class="pp-sect">Brightness &amp; Night</p>
+            <div class="pp-card">
+              <div class="pp-row">
+                <svg class="ico"><use href="#i-sun"/></svg>
+                <span class="pp-slider"><i style="width:49%"></i><b style="left:49%"></b></span>
+                <span style="font-size:11px;color:var(--muted);width:18px;text-align:right">49</span>
+              </div>
+              <div class="pp-row">
+                <svg class="ico"><use href="#i-moon"/></svg>
+                <span>Night Mode</span><span class="sp"></span>
+                <span class="pp-toggle" id="nightToggle" role="button" tabindex="0" aria-label="Night Mode"></span>
+              </div>
+            </div>
+          </div>
+          <div class="pp-foot">
+            <img src="perch-icon.png" alt=""><span>Perch 1.6.0</span>
+            <span class="sp"></span><em>Check</em>
+          </div>
         </div>
+        <p class="demo-cap"><b id="winName"></b><span id="winDesc"></span></p>
       </div>
     </div>
 
@@ -686,14 +752,21 @@
         <div class="keys"><kbd>⌃⌥Space</kbd></div>
       </div>
       <div class="row-shot">
-        <div class="live" id="live" aria-hidden="true">
-          <div class="live-head">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-                 stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 12l4-2.5"/></svg>
-            System
+<div class="live" id="live">
+        <div class="pp">
+          <div class="pp-head">
+            <img src="perch-icon.png" alt=""><b>Perch</b><span class="sp"></span>
+            <s><svg class="ico"><use href="#i-clipboard"/></svg></s>
+            <s><svg class="ico"><use href="#i-gear"/></svg></s>
+            <s><svg class="ico"><use href="#i-power"/></svg></s>
           </div>
-          <div class="live-tabs" id="liveTabs"></div>
-          <div class="live-body">
+          <div class="pp-tabs">
+            <div class="pp-tab on"><svg class="ico"><use href="#i-activity"/></svg>System</div>
+            <div class="pp-tab "><svg class="ico"><use href="#i-window"/></svg>Screen</div>
+            <div class="pp-tab "><svg class="ico"><use href="#i-layout"/></svg>Tools</div>
+          </div>
+          <div class="pp-body">
+            <div class="live-tabs" id="liveTabs"></div>
             <div class="live-gauge">
               <div class="live-read">
                 <span class="live-val" id="liveVal">0%</span>
@@ -708,6 +781,12 @@
             <p class="live-label" id="liveLabel">PER CORE</p>
             <div class="live-rows" id="liveRows"></div>
           </div>
+          <div class="pp-foot">
+            <img src="perch-icon.png" alt=""><span>Perch 1.6.0</span>
+            <span class="sp"></span><em>Check</em>
+          </div>
+        </div>
+        </div>
         </div>
       </div>
     </div>
@@ -718,22 +797,37 @@
         <h3>The small stuff, one click away</h3>
         <p>Blank the screen to clean it. Lock the keyboard, or just the
         trackpad, and wipe without typing into anything. Clear caches to the
-        Trash. Keep the Mac awake. Paste from history. Pick a tool below to see
-        what it does.</p>
+        Trash. Keep the Mac awake. Paste from history. Try any of them below.</p>
         <div class="keys">
           <kbd>⌘⇧V</kbd> <kbd>⌥Tab</kbd> <kbd>⌃⌥N</kbd> <kbd>⌃⌥K</kbd>
         </div>
       </div>
       <div class="row-shot">
-        <div class="demo">
-          <div class="demo-grid tools" id="toolGrid"></div>
-          <p class="demo-label">What happens</p>
-          <div class="screen" id="toolScreen">
-            <div class="screen-bar"><b style="background:#ff5f57"></b><b style="background:#febc2e"></b><b style="background:#28c840"></b></div>
-            <div class="screen-note" id="toolNote"></div>
+        <div class="pp">
+          <div class="pp-head">
+            <img src="perch-icon.png" alt=""><b>Perch</b><span class="sp"></span>
+            <s><svg class="ico"><use href="#i-clipboard"/></svg></s>
+            <s><svg class="ico"><use href="#i-gear"/></svg></s>
+            <s><svg class="ico"><use href="#i-power"/></svg></s>
           </div>
-          <div class="demo-cap"><b id="toolName"></b><span id="toolDesc"></span></div>
+          <div class="pp-tabs">
+            <div class="pp-tab "><svg class="ico"><use href="#i-activity"/></svg>System</div>
+            <div class="pp-tab "><svg class="ico"><use href="#i-window"/></svg>Screen</div>
+            <div class="pp-tab on"><svg class="ico"><use href="#i-layout"/></svg>Tools</div>
+          </div>
+          <div class="pp-body">
+            <p class="pp-sect">Tools</p>
+            <div class="demo-grid tools" id="toolGrid"></div>
+            <p class="pp-sect">Switches</p>
+            <div class="pp-card" id="switchCard"></div>
+          </div>
+          <div class="pp-foot">
+            <img src="perch-icon.png" alt=""><span>Perch 1.6.0</span>
+            <span class="sp"></span><em>Check</em>
+          </div>
         </div>
+        <p class="demo-cap"><b id="toolName"></b><span id="toolDesc"></span></p>
+      </div>
       </div>
     </div>
 
@@ -1088,185 +1182,147 @@ Scripts/install.sh</pre>
 })();
 </script>
 <script>
-/* Window layout demo. Each entry lists the windows it produces as
-   [left, top, width, height] in fractions of the screen, so one routine
-   draws both the tile thumbnails and the preview. */
+/* The Screen and Tools panels are the real thing rather than a picture of it,
+   so their controls have to actually respond. Selecting anything writes a line
+   underneath explaining what it does. */
 (function () {
-  var grid = document.getElementById('winGrid');
-  if (!grid) return;
+  var winGrid = document.getElementById('winGrid');
+  var toolGrid = document.getElementById('toolGrid');
 
-  var L = [
-    { n: 'Left half',      k: '⌃⌥←', w: [[0,0,.5,1]],
-      d: 'Press again to cycle the width through one half, one third and two thirds.' },
-    { n: 'Right half',     k: '⌃⌥→', w: [[.5,0,.5,1]],
-      d: 'Press again to cycle the width through one half, one third and two thirds.' },
-    { n: 'Top half',       k: '⌃⌥↑', w: [[0,0,1,.5]],
-      d: 'Fills the upper half of whichever display the window is on.' },
-    { n: 'Bottom half',    k: '⌃⌥↓', w: [[0,.5,1,.5]],
-      d: 'Fills the lower half of whichever display the window is on.' },
-    { n: 'Top left',       k: '⌃⌥U', w: [[0,0,.5,.5]],  d: 'A quarter, pinned to the top left corner.' },
-    { n: 'Top right',      k: '⌃⌥I', w: [[.5,0,.5,.5]], d: 'A quarter, pinned to the top right corner.' },
-    { n: 'Bottom left',    k: '⌃⌥J', w: [[0,.5,.5,.5]], d: 'A quarter, pinned to the bottom left corner.' },
-    { n: 'Bottom right',   k: '⌃⌥K', w: [[.5,.5,.5,.5]],d: 'A quarter, pinned to the bottom right corner.' },
-    { n: 'Left third',     k: '⌃⌥D', w: [[0,0,.334,1]], d: 'Thirds are their own shortcuts, for three windows side by side.' },
-    { n: 'Centre third',   k: '⌃⌥F', w: [[.333,0,.334,1]], d: 'The middle column, leaving room either side.' },
-    { n: 'Right third',    k: '⌃⌥G', w: [[.666,0,.334,1]], d: 'The right column, leaving room either side.' },
-    { n: 'Full screen',    k: '⌃⌥↩', w: [[0,0,1,1]],
-      d: 'Fills the screen without entering macOS full screen, so the menu bar stays.' },
-    { n: 'Two columns',    k: '⌃⌥1', w: [[0,0,.5,1],[.5,0,.5,1]],
-      d: 'Tiles every window on the display at once, front two first.' },
-    { n: 'Three columns',  k: '⌃⌥2', w: [[0,0,.334,1],[.333,0,.334,1],[.666,0,.334,1]],
-      d: 'Tiles every window on the display at once, front three first.' },
-    { n: 'Main and stack', k: '⌃⌥3', w: [[0,0,.6,1],[.6,0,.4,.5],[.6,.5,.4,.5]],
-      d: 'The frontmost window keeps the large pane; the rest stack beside it.' },
-    { n: 'Grid',           k: '⌃⌥4', w: [[0,0,.5,.5],[.5,0,.5,.5],[0,.5,.5,.5],[.5,.5,.5,.5]],
-      d: 'Four windows, one per quarter.' },
-    { n: 'Centre',         k: '⌃⌥C', w: [[.15,.12,.7,.76]],
-      d: 'Centres the window at a readable size without resizing it to the screen.' },
-    { n: 'Restore',        k: '⌃⌥⌫', w: [[.22,.2,.5,.55]],
-      d: 'Puts the window back where it was before Perch moved it.' }
-  ];
-
-  var stage = document.getElementById('winStage');
-  var nameEl = document.getElementById('winName');
-  var descEl = document.getElementById('winDesc');
-  var tiles = [];
-
-  L.forEach(function (item, i) {
-    var t = document.createElement('div');
-    t.className = 'tile';
-    t.setAttribute('role', 'button');
-    t.setAttribute('tabindex', '0');
-    t.setAttribute('aria-label', item.n + ' — ' + item.k);
-    item.w.forEach(function (r) {
-      var b = document.createElement('i');
-      b.style.left   = (r[0] * 100) + '%';
-      b.style.top    = (r[1] * 100) + '%';
-      b.style.width  = (r[2] * 100) + '%';
-      b.style.height = (r[3] * 100) + '%';
-      // Inset each block slightly so adjacent ones read as separate windows.
-      b.style.transform = 'scale(.88)';
-      t.appendChild(b);
+  /* ---- Screen tab: the layout grid ---- */
+  if (winGrid) {
+    var L = [
+      { n:'Left half',    k:'⌃⌥←', w:[[0,0,.5,1]],  d:'Press again and the width cycles through a half, a third and two thirds.' },
+      { n:'Right half',   k:'⌃⌥→', w:[[.5,0,.5,1]], d:'Press again and the width cycles through a half, a third and two thirds.' },
+      { n:'Top half',     k:'⌃⌥↑', w:[[0,0,1,.5]],  d:'Fills the upper half of whichever display the window is on.' },
+      { n:'Bottom half',  k:'⌃⌥↓', w:[[0,.5,1,.5]], d:'Fills the lower half of whichever display the window is on.' },
+      { n:'Top left',     k:'⌃⌥U', w:[[0,0,.5,.5]],   d:'A quarter, pinned to the top left corner.' },
+      { n:'Top right',    k:'⌃⌥I', w:[[.5,0,.5,.5]],  d:'A quarter, pinned to the top right corner.' },
+      { n:'Bottom left',  k:'⌃⌥J', w:[[0,.5,.5,.5]], d:'A quarter, pinned to the bottom left corner.' },
+      { n:'Bottom right', k:'⌃⌥K', w:[[.5,.5,.5,.5]],d:'A quarter, pinned to the bottom right corner.' },
+      { n:'Left third',   k:'⌃⌥D', w:[[0,0,.34,1]],   d:'Thirds get their own shortcuts, for three windows side by side.' },
+      { n:'Centre third', k:'⌃⌥F', w:[[.33,0,.34,1]],  d:'The middle column, leaving room either side.' },
+      { n:'Right third',  k:'⌃⌥G', w:[[.66,0,.34,1]],  d:'The right column, leaving room either side.' },
+      { n:'Full screen',  k:'⌃⌥↩', w:[[0,0,1,1]],
+        d:'Fills the screen without entering macOS full screen, so the menu bar stays put.' },
+      { n:'Two columns',  k:'⌃⌥1', w:[[0,0,.5,1],[.5,0,.5,1]], d:'Tiles every window on the display at once.' },
+      { n:'Three columns',k:'⌃⌥2', w:[[0,0,.34,1],[.33,0,.34,1],[.66,0,.34,1]], d:'Tiles every window on the display at once.' },
+      { n:'Main and stack',k:'⌃⌥3',w:[[0,0,.6,1],[.6,0,.4,.5],[.6,.5,.4,.5]],
+        d:'The frontmost window keeps the large pane; the rest stack beside it.' },
+      { n:'Grid',         k:'⌃⌥4', w:[[0,0,.5,.5],[.5,0,.5,.5],[0,.5,.5,.5],[.5,.5,.5,.5]], d:'Four windows, one per quarter.' },
+      { n:'Centre',       k:'⌃⌥C', w:[[.16,.14,.68,.72]], d:'Centres the window without resizing it to fill the screen.' },
+      { n:'Restore',      k:'⌃⌥⌫', w:[[.24,.22,.52,.56]], d:'Puts the window back where it was before Perch moved it.' }
+    ];
+    var wName = document.getElementById('winName'), wDesc = document.getElementById('winDesc');
+    var wTiles = L.map(function (item, i) {
+      var t = document.createElement('div');
+      t.className = 'tile';
+      t.setAttribute('role','button'); t.setAttribute('tabindex','0');
+      t.setAttribute('aria-label', item.n + ' — ' + item.k);
+      item.w.forEach(function (r) {
+        var b = document.createElement('i');
+        b.style.left = (r[0]*100)+'%'; b.style.top = (r[1]*100)+'%';
+        b.style.width = (r[2]*100)+'%'; b.style.height = (r[3]*100)+'%';
+        b.style.transform = 'scale(.86)';
+        t.appendChild(b);
+      });
+      function pick(){ selectWin(i); }
+      t.addEventListener('click', pick);
+      t.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); }
+      });
+      winGrid.appendChild(t);
+      return t;
     });
-    function pick() { select(i); }
-    t.addEventListener('click', pick);
-    t.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); }
-    });
-    grid.appendChild(t);
-    tiles.push(t);
-  });
+    function selectWin(i) {
+      wTiles.forEach(function (t,k){ t.classList.toggle('on', k===i); });
+      wName.innerHTML = L[i].n + '<kbd>' + L[i].k + '</kbd>';
+      wDesc.textContent = L[i].d;
+    }
+    selectWin(0);
 
-  // Windows are reused between selections so their positions animate rather
-  // than being torn down and rebuilt.
-  var pool = [];
-  function ensure(n) {
-    while (pool.length < n) {
-      var w = document.createElement('div');
-      w.className = 'win';
-      stage.appendChild(w);
-      pool.push(w);
+    var night = document.getElementById('nightToggle');
+    if (night) {
+      function flip(){
+        night.classList.toggle('on');
+        wName.innerHTML = 'Night Mode<kbd>⌃⌥N</kbd>';
+        wDesc.textContent = night.classList.contains('on')
+          ? 'Warming the display by shifting the gamma ramps, the way f.lux does. No overlay window, so screenshots are unaffected.'
+          : 'Off. Night Mode warms the display by shifting the gamma ramps rather than covering the screen.';
+      }
+      night.addEventListener('click', flip);
+      night.addEventListener('keydown', function(e){
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); }
+      });
     }
   }
 
-  function select(i) {
-    var item = L[i];
-    tiles.forEach(function (t, k) { t.classList.toggle('on', k === i); });
-    nameEl.innerHTML = item.n + '<kbd>' + item.k + '</kbd>';
-    descEl.textContent = item.d;
+  /* ---- Tools tab ---- */
+  if (toolGrid) {
+    var T = [
+      { n:'Screen Clean',  i:'i-sparkle',  k:'⌃⌥S',
+        d:'Fills every display with black so smudges and dust actually show up. Move the mouse or press ⎋ to exit.' },
+      { n:'Keyboard Clean',i:'i-keyboard', k:'⌃⌥K',
+        d:'Swallows every keystroke so you can wipe the keys without typing into anything. Keys are counted, never recorded.' },
+      { n:'Clipboard',     i:'i-clipboard',k:'⌘⇧V',
+        d:'The last 200 things you copied, searchable. Stored locally, and anything credential-shaped is skipped.' },
+      { n:'Switcher',      i:'i-switch',   k:'⌥Tab',
+        d:'Every window rather than every app, in the order you last used them, with live previews. W closes one.' },
+      { n:'Disk Clean',    i:'i-drive',    k:'⌃⌥⌦',
+        d:'Caches, logs and old downloads. A path guard refuses system and home directories, and everything goes to the Trash.' },
+      { n:'Trackpad Clean',i:'i-trackpad', k:'⌃⌥T',
+        d:'Freezes the pointer only. The keyboard stays live, so press ⎋ to unlock when you are done wiping.' }
+    ];
+    var tName = document.getElementById('toolName'), tDesc = document.getElementById('toolDesc');
+    var tBtns = T.map(function (item, i) {
+      var b = document.createElement('div');
+      b.className = 'tool';
+      b.setAttribute('role','button'); b.setAttribute('tabindex','0');
+      b.innerHTML = '<svg class="ico"><use href="#' + item.i + '"/></svg><span>' + item.n + '</span>';
+      function pick(){ selectTool(i); }
+      b.addEventListener('click', pick);
+      b.addEventListener('keydown', function(e){
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); }
+      });
+      toolGrid.appendChild(b);
+      return b;
+    });
+    function selectTool(i) {
+      tBtns.forEach(function (b,k){ b.classList.toggle('on', k===i); });
+      tName.innerHTML = T[i].n + '<kbd>' + T[i].k + '</kbd>';
+      tDesc.textContent = T[i].d;
+    }
+    selectTool(0);
 
-    ensure(item.w.length);
-    pool.forEach(function (w, k) {
-      if (k >= item.w.length) { w.style.opacity = '0'; return; }
-      var r = item.w[k];
-      w.style.opacity = '1';
-      w.style.left   = 'calc(' + (r[0] * 100) + '% + 3px)';
-      w.style.top    = 'calc(' + (r[1] * 100) + '% + 3px)';
-      w.style.width  = 'calc(' + (r[2] * 100) + '% - 6px)';
-      w.style.height = 'calc(' + (r[3] * 100) + '% - 6px)';
-      w.textContent  = item.w.length > 1 ? String(k + 1) : '';
-      w.classList.toggle('ghost', k > 0 && item.w.length > 1 && item.n === 'Main and stack');
+    var S = [
+      { n:'Prevent Sleep',   i:'i-coffee',    on:false,
+        d:'Holds a power assertion so the Mac stays awake. Released the moment you switch it back off.' },
+      { n:'Record Clipboard',i:'i-clipboard', on:true,
+        d:'When off, nothing new is recorded and the existing history stays where it is.' },
+      { n:'Launch at Login', i:'i-power',     on:false,
+        d:'Registers Perch with macOS through SMAppService, so there is no login item left behind if you remove the app.' }
+    ];
+    var card = document.getElementById('switchCard');
+    S.forEach(function (item) {
+      var row = document.createElement('div');
+      row.className = 'pp-row';
+      row.innerHTML = '<svg class="ico"><use href="#' + item.i + '"/></svg><span>' + item.n
+        + '</span><span class="sp"></span><span class="pp-toggle' + (item.on ? ' on' : '')
+        + '" role="button" tabindex="0" aria-label="' + item.n + '"></span>';
+      var tg = row.querySelector('.pp-toggle');
+      function flip() {
+        tg.classList.toggle('on');
+        tBtns.forEach(function (b) { b.classList.remove('on'); });
+        tName.innerHTML = item.n + (tg.classList.contains('on') ? '<kbd>on</kbd>' : '<kbd>off</kbd>');
+        tDesc.textContent = item.d;
+      }
+      tg.addEventListener('click', flip);
+      tg.addEventListener('keydown', function(e){
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); }
+      });
+      card.appendChild(row);
     });
   }
-
-  select(0);
-})();
-</script>
-<script>
-/* Tools demo. Each entry renders a miniature of what the tool puts on screen,
-   so the result is shown rather than described. */
-(function () {
-  var grid = document.getElementById('toolGrid');
-  if (!grid) return;
-
-  function note(big, small) {
-    return '<div class="big">' + big + '</div><div class="small">' + small + '</div>';
-  }
-
-  var T = [
-    { n: 'Screen Clean', icon: 'i-sparkle', k: '⌃⌥S', black: true,
-      view: note('Screen blanked', 'Wipe the glass, then move the mouse<br>or press ⎋ to bring everything back.'),
-      d: 'Fills every display with black so smudges and dust actually show up.' },
-
-    { n: 'Keyboard Clean', icon: 'i-keyboard', k: '⌃⌥K', black: true,
-      view: note('Keyboard locked · 0:24',
-                 '38 keys ignored so far.<br>Hold ⎋ for two seconds to unlock.'),
-      d: 'Swallows every keystroke so you can wipe the keys without typing into anything. Keys are counted, never recorded.' },
-
-    { n: 'Trackpad Clean', icon: 'i-trackpad', k: '⌃⌥T', black: true,
-      view: note('Trackpad locked',
-                 'The pointer is frozen. The keyboard<br>stays live, so press ⎋ to unlock.'),
-      d: 'Freezes the pointer only, so you can wipe the trackpad while still being able to type.' },
-
-    { n: 'Clipboard', icon: 'i-clipboard', k: '⌘⇧V', black: false,
-      view: '<div class="clip-row"><svg class="ico" style="width:11px;height:11px"><use href="#i-clipboard"/></svg><span>https://github.com/ishanmalu/Perch</span></div>'
-          + '<div class="clip-row"><svg class="ico" style="width:11px;height:11px"><use href="#i-clipboard"/></svg><span>git switch -c dev</span></div>'
-          + '<div class="clip-row"><svg class="ico" style="width:11px;height:11px"><use href="#i-clipboard"/></svg><span>ishan.malu@…</span></div>',
-      d: 'The last 200 things you copied, searchable. Stored locally with owner-only permissions; anything credential-shaped is skipped.' },
-
-    { n: 'Switcher', icon: 'i-switch', k: '⌥Tab', black: false,
-      view: '<div class="switch-strip"><div class="switch-card on"></div><div class="switch-card"></div>'
-          + '<div class="switch-card"></div><div class="switch-card"></div></div>'
-          + '<div class="small" style="margin-top:7px">Hold ⌥ and press Tab to walk the list.<br>W closes the highlighted window.</div>',
-      d: 'Every window rather than every app, in the order you last used them, with live previews.' },
-
-    { n: 'Disk Clean', icon: 'i-drive', k: '⌃⌥⌦', black: false,
-      view: note('2.3 GB can be freed',
-                 'Caches, logs and old downloads.<br>Everything goes to the Trash, never deleted.'),
-      d: 'A path guard refuses system and home directories, and nothing is removed outright — it moves to the Trash so you can undo it.' }
-  ];
-
-  var screenEl = document.getElementById('toolScreen');
-  var noteEl   = document.getElementById('toolNote');
-  var nameEl   = document.getElementById('toolName');
-  var descEl   = document.getElementById('toolDesc');
-  var buttons  = [];
-
-  T.forEach(function (item, i) {
-    var b = document.createElement('div');
-    b.className = 'tool';
-    b.setAttribute('role', 'button');
-    b.setAttribute('tabindex', '0');
-    b.innerHTML = '<svg class="ico"><use href="#' + item.icon + '"/></svg><span>' + item.n + '</span>';
-    function pick() { select(i); }
-    b.addEventListener('click', pick);
-    b.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); }
-    });
-    grid.appendChild(b);
-    buttons.push(b);
-  });
-
-  function select(i) {
-    var item = T[i];
-    buttons.forEach(function (b, k) { b.classList.toggle('on', k === i); });
-    screenEl.classList.toggle('blackout', item.black);
-    noteEl.innerHTML = item.view;
-    nameEl.innerHTML = item.n + '<kbd>' + item.k + '</kbd>';
-    descEl.textContent = item.d;
-  }
-
-  select(0);
 })();
 </script>
 </body>
