@@ -787,7 +787,7 @@
           </div>
         </div>
         </div>
-        </div>
+        <p class="demo-cap"><b id="metricName"></b><span id="metricDesc"></span></p>
       </div>
     </div>
 
@@ -829,7 +829,6 @@
         <p class="demo-cap"><b id="toolName"></b><span id="toolDesc"></span></p>
       </div>
       </div>
-    </div>
 
   </div>
 </section>
@@ -1093,6 +1092,16 @@ Scripts/install.sh</pre>
     });
   }
 
+  var mName = document.getElementById('metricName');
+  var mDesc = document.getElementById('metricDesc');
+  var COPY = {
+    CPU:  ['CPU', '⌃⌥Space', 'Per-core load with the processes driving it, helpers grouped under the app that owns them.'],
+    GPU:  ['GPU', '⌃⌥Space', 'Utilisation read from IOAccelerator, alongside the renderer and its thermal state.'],
+    Mem:  ['Memory', '⌃⌥Space', 'Pressure and swap, and which apps hold the pages. Footprints are per app, not per helper.'],
+    Disk: ['Disk', '⌃⌥Space', 'Read and write throughput from IOBlockStorageDriver, with free space against capacity.'],
+    Net:  ['Network', '⌃⌥Space', 'Throughput per interface, the Wi-Fi link rate and signal, and a speed test you can run.']
+  };
+
   function select(i, manual) {
     current = i;
     if (manual) hold = true;
@@ -1101,6 +1110,10 @@ Scripts/install.sh</pre>
     tabEls.forEach(function (el, k) { el.classList.toggle('on', k === i); });
     labelEl.textContent = m.label;
     subEl.textContent = m.sub;
+    if (mName && COPY[m.key]) {
+      mName.innerHTML = COPY[m.key][0] + '<kbd>' + COPY[m.key][1] + '</kbd>';
+      mDesc.textContent = COPY[m.key][2];
+    }
     // Pre-fill the trace, otherwise switching metric shows it drawing in.
     history = [];
     for (var k = 0; k < 64; k++) {
