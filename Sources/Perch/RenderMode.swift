@@ -39,6 +39,12 @@ enum RenderMode {
         }
     }
 
+    /// A representative Wi-Fi link for documentation images.
+    static let demoWiFi = WiFiLink(
+        interfaceName: "Wi-Fi", linkRateMbps: 780, rssi: -47, noise: -94,
+        channel: 36, band: "5 GHz", widthMHz: 80,
+        standard: "Wi-Fi 6", security: "WPA3")
+
     /// Resolves an installed app's icon, falling back to the generic
     /// application icon rather than the blank document one.
     static func icon(forBundleID id: String) -> NSImage? {

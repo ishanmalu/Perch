@@ -39,7 +39,10 @@ final class HardwareStats: ObservableObject {
 
     private var previousCoreTicks: [UInt32] = []
     private var previousDisk: (read: UInt64, write: UInt64, at: Date)?
-    private var previousInterfaces: [String: (UInt64, UInt64)] = [:]
+    /// Last raw counter reading, kept at the kernel's own 32-bit width.
+    private var previousInterfaces: [String: (UInt32, UInt32)] = [:]
+    /// Wrap-corrected lifetime totals, accumulated from each delta.
+    private var interfaceTotals: [String: (UInt64, UInt64)] = [:]
     private var previousInterfaceAt: Date?
     private var timer: Timer?
 
@@ -190,22 +193,33 @@ final class HardwareStats: ObservableObject {
         guard getifaddrs(&addrs) == 0, let first = addrs else { return interfaces }
         defer { freeifaddrs(addrs) }
 
-        var totals: [String: (UInt64, UInt64)] = [:]
+        var totals: [String: (UInt32, UInt32)] = [:]
         for ptr in sequence(first: first, next: { $0.pointee.ifa_next }) {
             let name = String(cString: ptr.pointee.ifa_name)
             guard ptr.pointee.ifa_addr?.pointee.sa_family == UInt8(AF_LINK), name != "lo0" else { continue }
             guard let data = ptr.pointee.ifa_data?.assumingMemoryBound(to: if_data.self) else { continue }
             let existing = totals[name] ?? (0, 0)
-            totals[name] = (existing.0 + UInt64(data.pointee.ifi_ibytes),
-                            existing.1 + UInt64(data.pointee.ifi_obytes))
+            totals[name] = (existing.0 &+ data.pointee.ifi_ibytes,
+                            existing.1 &+ data.pointee.ifi_obytes)
         }
 
         let now = Date()
         let elapsed = previousInterfaceAt.map { now.timeIntervalSince($0) } ?? 0
         var result: [Interface] = []
         for (name, bytes) in totals {
+            // ifi_ibytes and ifi_obytes are 32-bit and wrap every 4.29 GB, which
+            // on a fast link is minutes. Subtracting at 32 bits gives the right
+            // delta across a wrap; widening first would turn it into ~1.8e19.
+            // Two wraps in one interval would need >17 Gbps, so one is enough.
+            var running = interfaceTotals[name] ?? (0, 0)
+            if let previous = previousInterfaces[name] {
+                running.0 &+= UInt64(bytes.0 &- previous.0)
+                running.1 &+= UInt64(bytes.1 &- previous.1)
+            }
+            interfaceTotals[name] = running
+
             var iface = Interface(id: name, name: Self.friendlyName(name),
-                                  bytesIn: bytes.0, bytesOut: bytes.1)
+                                  bytesIn: running.0, bytesOut: running.1)
             if let previous = previousInterfaces[name], elapsed > 0 {
                 iface.rateIn = Double(bytes.0 &- previous.0) / elapsed
                 iface.rateOut = Double(bytes.1 &- previous.1) / elapsed
@@ -217,7 +231,7 @@ final class HardwareStats: ObservableObject {
         // Idle VPN tunnels have lifetime bytes but no current traffic, and
         // listing five of them buries the interface actually in use.
         return result
-            .filter { $0.rateIn + $0.rateOut > 0 || $0.bytesIn + $0.bytesOut > 10_000_000 }
+            .filter { $0.rateIn + $0.rateOut > 0 || $0.bytesIn + $0.bytesOut > 1_000_000 }
             .sorted { ($0.rateIn + $0.rateOut) > ($1.rateIn + $1.rateOut) }
     }
 
