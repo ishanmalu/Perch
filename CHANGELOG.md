@@ -4,6 +4,44 @@ All notable changes to Perch. Versions follow [semver](https://semver.org),
 and each heading below corresponds to a published
 [release](https://github.com/ishanmalu/Perch/releases).
 
+## [1.6.0] — 2026-08-23
+
+### Added
+- **The System tab drills down.** Pick CPU, GPU, memory, disk or network and
+  get that subsystem on its own: per-core load, GPU utilisation, disk
+  throughput, per-interface network, each with a history trace.
+- **Processes are grouped under the app that owns them**, with usage
+  aggregated to the parent, so Chrome's dozen helpers read as one row. End a
+  process from the context menu without opening Activity Monitor.
+- **The Wi-Fi link is reported, not just its traffic.** Negotiated rate,
+  signal and noise as a signal-to-noise ratio, channel, band, width, standard
+  and security. The bars rate SNR rather than raw signal, because a strong
+  signal in a noisy room is not a good link.
+- **A speed test**, because the negotiated rate is only a ceiling — a link can
+  report 780 Mbps and move 116. It downloads a block of bytes from Cloudflare's
+  open endpoint and times it, reporting megabits. It runs when you press Run
+  and never on its own. This is the second and last thing in Perch that opens
+  a socket; `SECURITY.md` says so.
+
+### Fixed
+- **Network throughput could be wildly wrong.** The kernel's byte counters are
+  32-bit and wrap every 4.29 GB, which on a fast link is minutes. The readings
+  were widened before subtracting, so each wrap produced a delta of about
+  1.8e19 instead of a small number.
+- **Layouts tiled the wrong windows.** The ordering used a comparison that
+  ignored its second argument and so was not a strict weak ordering, which is
+  undefined behaviour. Window order now comes from the real z-order.
+- **Panels did not take the keyboard when opened by shortcut**, so Escape and
+  typing went to whatever was underneath.
+- **Closing a window from the switcher could crash.** A value from the
+  accessibility API was force-cast without a type check.
+- **Ending a task could hit the wrong process.** Readings can be seconds old
+  and macOS reuses pids, so the process is now re-verified before it is
+  signalled.
+- **`shasum -a 256 -c SHA256SUMS.txt` failed for everyone who downloaded a
+  release.** The file recorded `dist/`-prefixed paths. The published checksums
+  for 1.4.0 and 1.5.0 have been corrected in place; the DMGs were never wrong.
+
 ## [1.5.0] — 2026-08-22
 
 ### Fixed
