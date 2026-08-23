@@ -51,7 +51,8 @@ final class Updater: ObservableObject {
     private let repo = "ishanmalu/Perch"
 
     var currentVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
+        if RenderMode.isActive { return RenderMode.version }
+        return Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
     }
 
     var lastChecked: Date? {

@@ -132,6 +132,15 @@ struct SystemDetailView: View {
     }
 
     private var history: [Double] {
+        if RenderMode.isActive {
+            switch metric {
+            case .cpu:     return RenderMode.demoHistory(seed: 0, base: 26, swing: 16)
+            case .gpu:     return RenderMode.demoHistory(seed: 3, base: 34, swing: 22)
+            case .memory:  return RenderMode.demoHistory(seed: 7, base: 61, swing: 9)
+            case .disk:    return RenderMode.demoHistory(seed: 5, base: 30, swing: 24)
+            case .network: return RenderMode.demoHistory(seed: 9, base: 38, swing: 26)
+            }
+        }
         switch metric {
         case .cpu: return monitor.cpuHistory
         case .gpu: return hardware.gpuHistory
@@ -298,9 +307,15 @@ struct SystemDetailView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 9)).foregroundStyle(.tertiary)
-                        TextField("Search process", text: $query)
-                            .textFieldStyle(.plain)
-                            .font(.system(size: 11))
+                        if RenderMode.isActive {
+                            Text("Search process")
+                                .font(.system(size: 11)).foregroundStyle(.tertiary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        } else {
+                            TextField("Search process", text: $query)
+                                .textFieldStyle(.plain)
+                                .font(.system(size: 11))
+                        }
                     }
                     .padding(.horizontal, 7).padding(.vertical, 4)
                     .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 6))
