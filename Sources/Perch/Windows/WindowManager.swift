@@ -122,17 +122,35 @@ final class WindowManager {
         originalFrames.removeValue(forKey: key(for: win))
     }
 
-    /// Windows in front-to-back order across regular apps, excluding Perch.
+    /// Windows in true front-to-back order across regular apps, excluding Perch.
+    ///
+    /// The previous ordering sorted running applications with a comparator that
+    /// ignored its second argument — not a strict weak ordering, so the result
+    /// was undefined — and `runningApplications` is not in recency order
+    /// regardless. "Tile your frontmost windows" was therefore tiling whichever
+    /// windows happened to come out first.
+    ///
+    /// The window server does know the z-order, and `CGWindowListCopyWindowInfo`
+    /// returns it front to back, so that is what decides the order now.
     func orderedWindows() -> [AXWindow] {
         let ownPID = ProcessInfo.processInfo.processIdentifier
-        let apps = NSWorkspace.shared.runningApplications
-            .filter { $0.activationPolicy == .regular && $0.processIdentifier != ownPID }
-        var byPid: [pid_t: [AXWindow]] = [:]
-        for w in AX.allWindows() { byPid[w.pid, default: []].append(w) }
-        // NSWorkspace roughly keeps launch/activation ordering; frontmost first.
-        let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
-        let sorted = apps.sorted { a, _ in a.processIdentifier == front }
-        return sorted.flatMap { byPid[$0.processIdentifier] ?? [] }
+        let windows = AX.allWindows().filter { $0.pid != ownPID }
+
+        // Front-to-back z-order, as the window server sees it.
+        var zOrder: [CGWindowID: Int] = [:]
+        if let info = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements],
+                                                 kCGNullWindowID) as? [[String: Any]] {
+            for (index, entry) in info.enumerated() {
+                guard let number = entry[kCGWindowNumber as String] as? CGWindowID,
+                      (entry[kCGWindowLayer as String] as? Int) == 0 else { continue }
+                zOrder[number] = index
+            }
+        }
+
+        return windows
+            .map { ($0, $0.windowID().flatMap { zOrder[$0] } ?? Int.max) }
+            .sorted { $0.1 < $1.1 }
+            .map(\.0)
     }
 
     // MARK: - Internals

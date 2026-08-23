@@ -143,7 +143,8 @@ extension AXWindow {
     /// Closes the window through its close button, as clicking it would.
     @discardableResult
     func close() -> Bool {
-        guard let button = AX.copyValue(element, kAXCloseButtonAttribute) else { return false }
+        guard let button = AX.copyValue(element, kAXCloseButtonAttribute),
+              CFGetTypeID(button) == AXUIElementGetTypeID() else { return false }
         return AXUIElementPerformAction(button as! AXUIElement, kAXPressAction as CFString) == .success
     }
 

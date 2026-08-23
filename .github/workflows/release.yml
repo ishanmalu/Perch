@@ -84,7 +84,7 @@ jobs:
         run: dist/Perch.app/Contents/MacOS/Perch --selftest
       - name: Checksum
         # After stapling — the ticket is written into the DMG, changing its hash.
-        run: shasum -a 256 dist/*.dmg | tee dist/SHA256SUMS.txt
+        run: cd dist && shasum -a 256 *.dmg | tee SHA256SUMS.txt
       - name: Validate the cask renders
         run: |
           SHA=$(awk '{print $1}' dist/SHA256SUMS.txt | head -1)

@@ -61,8 +61,7 @@ final class FloatingPanel: NSPanel {
             let y = max(f.minY + 12, f.maxY - height - 6)
             setFrame(CGRect(x: x, y: y, width: width, height: height), display: true)
         }
-        NSApp.activate(ignoringOtherApps: true)
-        makeKeyAndOrderFront(nil)
+        present()
     }
 
     func showCentered() {
@@ -71,7 +70,28 @@ final class FloatingPanel: NSPanel {
             setFrameOrigin(CGPoint(x: f.midX - frame.width / 2,
                                    y: f.midY - frame.height / 2 + f.height * 0.08))
         }
+        present()
+    }
+
+    /// Brings the panel up and makes sure it actually owns the keyboard.
+    ///
+    /// Calling `makeKeyAndOrderFront` straight after `activate` is not enough
+    /// from an accessory app: activation has not finished, so the panel appears
+    /// but is not key and every keystroke goes to whatever was in front. That
+    /// left the clipboard's ⌘1-9, the switcher's type-to-filter and Escape all
+    /// dead until the panel was clicked. Re-asserting key status on the next
+    /// runloop pass, and once more shortly after, makes it stick.
+    private func present() {
+        orderFrontRegardless()
         NSApp.activate(ignoringOtherApps: true)
         makeKeyAndOrderFront(nil)
+
+        for delay in [0.0, 0.05, 0.15] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                guard let self, self.isVisible, !self.isKeyWindow else { return }
+                NSApp.activate(ignoringOtherApps: true)
+                self.makeKey()
+            }
+        }
     }
 }
