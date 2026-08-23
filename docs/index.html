@@ -254,6 +254,9 @@
     border: 1px solid var(--line); border-radius: 11px;
     padding: 8px 10px; background: var(--bg-soft);
     display: grid; gap: 6px;
+    /* Fixed to the tallest metric (four rows). Without this the panel
+       changed height on every switch and moved the page under the reader. */
+    height: 92px; align-content: start;
   }
   .live-row { display: flex; align-items: center; gap: 8px; }
   .live-row .nm {
@@ -276,6 +279,115 @@
     text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;
   }
   @media (max-width: 900px) { .live { width: 100%; max-width: 320px; } }
+
+
+  /* ---------- interactive demos (windows + tools) ---------- */
+  .demo { width: 300px; }
+  .demo-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;
+    padding: 9px; border: 1px solid var(--line); border-radius: 11px;
+    background: var(--bg-soft);
+  }
+  .demo-grid.tools { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  /* One tile: a miniature screen with the target region marked. */
+  .tile {
+    aspect-ratio: 4 / 3; border-radius: 5px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--card);
+    position: relative; overflow: hidden;
+    transition: border-color .18s ease, transform .18s ease;
+  }
+  .tile:hover { transform: translateY(-1px); border-color: var(--accent); }
+  .tile.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+  .tile i {
+    position: absolute; border-radius: 2px; background: var(--accent);
+    opacity: .85; transition: opacity .18s ease;
+  }
+  .tile.on i { opacity: 1; }
+  /* Tool buttons carry a label, so they are taller than the layout tiles. */
+  .tool {
+    display: grid; place-items: center; gap: 4px; padding: 9px 4px;
+    border-radius: 9px; border: 1px solid var(--line); background: var(--card);
+    cursor: pointer; text-align: center;
+    transition: border-color .18s ease, transform .18s ease;
+  }
+  .tool:hover { transform: translateY(-1px); border-color: var(--accent); }
+  .tool.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+  .tool svg.ico { width: 17px; height: 17px; color: var(--accent); }
+  .tool span { font-size: 9.5px; font-weight: 600; color: var(--muted); line-height: 1.2; }
+  .tool.on span { color: var(--text); }
+
+  /* The preview: a small Mac screen showing the result of the click. */
+  .demo-label {
+    font-size: 9.5px; font-weight: 700; letter-spacing: .09em;
+    color: var(--faint); margin: 13px 0 6px;
+  }
+  .screen {
+    border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+    background: var(--bg-soft); height: 132px; position: relative;
+  }
+  .screen-bar {
+    height: 15px; display: flex; align-items: center; gap: 4px; padding: 0 7px;
+    background: color-mix(in srgb, var(--muted) 12%, transparent);
+    border-bottom: 1px solid var(--line);
+  }
+  .screen-bar b { width: 6px; height: 6px; border-radius: 50%; display: block; }
+  .screen-stage { position: absolute; inset: 15px 0 0; }
+  /* A window inside the preview, positioned as a percentage of the stage. */
+  .win {
+    position: absolute; border-radius: 4px;
+    background: linear-gradient(160deg,
+      color-mix(in srgb, var(--accent) 88%, white),
+      var(--accent));
+    box-shadow: 0 2px 6px rgba(0,0,0,.18);
+    transition: left .42s cubic-bezier(.4,0,.2,1), top .42s cubic-bezier(.4,0,.2,1),
+                width .42s cubic-bezier(.4,0,.2,1), height .42s cubic-bezier(.4,0,.2,1);
+    display: grid; place-items: center;
+    font-size: 8.5px; font-weight: 700; color: #fff; letter-spacing: .02em;
+  }
+  .win.ghost {
+    background: color-mix(in srgb, var(--muted) 26%, transparent);
+    box-shadow: none; color: var(--muted);
+  }
+  /* Free-form preview contents for the tools, in place of window rectangles. */
+  .screen-note {
+    position: absolute; inset: 15px 0 0; display: grid; place-items: center;
+    text-align: center; padding: 10px; gap: 5px; align-content: center;
+  }
+  .screen-note .big { font-size: 12.5px; font-weight: 650; color: var(--text); }
+  .screen-note .small { font-size: 10px; color: var(--muted); line-height: 1.45; }
+  .screen.blackout { background: #08090b; border-color: #23262c; }
+  .screen.blackout .screen-bar { display: none; }
+  .screen.blackout .screen-note { inset: 0; }
+  .screen.blackout .big { color: #f2f4f8; }
+  .screen.blackout .small { color: #7a828f; }
+  .clip-row {
+    display: flex; align-items: center; gap: 6px; width: 100%;
+    padding: 4px 7px; border-radius: 5px; background: var(--card);
+    border: 1px solid var(--line); font-size: 9.5px; color: var(--text);
+  }
+  .clip-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .switch-strip { display: flex; gap: 5px; }
+  .switch-card {
+    width: 40px; height: 30px; border-radius: 5px; background: var(--card);
+    border: 1px solid var(--line);
+  }
+  .switch-card.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+  /* Caption under the preview. Fixed height so the page never reflows. */
+  .demo-cap {
+    /* Fixed so the page never reflows when a different tool is picked.
+       Sized to the longest description; overflow is clipped rather than
+       allowed to push the layout. */
+    margin-top: 9px; height: 76px; overflow: hidden;
+    display: flex; flex-direction: column; gap: 3px; justify-content: flex-start;
+  }
+  .demo-cap b { font-size: 12.5px; color: var(--text); letter-spacing: -.01em; }
+  .demo-cap span { font-size: 11.5px; color: var(--muted); line-height: 1.45; }
+  .demo-cap kbd {
+    font: inherit; font-size: 10px; padding: 1px 5px; border-radius: 4px;
+    border: 1px solid var(--line); background: var(--bg-soft); color: var(--muted);
+    margin-left: 6px;
+  }
+  @media (max-width: 900px) { .demo { width: 100%; max-width: 320px; } }
 
   /* ---------- theme toggle ---------- */
   .theme-toggle {
@@ -544,13 +656,23 @@
         <h3>Put windows where you want them</h3>
         <p>Halves, thirds, quarters, full screen. Press the same shortcut again
         and the width cycles — one key finds the size you meant. Five layouts
-        tile everything at once, and one shortcut puts a window back.</p>
+        tile everything at once, and one shortcut puts a window back.
+        Pick any tile below to see where the window lands.</p>
         <div class="keys">
           <kbd>⌃⌥←</kbd> <kbd>⌃⌥→</kbd> <kbd>⌃⌥↩</kbd> <kbd>⌃⌥⌫</kbd>
         </div>
       </div>
-      <div class="row-shot"><img class="light" src="shots/panel-screen-light.png" alt="Perch window layout grid with brightness and night mode">
-      <img class="dark" src="shots/panel-screen-dark.png" alt="Perch window layout grid with brightness and night mode"></div>
+      <div class="row-shot">
+        <div class="demo">
+          <div class="demo-grid" id="winGrid"></div>
+          <p class="demo-label">Preview</p>
+          <div class="screen">
+            <div class="screen-bar"><b style="background:#ff5f57"></b><b style="background:#febc2e"></b><b style="background:#28c840"></b></div>
+            <div class="screen-stage" id="winStage"></div>
+          </div>
+          <div class="demo-cap"><b id="winName"></b><span id="winDesc"></span></div>
+        </div>
+      </div>
     </div>
 
     <div class="row">
@@ -596,13 +718,23 @@
         <h3>The small stuff, one click away</h3>
         <p>Blank the screen to clean it. Lock the keyboard, or just the
         trackpad, and wipe without typing into anything. Clear caches to the
-        Trash. Keep the Mac awake. Paste from history.</p>
+        Trash. Keep the Mac awake. Paste from history. Pick a tool below to see
+        what it does.</p>
         <div class="keys">
           <kbd>⌘⇧V</kbd> <kbd>⌥Tab</kbd> <kbd>⌃⌥N</kbd> <kbd>⌃⌥K</kbd>
         </div>
       </div>
-      <div class="row-shot"><img class="light" src="shots/panel-tools-light.png" alt="Perch tools tab with cleaning modes and quick switches">
-      <img class="dark" src="shots/panel-tools-dark.png" alt="Perch tools tab with cleaning modes and quick switches"></div>
+      <div class="row-shot">
+        <div class="demo">
+          <div class="demo-grid tools" id="toolGrid"></div>
+          <p class="demo-label">What happens</p>
+          <div class="screen" id="toolScreen">
+            <div class="screen-bar"><b style="background:#ff5f57"></b><b style="background:#febc2e"></b><b style="background:#28c840"></b></div>
+            <div class="screen-note" id="toolNote"></div>
+          </div>
+          <div class="demo-cap"><b id="toolName"></b><span id="toolDesc"></span></div>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -953,6 +1085,188 @@ Scripts/install.sh</pre>
       if (!hold) select((current + 1) % METRICS.length);
     }, 12000);
   }
+})();
+</script>
+<script>
+/* Window layout demo. Each entry lists the windows it produces as
+   [left, top, width, height] in fractions of the screen, so one routine
+   draws both the tile thumbnails and the preview. */
+(function () {
+  var grid = document.getElementById('winGrid');
+  if (!grid) return;
+
+  var L = [
+    { n: 'Left half',      k: '⌃⌥←', w: [[0,0,.5,1]],
+      d: 'Press again to cycle the width through one half, one third and two thirds.' },
+    { n: 'Right half',     k: '⌃⌥→', w: [[.5,0,.5,1]],
+      d: 'Press again to cycle the width through one half, one third and two thirds.' },
+    { n: 'Top half',       k: '⌃⌥↑', w: [[0,0,1,.5]],
+      d: 'Fills the upper half of whichever display the window is on.' },
+    { n: 'Bottom half',    k: '⌃⌥↓', w: [[0,.5,1,.5]],
+      d: 'Fills the lower half of whichever display the window is on.' },
+    { n: 'Top left',       k: '⌃⌥U', w: [[0,0,.5,.5]],  d: 'A quarter, pinned to the top left corner.' },
+    { n: 'Top right',      k: '⌃⌥I', w: [[.5,0,.5,.5]], d: 'A quarter, pinned to the top right corner.' },
+    { n: 'Bottom left',    k: '⌃⌥J', w: [[0,.5,.5,.5]], d: 'A quarter, pinned to the bottom left corner.' },
+    { n: 'Bottom right',   k: '⌃⌥K', w: [[.5,.5,.5,.5]],d: 'A quarter, pinned to the bottom right corner.' },
+    { n: 'Left third',     k: '⌃⌥D', w: [[0,0,.334,1]], d: 'Thirds are their own shortcuts, for three windows side by side.' },
+    { n: 'Centre third',   k: '⌃⌥F', w: [[.333,0,.334,1]], d: 'The middle column, leaving room either side.' },
+    { n: 'Right third',    k: '⌃⌥G', w: [[.666,0,.334,1]], d: 'The right column, leaving room either side.' },
+    { n: 'Full screen',    k: '⌃⌥↩', w: [[0,0,1,1]],
+      d: 'Fills the screen without entering macOS full screen, so the menu bar stays.' },
+    { n: 'Two columns',    k: '⌃⌥1', w: [[0,0,.5,1],[.5,0,.5,1]],
+      d: 'Tiles every window on the display at once, front two first.' },
+    { n: 'Three columns',  k: '⌃⌥2', w: [[0,0,.334,1],[.333,0,.334,1],[.666,0,.334,1]],
+      d: 'Tiles every window on the display at once, front three first.' },
+    { n: 'Main and stack', k: '⌃⌥3', w: [[0,0,.6,1],[.6,0,.4,.5],[.6,.5,.4,.5]],
+      d: 'The frontmost window keeps the large pane; the rest stack beside it.' },
+    { n: 'Grid',           k: '⌃⌥4', w: [[0,0,.5,.5],[.5,0,.5,.5],[0,.5,.5,.5],[.5,.5,.5,.5]],
+      d: 'Four windows, one per quarter.' },
+    { n: 'Centre',         k: '⌃⌥C', w: [[.15,.12,.7,.76]],
+      d: 'Centres the window at a readable size without resizing it to the screen.' },
+    { n: 'Restore',        k: '⌃⌥⌫', w: [[.22,.2,.5,.55]],
+      d: 'Puts the window back where it was before Perch moved it.' }
+  ];
+
+  var stage = document.getElementById('winStage');
+  var nameEl = document.getElementById('winName');
+  var descEl = document.getElementById('winDesc');
+  var tiles = [];
+
+  L.forEach(function (item, i) {
+    var t = document.createElement('div');
+    t.className = 'tile';
+    t.setAttribute('role', 'button');
+    t.setAttribute('tabindex', '0');
+    t.setAttribute('aria-label', item.n + ' — ' + item.k);
+    item.w.forEach(function (r) {
+      var b = document.createElement('i');
+      b.style.left   = (r[0] * 100) + '%';
+      b.style.top    = (r[1] * 100) + '%';
+      b.style.width  = (r[2] * 100) + '%';
+      b.style.height = (r[3] * 100) + '%';
+      // Inset each block slightly so adjacent ones read as separate windows.
+      b.style.transform = 'scale(.88)';
+      t.appendChild(b);
+    });
+    function pick() { select(i); }
+    t.addEventListener('click', pick);
+    t.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); }
+    });
+    grid.appendChild(t);
+    tiles.push(t);
+  });
+
+  // Windows are reused between selections so their positions animate rather
+  // than being torn down and rebuilt.
+  var pool = [];
+  function ensure(n) {
+    while (pool.length < n) {
+      var w = document.createElement('div');
+      w.className = 'win';
+      stage.appendChild(w);
+      pool.push(w);
+    }
+  }
+
+  function select(i) {
+    var item = L[i];
+    tiles.forEach(function (t, k) { t.classList.toggle('on', k === i); });
+    nameEl.innerHTML = item.n + '<kbd>' + item.k + '</kbd>';
+    descEl.textContent = item.d;
+
+    ensure(item.w.length);
+    pool.forEach(function (w, k) {
+      if (k >= item.w.length) { w.style.opacity = '0'; return; }
+      var r = item.w[k];
+      w.style.opacity = '1';
+      w.style.left   = 'calc(' + (r[0] * 100) + '% + 3px)';
+      w.style.top    = 'calc(' + (r[1] * 100) + '% + 3px)';
+      w.style.width  = 'calc(' + (r[2] * 100) + '% - 6px)';
+      w.style.height = 'calc(' + (r[3] * 100) + '% - 6px)';
+      w.textContent  = item.w.length > 1 ? String(k + 1) : '';
+      w.classList.toggle('ghost', k > 0 && item.w.length > 1 && item.n === 'Main and stack');
+    });
+  }
+
+  select(0);
+})();
+</script>
+<script>
+/* Tools demo. Each entry renders a miniature of what the tool puts on screen,
+   so the result is shown rather than described. */
+(function () {
+  var grid = document.getElementById('toolGrid');
+  if (!grid) return;
+
+  function note(big, small) {
+    return '<div class="big">' + big + '</div><div class="small">' + small + '</div>';
+  }
+
+  var T = [
+    { n: 'Screen Clean', icon: 'i-sparkle', k: '⌃⌥S', black: true,
+      view: note('Screen blanked', 'Wipe the glass, then move the mouse<br>or press ⎋ to bring everything back.'),
+      d: 'Fills every display with black so smudges and dust actually show up.' },
+
+    { n: 'Keyboard Clean', icon: 'i-keyboard', k: '⌃⌥K', black: true,
+      view: note('Keyboard locked · 0:24',
+                 '38 keys ignored so far.<br>Hold ⎋ for two seconds to unlock.'),
+      d: 'Swallows every keystroke so you can wipe the keys without typing into anything. Keys are counted, never recorded.' },
+
+    { n: 'Trackpad Clean', icon: 'i-trackpad', k: '⌃⌥T', black: true,
+      view: note('Trackpad locked',
+                 'The pointer is frozen. The keyboard<br>stays live, so press ⎋ to unlock.'),
+      d: 'Freezes the pointer only, so you can wipe the trackpad while still being able to type.' },
+
+    { n: 'Clipboard', icon: 'i-clipboard', k: '⌘⇧V', black: false,
+      view: '<div class="clip-row"><svg class="ico" style="width:11px;height:11px"><use href="#i-clipboard"/></svg><span>https://github.com/ishanmalu/Perch</span></div>'
+          + '<div class="clip-row"><svg class="ico" style="width:11px;height:11px"><use href="#i-clipboard"/></svg><span>git switch -c dev</span></div>'
+          + '<div class="clip-row"><svg class="ico" style="width:11px;height:11px"><use href="#i-clipboard"/></svg><span>ishan.malu@…</span></div>',
+      d: 'The last 200 things you copied, searchable. Stored locally with owner-only permissions; anything credential-shaped is skipped.' },
+
+    { n: 'Switcher', icon: 'i-switch', k: '⌥Tab', black: false,
+      view: '<div class="switch-strip"><div class="switch-card on"></div><div class="switch-card"></div>'
+          + '<div class="switch-card"></div><div class="switch-card"></div></div>'
+          + '<div class="small" style="margin-top:7px">Hold ⌥ and press Tab to walk the list.<br>W closes the highlighted window.</div>',
+      d: 'Every window rather than every app, in the order you last used them, with live previews.' },
+
+    { n: 'Disk Clean', icon: 'i-drive', k: '⌃⌥⌦', black: false,
+      view: note('2.3 GB can be freed',
+                 'Caches, logs and old downloads.<br>Everything goes to the Trash, never deleted.'),
+      d: 'A path guard refuses system and home directories, and nothing is removed outright — it moves to the Trash so you can undo it.' }
+  ];
+
+  var screenEl = document.getElementById('toolScreen');
+  var noteEl   = document.getElementById('toolNote');
+  var nameEl   = document.getElementById('toolName');
+  var descEl   = document.getElementById('toolDesc');
+  var buttons  = [];
+
+  T.forEach(function (item, i) {
+    var b = document.createElement('div');
+    b.className = 'tool';
+    b.setAttribute('role', 'button');
+    b.setAttribute('tabindex', '0');
+    b.innerHTML = '<svg class="ico"><use href="#' + item.icon + '"/></svg><span>' + item.n + '</span>';
+    function pick() { select(i); }
+    b.addEventListener('click', pick);
+    b.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); }
+    });
+    grid.appendChild(b);
+    buttons.push(b);
+  });
+
+  function select(i) {
+    var item = T[i];
+    buttons.forEach(function (b, k) { b.classList.toggle('on', k === i); });
+    screenEl.classList.toggle('blackout', item.black);
+    noteEl.innerHTML = item.view;
+    nameEl.innerHTML = item.n + '<kbd>' + item.k + '</kbd>';
+    descEl.textContent = item.d;
+  }
+
+  select(0);
 })();
 </script>
 </body>
