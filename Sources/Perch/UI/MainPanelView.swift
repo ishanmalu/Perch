@@ -24,6 +24,8 @@ struct MainPanelView: View {
     var flattened = false
     /// Which tab to open on; only used by `--render-ui`.
     var initialTab: PanelTab? = nil
+    /// Lets the render harness capture each metric's detail view.
+    var initialMetric: SystemMetric? = nil
 
     @State private var tab: PanelTab = .system
     @State private var metric: SystemMetric = .cpu
@@ -80,6 +82,7 @@ struct MainPanelView: View {
         .frame(width: 300)
         .onAppear {
             if let initialTab { tab = initialTab }
+            if let initialMetric { metric = initialMetric }
             syncSampling()
         }
         .onChange(of: tab) { _, _ in syncSampling() }

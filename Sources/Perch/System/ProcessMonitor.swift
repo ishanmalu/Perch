@@ -101,9 +101,27 @@ final class ProcessMonitor: ObservableObject {
             DispatchQueue.main.async {
                 self.previousCPUTime = cpuTimes
                 self.previousSampleAt = now
-                self.groups = grouped
+                self.groups = RenderMode.isActive ? Self.demoGroups() : grouped
                 self.isSampling = false
             }
+        }
+    }
+
+    /// A fixed, representative process list used only when rendering
+    /// documentation images, so screenshots never name the apps that happened
+    /// to be running on the machine that produced them.
+    private static func demoGroups() -> [ProcessGroup] {
+        RenderMode.demoProcesses.enumerated().map { index, p in
+            ProcessGroup(
+                id: "demo-\(index)", name: p.name,
+                icon: RenderMode.icon(forBundleID: p.bundleID),
+                pid: 0, cpu: p.cpu, memory: p.memory,
+                children: (0..<p.children).map { child in
+                    // Distinct pids: ProcessInfoRow's Identifiable id is its pid.
+                    ProcessInfoRow(pid: pid_t(1000 + index * 100 + child),
+                                   ppid: 0, uid: 0, command: p.name)
+                },
+                command: p.name, isSystem: p.name == "System")
         }
     }
 

@@ -214,6 +214,69 @@
     :root:not([data-theme="light"]) .row-shot img.dark { display: block; }
   }
 
+
+  /* ---------- animated system panel ---------- */
+  .live {
+    width: 300px; border-radius: 16px; overflow: hidden;
+    background: var(--card); border: 1px solid var(--line);
+    box-shadow: var(--shadow); font-size: 12px; user-select: none;
+  }
+  .live-head {
+    display: flex; align-items: center; gap: 7px;
+    padding: 10px 12px; border-bottom: 1px solid var(--line);
+    font-weight: 640; letter-spacing: -.01em; color: var(--text);
+  }
+  .live-head svg { width: 15px; height: 15px; color: var(--accent); }
+  .live-tabs { display: flex; gap: 2px; padding: 9px 9px 4px; }
+  .live-tab {
+    flex: 1; text-align: center; padding: 5px 0; border-radius: 7px;
+    font-size: 10.5px; font-weight: 600; color: var(--muted);
+    transition: background .3s ease, color .3s ease;
+  }
+  .live-tab.on { background: var(--mtint); color: #fff; }
+  .live-body { padding: 4px 12px 13px; }
+  .live-gauge {
+    border: 1px solid var(--line); border-radius: 11px;
+    padding: 11px 12px 0; background: var(--bg-soft);
+  }
+  .live-read { display: flex; align-items: baseline; gap: 8px; }
+  .live-val {
+    font-size: 27px; font-weight: 700; letter-spacing: -.02em;
+    color: var(--mtint); font-variant-numeric: tabular-nums;
+  }
+  .live-sub { font-size: 11px; color: var(--muted); }
+  .live-spark { display: block; width: 100%; height: 46px; margin-top: 2px; }
+  .live-label {
+    font-size: 9.5px; font-weight: 700; letter-spacing: .09em;
+    color: var(--faint); margin: 13px 0 6px;
+  }
+  .live-rows {
+    border: 1px solid var(--line); border-radius: 11px;
+    padding: 8px 10px; background: var(--bg-soft);
+    display: grid; gap: 6px;
+  }
+  .live-row { display: flex; align-items: center; gap: 8px; }
+  .live-row .nm {
+    font-size: 11px; color: var(--text); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; flex: 1;
+  }
+  .live-row .idx { font-size: 10px; color: var(--faint); width: 9px; }
+  .live-bar {
+    flex: 1; height: 5px; border-radius: 3px;
+    background: color-mix(in srgb, var(--muted) 22%, transparent);
+    overflow: hidden;
+  }
+  .live-bar i {
+    display: block; height: 100%; border-radius: 3px;
+    background: var(--mtint); width: 0;
+    transition: width 1.9s cubic-bezier(.4, 0, .2, 1);
+  }
+  .live-row .pc {
+    font-size: 10.5px; color: var(--muted); width: 54px;
+    text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  @media (max-width: 900px) { .live { width: 100%; max-width: 320px; } }
+
   /* ---------- theme toggle ---------- */
   .theme-toggle {
     display: grid; place-items: center; width: 32px; height: 32px;
@@ -494,13 +557,37 @@
       <div class="row-text">
         <p class="row-num">02 — SYSTEM</p>
         <h3>Know what your Mac is doing</h3>
-        <p>CPU, memory and disk at a glance, with network throughput, battery
-        health, load average, thermal state and memory pressure underneath.
-        Pin any one of them next to the clock.</p>
+        <p>Click CPU and you get per-core load and the processes driving it,
+        helpers grouped under the app that owns them. Click GPU, memory, disk or
+        network and you get the same treatment for each. End a runaway process
+        without opening Activity Monitor, and pin any figure next to the clock.</p>
         <div class="keys"><kbd>⌃⌥Space</kbd></div>
       </div>
-      <div class="row-shot"><img class="light" src="shots/panel-system-light.png" alt="Perch system monitoring with CPU, memory and disk gauges">
-      <img class="dark" src="shots/panel-system-dark.png" alt="Perch system monitoring with CPU, memory and disk gauges"></div>
+      <div class="row-shot">
+        <div class="live" id="live" aria-hidden="true">
+          <div class="live-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                 stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 12l4-2.5"/></svg>
+            System
+          </div>
+          <div class="live-tabs" id="liveTabs"></div>
+          <div class="live-body">
+            <div class="live-gauge">
+              <div class="live-read">
+                <span class="live-val" id="liveVal">0%</span>
+                <span class="live-sub" id="liveSub"></span>
+              </div>
+              <svg class="live-spark" id="liveSpark" viewBox="0 0 260 46" preserveAspectRatio="none">
+                <path id="liveFill" fill="var(--mtint)" fill-opacity=".13"/>
+                <path id="liveLine" fill="none" stroke="var(--mtint)" stroke-width="1.6"
+                      stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+              </svg>
+            </div>
+            <p class="live-label" id="liveLabel">PER CORE</p>
+            <div class="live-rows" id="liveRows"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="row">
@@ -656,7 +743,7 @@ Scripts/install.sh</pre>
     <div class="caps">
       <div class="cap"><svg class="ico"><use href="#i-keylock"/></svg><div><b>Keystrokes are counted, never recorded</b><span>The cleaning modes discard every event they swallow. Key codes are never stored or logged.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-lock"/></svg><div><b>Clipboard history stays local</b><span>Owner-only permissions. Password managers and credential-shaped strings are skipped.</span></div></div>
-      <div class="cap"><svg class="ico"><use href="#i-nonet"/></svg><div><b>One network feature, off by default</b><span>The update check is the only code that opens a socket, and it talks to GitHub alone.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-nonet"/></svg><div><b>Two network features, both manual</b><span>The update check talks to GitHub. The speed test fetches a block of bytes from Cloudflare when you press Run. Nothing else opens a socket.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-shield"/></svg><div><b>Disk cleaning cannot go rogue</b><span>A path guard rejects system and home directories. Removal is always to the Trash.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-window"/></svg><div><b>Accessibility reads geometry, not content</b><span>Window positions, sizes, titles and app names. Never what is inside a window.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-switch"/></svg><div><b>Window previews are optional</b><span>Captured only while the switcher is open, held in memory, never written to disk.</span></div></div>
@@ -707,5 +794,166 @@ Scripts/install.sh</pre>
   }));
 </script>
 
+<script>
+/* Animated System panel. Mirrors what the app's System tab does — cycles
+   through each metric, moves the trace, and updates the rows underneath.
+   The figures are illustrative, not a reading of the visitor's machine. */
+(function () {
+  var root = document.getElementById('live');
+  if (!root) return;
+
+  var METRICS = [
+    { key: 'CPU',  tint: '#3b82f6', label: 'BY CPU',     base: 22, swing: 9,
+      unit: '%', sub: '10 cores',
+      rows: ['System', 'Safari', 'Spotify', 'Finder'] },
+    { key: 'GPU',  tint: '#f43f5e', label: 'BY GPU',     base: 18, swing: 11,
+      unit: '%', sub: 'Apple silicon',
+      rows: ['WindowServer', 'Safari', 'Spotify'] },
+    { key: 'Mem',  tint: '#a855f7', label: 'BY MEMORY',  base: 58, swing: 5,
+      unit: '%', sub: '16 GB',
+      rows: ['Safari', 'Spotify', 'Finder', 'Mail'] },
+    { key: 'Disk', tint: '#f59e0b', label: 'THROUGHPUT', base: 24, swing: 13,
+      unit: ' MB/s', sub: 'read + write',
+      rows: ['Read', 'Write'] },
+    { key: 'Net',  tint: '#14b8a6', label: 'INTERFACES', base: 30, swing: 15,
+      unit: ' KB/s', sub: '3 active',
+      rows: ['Wi-Fi', 'Ethernet', 'AirDrop'] }
+  ];
+
+  var tabsEl  = document.getElementById('liveTabs');
+  var rowsEl  = document.getElementById('liveRows');
+  var valEl   = document.getElementById('liveVal');
+  var subEl   = document.getElementById('liveSub');
+  var labelEl = document.getElementById('liveLabel');
+  var lineEl  = document.getElementById('liveLine');
+  var fillEl  = document.getElementById('liveFill');
+
+  var tabEls = METRICS.map(function (m, i) {
+    var el = document.createElement('div');
+    el.className = 'live-tab';
+    el.textContent = m.key;
+    el.addEventListener('click', function () { select(i, true); });
+    tabsEl.appendChild(el);
+    return el;
+  });
+
+  // Driven by elapsed time, not frame count: a 120Hz display would otherwise
+  // run the whole animation at double speed.
+  var SPEED = 0.45;        // wave units per second
+  var TEXT_EVERY = 1.5;    // seconds between readout updates
+  var current = 0, hold = false, t = 0, lastFrame = 0, sinceText = TEXT_EVERY;
+  var history = [], bars = [];
+
+  // Weighted toward the slow term: the fast one only adds a little texture,
+  // otherwise the readout jitters instead of drifting.
+  function wave(x, seed) {
+    return Math.sin(x + seed) * 0.70
+         + Math.sin(x * 1.55 + seed * 1.7) * 0.20
+         + Math.sin(x * 0.37 + seed) * 0.10;
+  }
+
+  function buildRows(m) {
+    rowsEl.innerHTML = '';
+    bars = m.rows.map(function (name, i) {
+      var row = document.createElement('div');
+      row.className = 'live-row';
+      row.innerHTML = '<span class="nm">' + name + '</span>' 
+        + '<span class="live-bar"><i></i></span><span class="pc"></span>';
+      rowsEl.appendChild(row);
+      return { fill: row.querySelector('i'), pc: row.querySelector('.pc'),
+               seed: i * 1.9, value: m.base,
+               // Rows read as a ranked list, the way the app sorts them.
+               rank: 1 - i * 0.24 };
+    });
+  }
+
+  function select(i, manual) {
+    current = i;
+    if (manual) hold = true;
+    var m = METRICS[i];
+    root.style.setProperty('--mtint', m.tint);
+    tabEls.forEach(function (el, k) { el.classList.toggle('on', k === i); });
+    labelEl.textContent = m.label;
+    subEl.textContent = m.sub;
+    // Pre-fill the trace, otherwise switching metric shows it drawing in.
+    history = [];
+    for (var k = 0; k < 64; k++) {
+      history.push(Math.max(2, Math.min(100,
+        m.base + wave(t + (k - 64) * (SPEED / 27), i * 3) * m.swing)));
+    }
+    buildRows(m);
+    // Force the headline to redraw on the next frame; otherwise it keeps the
+    // previous metric's number and unit until the next text tick.
+    sinceText = TEXT_EVERY;
+  }
+
+  function frame(now) {
+    var m = METRICS[current];
+    var dt = lastFrame ? Math.min(0.25, (now - lastFrame) / 1000) : 0;
+    lastFrame = now;
+    t += dt * SPEED;
+    sinceText += dt;
+
+    var v = Math.max(2, Math.min(100, m.base + wave(t, current * 3) * m.swing));
+    history.push(v);
+    if (history.length > 64) history.shift();
+
+    // Text updates a few times a second; at 60fps the digits would flicker.
+    if (sinceText >= TEXT_EVERY) {
+      sinceText = 0;
+      valEl.textContent = (m.unit === '%' ? Math.round(v) : (v / 4).toFixed(1)) + m.unit;
+      bars.forEach(function (b) {
+        b.pc.textContent = (m.unit === '%' ? Math.round(b.value)
+                                           : (b.value / 4).toFixed(1)) + m.unit;
+      });
+    }
+
+    // Trace across a fixed 260x46 viewBox, scaled to the range actually in
+    // view. A fixed 0-100 axis flattens metrics that sit in a narrow band.
+    var n = history.length, d = '', step = 260 / 63;
+    var lo = Math.min.apply(null, history), hi = Math.max.apply(null, history);
+    var pad = Math.max(2, (hi - lo) * 0.25);
+    lo -= pad; hi += pad;
+    var span = Math.max(1, hi - lo);
+    for (var i = 0; i < n; i++) {
+      var x = (i + (64 - n)) * step;
+      var y = 43 - ((history[i] - lo) / span) * 36;
+      d += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1);
+    }
+    lineEl.setAttribute('d', d);
+    if (n > 1) {
+      var lastX = (n - 1 + (64 - n)) * step, firstX = (64 - n) * step;
+      fillEl.setAttribute('d', d + 'L' + lastX.toFixed(1) + ' 46L' + firstX.toFixed(1) + ' 46Z');
+    }
+
+    bars.forEach(function (b) {
+      var bv = Math.max(2, Math.min(100,
+        (m.base + wave(t * 0.4, b.seed) * m.swing * 1.3) * b.rank));
+      b.value = bv;
+      b.fill.style.width = bv.toFixed(1) + '%';
+    });
+
+    requestAnimationFrame(frame);
+  }
+
+  select(0);
+
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    // Draw one static frame and stop.
+    var m0 = METRICS[0];
+    valEl.textContent = Math.round(m0.base) + m0.unit;
+    bars.forEach(function (b, i) {
+      var bv = m0.base + wave(1 + i, b.seed) * m0.swing;
+      b.fill.style.width = bv.toFixed(1) + '%';
+      b.pc.textContent = Math.round(bv) + m0.unit;
+    });
+  } else {
+    requestAnimationFrame(frame);
+    setInterval(function () {
+      if (!hold) select((current + 1) % METRICS.length);
+    }, 12000);
+  }
+})();
+</script>
 </body>
 </html>

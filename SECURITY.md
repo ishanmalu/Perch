@@ -14,7 +14,7 @@ the clipboard, and intercept keyboard and trackpad input.
 | Pasteboard | Record clipboard history | Local file, `0600`; concealed types, ignored apps, and credential-shaped strings are skipped |
 | Filesystem | Measure and clear cache folders | Path guard + `trashItem` only; nothing is unlinked |
 | Private `DisplayServices` | Built-in display brightness | Resolved via `dlsym`; falls back to a software overlay if absent |
-| Network | Update check only | Off by default; `api.github.com` plus GitHub's asset CDN, nothing else. No analytics, no telemetry, no subprocess execution |
+| Network | Update check and speed test, both manual | The update check uses `api.github.com` plus GitHub's asset CDN. The speed test downloads a block of bytes from `speed.cloudflare.com` and only when you press Run — no account, no key, nothing sent about you. Nothing else contacts the network. No analytics, no telemetry, no subprocess execution |
 
 ## Deliberate design choices
 

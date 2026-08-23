@@ -37,6 +37,7 @@ struct SystemDetailView: View {
     @ObservedObject var hardware = HardwareStats.shared
     @ObservedObject var processes = ProcessMonitor.shared
     @Binding var metric: SystemMetric
+    @State private var wifi: WiFiLink?
     @State private var query = ""
     @State private var pendingKill: ProcessGroup?
 
@@ -60,6 +61,16 @@ struct SystemDetailView: View {
         } message: {
             Text("The app closes immediately. Unsaved work is lost.")
         }
+        // Link details change slowly, so read them when the tab opens and then
+        // alongside the sampler rather than on a timer of their own.
+        .onAppear { refreshWiFi() }
+        .onChange(of: metric) { _, _ in refreshWiFi() }
+        .onReceive(hardware.$interfaces.dropFirst()) { _ in refreshWiFi() }
+    }
+
+    private func refreshWiFi() {
+        guard metric == .network else { return }
+        wifi = RenderMode.isActive ? RenderMode.demoWiFi : WiFiStats.read()
     }
 
     // MARK: - Selector
@@ -132,6 +143,15 @@ struct SystemDetailView: View {
     }
 
     private var history: [Double] {
+        if RenderMode.isActive {
+            switch metric {
+            case .cpu:     return RenderMode.demoHistory(seed: 0, base: 26, swing: 16)
+            case .gpu:     return RenderMode.demoHistory(seed: 3, base: 34, swing: 22)
+            case .memory:  return RenderMode.demoHistory(seed: 7, base: 61, swing: 9)
+            case .disk:    return RenderMode.demoHistory(seed: 5, base: 30, swing: 24)
+            case .network: return RenderMode.demoHistory(seed: 9, base: 38, swing: 26)
+            }
+        }
         switch metric {
         case .cpu: return monitor.cpuHistory
         case .gpu: return hardware.gpuHistory
@@ -242,6 +262,31 @@ struct SystemDetailView: View {
 
     private var networkDetail: some View {
         VStack(alignment: .leading, spacing: 5) {
+            if let link = wifi {
+                SectionHeader("Wi-Fi link")
+                Card(padding: 9) {
+                    VStack(spacing: 6) {
+                        HStack(spacing: 7) {
+                            SignalBars(filled: link.bars)
+                            Text(link.quality).font(Theme.Font.body).foregroundStyle(.secondary)
+                            Spacer(minLength: 6)
+                            Text(verbatim: "\(Int(link.linkRateMbps)) Mbps")
+                                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.teal)
+                        }
+                        InfoRow(symbol: "antenna.radiowaves.left.and.right", title: "Signal",
+                                value: "\(link.rssi) dBm · SNR \(link.snr) dB", tint: .secondary)
+                        InfoRow(symbol: "dot.radiowaves.left.and.right", title: "Channel",
+                                value: "\(link.channel) · \(link.band) · \(link.widthMHz) MHz",
+                                tint: .secondary)
+                        InfoRow(symbol: "wifi", title: link.standard,
+                                value: link.security, tint: .secondary)
+                    }
+                }
+            }
+
+            SpeedTestRow()
+
             SectionHeader("Interfaces")
             Card(padding: 9) {
                 VStack(spacing: 6) {
@@ -298,9 +343,15 @@ struct SystemDetailView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 9)).foregroundStyle(.tertiary)
-                        TextField("Search process", text: $query)
-                            .textFieldStyle(.plain)
-                            .font(.system(size: 11))
+                        if RenderMode.isActive {
+                            Text("Search process")
+                                .font(.system(size: 11)).foregroundStyle(.tertiary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        } else {
+                            TextField("Search process", text: $query)
+                                .textFieldStyle(.plain)
+                                .font(.system(size: 11))
+                        }
                     }
                     .padding(.horizontal, 7).padding(.vertical, 4)
                     .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 6))
@@ -412,6 +463,95 @@ extension Trace: View {
             self.fill(LinearGradient(colors: [tint.opacity(0.35), tint.opacity(0.03)],
                                      startPoint: .top, endPoint: .bottom))
             self.stroke(tint.opacity(0.7), lineWidth: 1.2)
+        }
+    }
+}
+
+/// Signal strength as four bars, rated on signal-to-noise rather than raw
+/// RSSI: a strong signal in a noisy room is not a good link.
+private struct SignalBars: View {
+    let filled: Int
+
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 1.5) {
+            ForEach(0..<4, id: \.self) { i in
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(i < filled ? Color.teal : Color.secondary.opacity(0.25))
+                    .frame(width: 2.5, height: 4 + CGFloat(i) * 2.5)
+            }
+        }
+        .frame(width: 14, height: 12, alignment: .bottom)
+    }
+}
+
+/// Runs the throughput test and shows the result.
+///
+/// Deliberately a button rather than something that samples on its own: it is
+/// the only outbound request Perch makes besides checking for updates, and it
+/// moves real traffic, so it happens when asked and not otherwise.
+private struct SpeedTestRow: View {
+    @ObservedObject private var test = SpeedTest.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            SectionHeader("Speed test")
+            Card(padding: 9) {
+                HStack(spacing: 8) {
+                    // ImageRenderer cannot draw a live Button, so documentation
+                    // images show a finished run instead of an empty control.
+                    if RenderMode.isActive {
+                        Text(verbatim: "112")
+                            .font(.system(size: 17, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.teal)
+                        Text(verbatim: "Mbps down · 53 ms")
+                            .font(Theme.Font.caption).foregroundStyle(.secondary)
+                        Spacer(minLength: 6)
+                        Text("Again").font(Theme.Font.body).foregroundStyle(.teal)
+                    } else {
+                    switch test.state {
+                    case .idle:
+                        Text("Measure actual throughput")
+                            .font(Theme.Font.body).foregroundStyle(.secondary)
+                        Spacer(minLength: 6)
+                        Button("Run") { test.start() }
+                            .buttonStyle(.borderless).font(Theme.Font.body)
+
+                    case .latency:
+                        ProgressView().controlSize(.small)
+                        Text("Measuring latency")
+                            .font(Theme.Font.body).foregroundStyle(.secondary)
+                        Spacer(minLength: 0)
+
+                    case .downloading(let mbps, let progress):
+                        ProgressView(value: min(1, progress)).controlSize(.small)
+                            .frame(width: 54)
+                        Text(String(format: "%.0f Mbps", mbps))
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.teal)
+                        Spacer(minLength: 0)
+                        Button("Stop") { test.cancel() }
+                            .buttonStyle(.borderless).font(Theme.Font.body)
+
+                    case .done(let down, let latency):
+                        Text(String(format: "%.0f", down))
+                            .font(.system(size: 17, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.teal)
+                        Text(verbatim: "Mbps down · \(Int(latency)) ms")
+                            .font(Theme.Font.caption).foregroundStyle(.secondary)
+                        Spacer(minLength: 6)
+                        Button("Again") { test.start() }
+                            .buttonStyle(.borderless).font(Theme.Font.body)
+
+                    case .failed(let why):
+                        Text(why).font(Theme.Font.caption).foregroundStyle(.orange)
+                            .lineLimit(2)
+                        Spacer(minLength: 6)
+                        Button("Retry") { test.start() }
+                            .buttonStyle(.borderless).font(Theme.Font.body)
+                    }
+                    }
+                }
+            }
         }
     }
 }
