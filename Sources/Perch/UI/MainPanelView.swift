@@ -202,15 +202,36 @@ struct MainPanelView: View {
                     Divider().opacity(0.4)
                     HStack(spacing: 5) {
                         ForEach(CustomLayout.builtins) { layout in
-                            HoverButton(action: { WindowManager.shared.apply(layout: layout) }) {
+                            HoverButton(action: {
+                                // Option flips whichever way the preference is
+                                // set, so the picker is always one key away.
+                                let flip = NSEvent.modifierFlags.contains(.option)
+                                if Prefs.shared.askBeforeTiling != flip {
+                                    LayoutAssignController.shared.begin(layout)
+                                } else {
+                                    WindowManager.shared.apply(layout: layout)
+                                }
+                            }) {
                                 LayoutPreview(panes: layout.panes, compact: true)
                                     .frame(height: 22)
                                     .frame(maxWidth: .infinity)
                                     .padding(3)
                             }
-                            .help("Tile frontmost windows into \(layout.name)")
+                            .help("Tile into \(layout.name)  (⌥ toggles the window picker)")
                         }
                     }
+                    HoverButton(action: { WindowManager.shared.maximizeAll() }) {
+                        HStack(spacing: 5) {
+                            Image(systemName: "rectangle.stack")
+                                .font(.system(size: 10))
+                            Text("Fill Screen With All Windows").font(Theme.Font.caption)
+                        }
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 4)
+                    }
+                    .help("Every window on this screen filled to the whole screen. "
+                        + "Not macOS full screen: no new Space, and the menu bar stays.")
                 }
             }
         }
