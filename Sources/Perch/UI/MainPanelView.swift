@@ -10,6 +10,12 @@ struct MainPanelView: View {
     @ObservedObject var updater = Updater.shared
     @ObservedObject var night = NightMode.shared
     @ObservedObject var sleepBlocker = PreventSleep.shared
+
+    /// Session lengths offered next to the switch.
+    static let wakeDurations: [(String, TimeInterval)] = [
+        ("15 minutes", 900), ("30 minutes", 1800), ("1 hour", 3600),
+        ("2 hours", 7200), ("4 hours", 14400), ("8 hours", 28800),
+    ]
     @State private var launchAtLogin = LoginItem.isEnabled
 
     /// How tall the popover may grow before its contents start scrolling.
@@ -343,8 +349,44 @@ struct MainPanelView: View {
                 SectionHeader("Switches")
                 Card(padding: 9) {
                     VStack(spacing: 8) {
-                        switchRow("cup.and.saucer.fill", "Prevent Sleep", .brown,
-                                  isOn: sleepBlocker.isActive) { sleepBlocker.toggle() }
+                        HStack(spacing: 8) {
+                            Image(systemName: "cup.and.saucer.fill")
+                                .font(.system(size: 10))
+                                .foregroundStyle(sleepBlocker.isActive ? .brown : .secondary)
+                                .frame(width: 14)
+                            Text("Prevent Sleep").font(Theme.Font.body).foregroundStyle(.secondary)
+                            // A running session shows what is left, so the row
+                            // answers "how long" without opening anything.
+                            if let left = sleepBlocker.remainingLabel {
+                                Text(verbatim: left)
+                                    .font(Theme.Font.numeric).foregroundStyle(.brown)
+                            }
+                            Spacer(minLength: 6)
+                            if flattened {
+                                StaticToggle(isOn: sleepBlocker.isActive)
+                            } else {
+                                if !sleepBlocker.isActive {
+                                    Menu {
+                                        Button("Indefinitely") { sleepBlocker.start() }
+                                        Divider()
+                                        ForEach(MainPanelView.wakeDurations, id: \.0) { item in
+                                            Button(item.0) { sleepBlocker.start(duration: item.1) }
+                                        }
+                                    } label: {
+                                        Image(systemName: "clock")
+                                            .font(.system(size: 10))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    .menuStyle(.borderlessButton)
+                                    .menuIndicator(.hidden)
+                                    .fixedSize()
+                                    .help("Keep awake for a set time")
+                                }
+                                Toggle("", isOn: Binding(get: { sleepBlocker.isActive },
+                                                         set: { _ in sleepBlocker.toggle() }))
+                                    .labelsHidden().toggleStyle(.switch).controlSize(.mini)
+                            }
+                        }
                         Divider().opacity(0.4)
                         switchRow("doc.on.clipboard.fill", "Record Clipboard", .orange,
                                   isOn: prefs.clipboardEnabled) {
