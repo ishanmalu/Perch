@@ -137,6 +137,41 @@ enum SelfTest {
             expect(!spec.cocoaFlags.isEmpty, "\(name) requires a modifier")
         }
 
+        // The battery floor and a still-true trigger used to fight once a
+        // second: the floor ended the session, the trigger restarted it, and a
+        // notification fired every two seconds. These pin the latch that fixed it.
+        let low = BatteryFloor.evaluate(tripped: false, active: true, floor: 10,
+                                        percent: 8, charging: false)
+        expect(low.stopSession && low.tripped, "battery floor ends a session below the floor")
+
+        let again = BatteryFloor.evaluate(tripped: true, active: true, floor: 10,
+                                          percent: 8, charging: false)
+        expect(!again.stopSession && again.tripped, "floor stays latched, so it fires once")
+
+        let hovering = BatteryFloor.evaluate(tripped: true, active: false, floor: 10,
+                                             percent: 12, charging: false)
+        expect(hovering.tripped, "latch holds inside the margin above the floor")
+
+        let recovered = BatteryFloor.evaluate(tripped: true, active: false, floor: 10,
+                                              percent: 16, charging: false)
+        expect(!recovered.tripped, "latch clears once the battery recovers past the margin")
+
+        let plugged = BatteryFloor.evaluate(tripped: true, active: false, floor: 10,
+                                            percent: 8, charging: true)
+        expect(!plugged.tripped, "latch clears when the charger goes in")
+
+        let plentiful = BatteryFloor.evaluate(tripped: false, active: true, floor: 10,
+                                              percent: 80, charging: false)
+        expect(!plentiful.stopSession, "a healthy battery leaves the session alone")
+
+        let desktop = BatteryFloor.evaluate(tripped: false, active: true, floor: 10,
+                                            percent: nil, charging: true)
+        expect(!desktop.stopSession, "a machine with no battery is never cut off")
+
+        let disabled = BatteryFloor.evaluate(tripped: false, active: true, floor: nil,
+                                             percent: 3, charging: false)
+        expect(!disabled.stopSession, "floor off means no cut-off at any charge")
+
         print("\n\(failures.isEmpty ? "All checks passed." : "\(failures.count) check(s) failed:")")
         failures.forEach { print("  - \($0)") }
         exit(failures.isEmpty ? 0 : 1)

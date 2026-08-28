@@ -17,12 +17,18 @@ you: it involves a payment and signing in to your Apple account.
 | First launch | Gatekeeper blocks it | Opens normally |
 | Terminal step | `xattr -dr com.apple.quarantine` required | None |
 | `spctl -a -t exec` | `rejected` | `accepted` |
-| Accessibility grant | Resets whenever the signature changes | Stable across updates |
+| Accessibility grant | Already stable since 1.5.0 | Unchanged |
 
-That last row matters more than it looks. An ad-hoc signature is derived from
-the binary, so every build is a different code identity and macOS forgets the
-Accessibility permission. A Developer ID certificate keeps the identity stable
-across every release.
+That last row used to be the strongest argument here, and it no longer is.
+Releases were ad-hoc signed up to 1.4.0: an ad-hoc signature is derived from
+the binary, so every build was a different code identity and macOS forgot the
+Accessibility permission each time. Since 1.5.0 releases are signed with a
+consistent self-signed certificate, and the designated requirement pins the
+certificate rather than the binary, so the grant already survives updates
+without paying anything.
+
+What the money actually buys is the first launch. Everything else on this page
+is already solved.
 
 ---
 

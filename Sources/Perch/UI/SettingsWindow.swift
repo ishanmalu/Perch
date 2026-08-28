@@ -192,6 +192,45 @@ private struct WindowSettings: View {
                    + "panes. Holding Option while picking a layout flips this either way.")
                     .font(.caption).foregroundStyle(.secondary)
             }
+            Section("Keep awake") {
+                Toggle("Let the display sleep during a session", isOn: Binding(
+                    get: { prefs.allowDisplaySleep },
+                    set: { prefs.allowDisplaySleep = $0; PreventSleep.shared.refreshAssertionType() }))
+                Text("The Mac keeps working but the screen can turn off — right for a long "
+                   + "download, wrong for a presentation.")
+                    .font(.caption).foregroundStyle(.secondary)
+
+                Picker("Start a session", selection: Binding(
+                    get: { prefs.wakeTrigger },
+                    set: { prefs.wakeTrigger = $0; PreventSleep.shared.triggerChanged() })) {
+                    ForEach(SleepTrigger.allCases) { t in Text(t.title).tag(t.rawValue) }
+                }
+
+                if prefs.wakeTrigger == SleepTrigger.appRunning.rawValue {
+                    Picker("Watch for", selection: Binding(
+                        get: { prefs.wakeTriggerApp }, set: { prefs.wakeTriggerApp = $0 })) {
+                        Text("Choose an app").tag("")
+                        ForEach(RunningApps.list, id: \.0) { app in Text(app.1).tag(app.0) }
+                    }
+                    Text("Listed from what is running now. The session lasts as long as it does.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+
+                if prefs.wakeTrigger == SleepTrigger.cpuBusy.rawValue {
+                    Stepper("Busy above \(prefs.wakeTriggerCPU)% CPU", value: Binding(
+                        get: { prefs.wakeTriggerCPU }, set: { prefs.wakeTriggerCPU = $0 }),
+                        in: 5...95, step: 5)
+                }
+
+                Stepper(prefs.endOnLowBattery.map { "End the session below \($0)% battery" }
+                          ?? "Never end on low battery",
+                        value: Binding(get: { prefs.endOnLowBattery ?? 0 },
+                                       set: { prefs.endOnLowBattery = $0 }),
+                        in: 0...50, step: 5)
+                Text("Only applies on battery. Set to zero to keep going regardless.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
             Section("Window switcher") {
                 Picker("Alt-Tab shows", selection: Binding(
                     get: { prefs.switcherStyle }, set: { prefs.switcherStyle = $0 })) {
@@ -562,5 +601,20 @@ private struct HotkeyField: View {
         if let monitor { NSEvent.removeMonitor(monitor) }
         monitor = nil
         recording = false
+    }
+}
+
+/// Apps with a window and a bundle id, for the "while an app is running"
+/// keep-awake trigger. Read on demand: the list is only as good as the moment
+/// the menu opens, and the trigger matches on the identifier afterwards.
+enum RunningApps {
+    static var list: [(String, String)] {
+        NSWorkspace.shared.runningApplications
+            .filter { $0.activationPolicy == .regular }
+            .compactMap { app in
+                guard let id = app.bundleIdentifier, let name = app.localizedName else { return nil }
+                return (id, name)
+            }
+            .sorted { $0.1.localizedCaseInsensitiveCompare($1.1) == .orderedAscending }
     }
 }

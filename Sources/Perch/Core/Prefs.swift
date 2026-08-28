@@ -31,6 +31,22 @@ final class Prefs: ObservableObject {
     /// panes from the stacking order. Only asks when there is a choice to make.
     var askBeforeTiling: Bool { get { get("win.askTiling", true) } set { set("win.askTiling", newValue) } }
 
+    // MARK: Keep awake
+    /// Let the screen sleep while the machine keeps working — the right choice
+    /// for a long download, the wrong one for a presentation.
+    var allowDisplaySleep: Bool { get { get("wake.displaySleep", false) } set { set("wake.displaySleep", newValue) } }
+    /// Which condition starts a session on its own; see SleepTrigger.
+    var wakeTrigger: String { get { get("wake.trigger", "manual") } set { set("wake.trigger", newValue) } }
+    /// Bundle identifier watched by the app trigger.
+    var wakeTriggerApp: String { get { get("wake.triggerApp", "") } set { set("wake.triggerApp", newValue) } }
+    /// Percent of total CPU at or above which the CPU trigger holds.
+    var wakeTriggerCPU: Int { get { get("wake.triggerCPU", 25) } set { set("wake.triggerCPU", newValue) } }
+    /// End a session when the battery falls this low. Nil disables it.
+    var endOnLowBattery: Int? {
+        get { let v = get("wake.lowBattery", 10); return v > 0 ? v : nil }
+        set { set("wake.lowBattery", newValue ?? 0) }
+    }
+
     // MARK: System
     /// Icon-only by default — a narrow status item is far less likely to get
     /// pushed off a crowded menu bar or hidden behind the notch.
