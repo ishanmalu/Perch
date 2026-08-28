@@ -4,6 +4,48 @@ All notable changes to Perch. Versions follow [semver](https://semver.org),
 and each heading below corresponds to a published
 [release](https://github.com/ishanmalu/Perch/releases).
 
+## [1.7.0] — 2026-08-29
+
+### Added
+- **Keep-awake sessions.** Prevent Sleep was on until you turned it off,
+  which is the least useful shape for it — the reason you want a Mac awake
+  almost always has an end. The switch still holds indefinitely, and the
+  clock beside it offers 15 minutes through 8 hours, with the time left shown
+  in the row.
+- **A choice about the display.** Keeping the screen on is wrong for a long
+  download, so a preference holds the machine awake while letting the display
+  sleep. Changing it re-applies the assertion instead of waiting for the next
+  session.
+- **Sessions that start themselves** — while plugged in, while a chosen app is
+  running, or while the CPU sits above a threshold. A trigger only retracts
+  what a trigger started, so switching it on by hand outranks it, and a
+  session ends on its own below a battery floor.
+- **Choose which window goes in which pane.** Layouts filled panes from the
+  stacking order, which is right only when the windows you want are already in
+  front; the rest of the time you tiled and then dragged things back. Picking a
+  layout now asks, prefilled front to back so confirming unchanged does what
+  tiling used to. It only asks when there is a decision to make — more windows
+  than panes — and Option flips that either way.
+- **Fill Screen With All Windows**, sizing every window on the display to the
+  whole usable area. Not macOS full screen: no Space is created, the menu bar
+  stays, and Alt-Tab still walks them.
+
+### Fixed
+- **A keep-awake restart loop.** The battery floor ended a session, a trigger
+  whose condition still held restarted it on the next tick, and the floor ended
+  it again — a notification every two seconds and the power assertion thrashing
+  for as long as the battery stayed low. The floor now fires once and stays
+  quiet until the charger goes in or the charge recovers past a margin.
+- **A timer that ran for the life of the app.** It now ticks once a second only
+  while a session counts down, drops to five seconds while a trigger is watched,
+  and stops entirely when neither applies — which is most installs.
+- **Silently empty panes.** The layout picker can sit open long enough for a
+  chosen window to close, and a dead accessibility element accepts the calls
+  while reporting nothing. Perch now says how many panes it could not fill.
+- **The Homebrew cask told people to run a command that fails.** It advised
+  `--no-quarantine`, which Homebrew 6 removed, and described Perch as ad-hoc
+  signed, which stopped being true at 1.5.0.
+
 ## [1.6.0] — 2026-08-23
 
 ### Added
