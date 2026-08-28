@@ -34,6 +34,36 @@ enum SleepTrigger: String, CaseIterable, Identifiable {
 /// condition holds. Two assertion types matter: one keeps the display on, the
 /// other lets the screen sleep while the machine keeps working, which is what
 /// you want for a long download or an export.
+/// The battery floor's decision, separated from the timer and the assertion so
+/// it can be tested without either.
+enum BatteryFloor {
+    struct State: Equatable {
+        var tripped: Bool
+        var stopSession: Bool
+    }
+
+    /// - Parameters:
+    ///   - tripped: whether the floor has already ended a session.
+    ///   - active: whether a session is running.
+    ///   - floor: the percentage below which to end it, or nil when disabled.
+    ///   - percent: current charge, or nil on a machine without a battery.
+    ///   - charging: whether the charger is connected.
+    static func evaluate(tripped: Bool, active: Bool, floor: Int?,
+                         percent: Int?, charging: Bool) -> State {
+        var tripped = tripped
+        // Re-arm with a margin, so hovering on the threshold does not arm and
+        // fire over and over.
+        if tripped {
+            if floor == nil || percent == nil { tripped = false }
+            else if charging || percent! > floor! + 5 { tripped = false }
+        }
+        guard active, !tripped, let floor, let percent, !charging, percent <= floor else {
+            return State(tripped: tripped, stopSession: false)
+        }
+        return State(tripped: true, stopSession: true)
+    }
+}
+
 @MainActor
 final class PreventSleep: ObservableObject {
     static let shared = PreventSleep()
@@ -45,6 +75,12 @@ final class PreventSleep: ObservableObject {
 
     private var assertionID: IOPMAssertionID = 0
     private var ticker: Timer?
+    /// Set when the battery floor ended a session. Without it a trigger whose
+    /// condition still holds restarts the session on the very next tick, the
+    /// floor ends it again, and the two fight once a second — a notification
+    /// every two seconds and the assertion thrashing. Cleared once the battery
+    /// recovers or the charger goes in, which re-arms the floor.
+    private var batteryFloorTripped = false
 
     /// Seconds left, or nil when the session has no end.
     var remaining: TimeInterval? {
@@ -61,27 +97,53 @@ final class PreventSleep: ObservableObject {
         return "\(secs)s"
     }
 
-    private init() {
-        // One timer covers both jobs: counting a session down and noticing when
-        // a trigger's condition starts or stops holding.
-        ticker = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+    private init() { rescheduleTicker() }
+
+    /// One timer covers both jobs: counting a session down and noticing when a
+    /// trigger's condition starts or stops holding. It only runs when there is
+    /// something to do — a permanent 1 Hz wake-up is a poor trade for an app
+    /// that is idle most of the time, and most installs never set a trigger.
+    private func rescheduleTicker() {
+        let interval: TimeInterval?
+        if isActive {
+            interval = 1                       // a countdown has to tick
+        } else if Prefs.shared.wakeTrigger != SleepTrigger.manual.rawValue {
+            interval = 5                       // watching a condition, not a clock
+        } else {
+            interval = nil                     // nothing to watch
+        }
+
+        guard interval != ticker?.timeInterval else { return }
+        ticker?.invalidate()
+        ticker = nil
+        guard let interval else { return }
+        ticker = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
         }
     }
+
+    /// Called when the trigger preference changes, so the timer starts or stops
+    /// to match without waiting for a session.
+    func triggerChanged() { rescheduleTicker() }
 
     // MARK: - Starting and stopping
 
     /// Starts a session. `duration` of nil runs until stopped.
     func start(duration: TimeInterval? = nil, reason: WakeReason = .manual) {
+        // Starting by hand overrules a floor that has already had its say; it
+        // re-arms when the battery recovers rather than firing again at once.
+        if reason == .manual { batteryFloorTripped = true }
         self.reason = reason
         endsAt = duration.map { Date().addingTimeInterval($0) }
         applyAssertion(true)
+        rescheduleTicker()
     }
 
     func stop() {
         endsAt = nil
         reason = .manual
         applyAssertion(false)
+        rescheduleTicker()
     }
 
     /// The panel's switch: off turns it off, on starts an open-ended session.
@@ -144,11 +206,18 @@ final class PreventSleep: ObservableObject {
             return
         }
 
-        if isActive, let floor = Prefs.shared.endOnLowBattery,
-           let pct = SystemMonitor.shared.snapshot.batteryPercent,
-           !SystemMonitor.shared.snapshot.batteryCharging, pct <= floor {
+        let snap = SystemMonitor.shared.snapshot
+        let verdict = BatteryFloor.evaluate(tripped: batteryFloorTripped,
+                                            active: isActive,
+                                            floor: Prefs.shared.endOnLowBattery,
+                                            percent: snap.batteryPercent,
+                                            charging: snap.batteryCharging)
+        batteryFloorTripped = verdict.tripped
+        if verdict.stopSession {
             stop()
-            Notifier.show("Sleep allowed", "Battery fell to \(pct)%.", duration: 3)
+            Notifier.show("Sleep allowed",
+                          "Battery fell to \(snap.batteryPercent.map(String.init) ?? "?")%.",
+                          duration: 3)
             return
         }
 
@@ -183,6 +252,8 @@ final class PreventSleep: ObservableObject {
         }
 
         if holds && !isActive {
+            // The floor has the last word until the battery recovers.
+            guard !batteryFloorTripped else { return }
             start(reason: why)
         } else if !holds && isActive && reason != .manual {
             // Only retract what the trigger itself started; a manual hold stands.
@@ -192,5 +263,11 @@ final class PreventSleep: ObservableObject {
 
     /// Released automatically on quit; assertions do not outlive the process,
     /// but being explicit keeps the state readable.
-    func shutdown() { stop() }
+    func shutdown() {
+        // Order matters: stop() reschedules, so tearing the timer down first
+        // would just rebuild it whenever a trigger is configured.
+        stop()
+        ticker?.invalidate()
+        ticker = nil
+    }
 }

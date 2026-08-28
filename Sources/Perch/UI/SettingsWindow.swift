@@ -201,7 +201,8 @@ private struct WindowSettings: View {
                     .font(.caption).foregroundStyle(.secondary)
 
                 Picker("Start a session", selection: Binding(
-                    get: { prefs.wakeTrigger }, set: { prefs.wakeTrigger = $0 })) {
+                    get: { prefs.wakeTrigger },
+                    set: { prefs.wakeTrigger = $0; PreventSleep.shared.triggerChanged() })) {
                     ForEach(SleepTrigger.allCases) { t in Text(t.title).tag(t.rawValue) }
                 }
 

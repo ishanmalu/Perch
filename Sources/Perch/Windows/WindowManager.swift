@@ -114,10 +114,20 @@ final class WindowManager {
     func apply(layout: CustomLayout, using windows: [AXWindow?]) {
         guard requireAccess() else { return }
         guard let screen = panelTargetScreen ?? NSScreen.main else { return }
+        var vanished = 0
         for (pane, win) in zip(layout.panes, windows) {
             guard let win else { continue }
-            if let f = win.frame { remember(win, f) }
+            // The picker can sit open for a while, and a chosen window may be
+            // gone by the time Tile is pressed. A dead element still accepts
+            // the calls and reports nothing, so an unreadable frame is the
+            // liveness test — otherwise the pane silently stays empty.
+            guard let current = win.frame else { vanished += 1; continue }
+            remember(win, current)
             move(win, to: rect(for: pane, on: screen))
+        }
+        if vanished > 0 {
+            Notifier.show(vanished == 1 ? "One window had closed" : "\(vanished) windows had closed",
+                          "Their panes were left empty.", duration: 3)
         }
     }
 
