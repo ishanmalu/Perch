@@ -9,6 +9,38 @@ if CommandLine.arguments.contains("--probe-windows") {
     MainActor.assumeIsolated { SelfTest.probeWindows() }
 }
 
+if let i = CommandLine.arguments.firstIndex(of: "--probe-layout") {
+    _ = NSApplication.shared
+    let wanted = CommandLine.arguments.indices.contains(i + 1) ? CommandLine.arguments[i + 1] : "Focus"
+    MainActor.assumeIsolated {
+        guard let layout = CustomLayout.builtins.first(where: { $0.name.lowercased() == wanted.lowercased() }) else {
+            print("no builtin named \(wanted); have: "
+                + CustomLayout.builtins.map(\.name).joined(separator: ", "))
+            exit(1)
+        }
+        print("accessibility trusted: \(AXIsProcessTrusted())")
+        print("layout \(layout.name): \(layout.panes.count) pane(s)")
+        for p in layout.panes { print(String(format: "  pane x=%.2f y=%.2f w=%.2f h=%.2f", p.x, p.y, p.w, p.h)) }
+
+        let before = WindowManager.shared.orderedWindows()
+        print("\nwindows in z-order (\(before.count)):")
+        for w in before.prefix(6) {
+            print("  pid \(w.pid)  \(w.frame.map { "\(Int($0.origin.x)),\(Int($0.origin.y)) \(Int($0.width))x\(Int($0.height))" } ?? "no frame")  \(w.title)")
+        }
+        guard !before.isEmpty else { print("\nno windows to tile"); exit(0) }
+
+        print("\napplying...")
+        WindowManager.shared.apply(layout: layout)
+        RunLoop.current.run(until: Date().addingTimeInterval(1.2))
+
+        print("\nafter:")
+        for w in WindowManager.shared.orderedWindows().prefix(6) {
+            print("  pid \(w.pid)  \(w.frame.map { "\(Int($0.origin.x)),\(Int($0.origin.y)) \(Int($0.width))x\(Int($0.height))" } ?? "no frame")  \(w.title)")
+        }
+        exit(0)
+    }
+}
+
 if CommandLine.arguments.contains("--probe-stats") {
     _ = NSApplication.shared
     MainActor.assumeIsolated { SelfTest.probeStats() }

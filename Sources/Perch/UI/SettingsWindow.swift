@@ -185,6 +185,12 @@ private struct WindowSettings: View {
                     get: { prefs.animateWindows }, set: { prefs.animateWindows = $0 }))
                 Text("Animation adds a short delay because each frame is a separate Accessibility call.")
                     .font(.caption).foregroundStyle(.secondary)
+                Toggle("Ask which window goes in which pane", isOn: Binding(
+                    get: { prefs.askBeforeTiling }, set: { prefs.askBeforeTiling = $0 }))
+                Text("Layouts otherwise fill panes from the stacking order. Perch only asks "
+                   + "when there is a choice to make — more windows open than the layout has "
+                   + "panes. Holding Option while picking a layout flips this either way.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             Section("Window switcher") {
                 Picker("Alt-Tab shows", selection: Binding(

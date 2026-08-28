@@ -96,6 +96,44 @@ final class WindowManager {
         }
     }
 
+    /// Windows that a layout could tile, front to back, on the screen the panel
+    /// is targeting. The picker offers these; the caller decides which pane
+    /// each one lands in.
+    func tileCandidates() -> [AXWindow] {
+        guard requireAccess() else { return [] }
+        guard let screen = panelTargetScreen ?? NSScreen.main else { return [] }
+        return orderedWindows().filter { w in
+            guard let f = w.frame, !w.isMinimized else { return false }
+            return self.screen(containing: f) === screen
+        }
+    }
+
+    /// Applies a layout to windows chosen by the user rather than to whatever
+    /// happened to be in front. Entries line up with `layout.panes`; a nil
+    /// leaves that pane empty.
+    func apply(layout: CustomLayout, using windows: [AXWindow?]) {
+        guard requireAccess() else { return }
+        guard let screen = panelTargetScreen ?? NSScreen.main else { return }
+        for (pane, win) in zip(layout.panes, windows) {
+            guard let win else { continue }
+            if let f = win.frame { remember(win, f) }
+            move(win, to: rect(for: pane, on: screen))
+        }
+    }
+
+    /// Fills the screen with every window on it, one on top of another. This is
+    /// not macOS full screen: no Space is created, the menu bar stays, and the
+    /// windows remain ordinary windows you can Alt-Tab between.
+    func maximizeAll() {
+        guard requireAccess() else { return }
+        guard let screen = panelTargetScreen ?? NSScreen.main else { return }
+        let full = rect(for: Pane(0, 0, 1, 1), on: screen)
+        for win in tileCandidates() {
+            if let f = win.frame { remember(win, f) }
+            move(win, to: full)
+        }
+    }
+
     func moveToScreen(next: Bool) {
         guard requireAccess(), let win = AX.focusedWindow(), let current = win.frame else { return }
         let screens = NSScreen.screens

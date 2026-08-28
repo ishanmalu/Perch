@@ -27,6 +27,9 @@ final class Prefs: ObservableObject {
     var windowGap: Int { get { get("win.gap", 0) } set { set("win.gap", newValue) } }
     var respectStageManager: Bool { get { get("win.stage", true) } set { set("win.stage", newValue) } }
     var animateWindows: Bool { get { get("win.animate", false) } set { set("win.animate", newValue) } }
+    /// Ask which window goes in which pane before tiling, rather than filling
+    /// panes from the stacking order. Only asks when there is a choice to make.
+    var askBeforeTiling: Bool { get { get("win.askTiling", true) } set { set("win.askTiling", newValue) } }
 
     // MARK: System
     /// Icon-only by default — a narrow status item is far less likely to get
