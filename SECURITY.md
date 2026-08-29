@@ -14,7 +14,35 @@ the clipboard, and intercept keyboard and trackpad input.
 | Pasteboard | Record clipboard history | Local file, `0600`; concealed types, ignored apps, and credential-shaped strings are skipped |
 | Filesystem | Measure and clear cache folders | Path guard + `trashItem` only; nothing is unlinked |
 | Private `DisplayServices` | Built-in display brightness | Resolved via `dlsym`; falls back to a software overlay if absent |
-| Network | Update check and speed test, both manual | The update check uses `api.github.com` plus GitHub's asset CDN. The speed test downloads a block of bytes from `speed.cloudflare.com` and only when you press Run — no account, no key, nothing sent about you. Nothing else contacts the network. No analytics, no telemetry, no subprocess execution |
+| Network | Update check and speed test, both manual | The update check uses `api.github.com` plus GitHub's asset CDN. The speed test downloads a block of bytes from `speed.cloudflare.com` and only when you press Run — no account, no key, nothing sent about you. Nothing else contacts the network. No analytics, no telemetry |
+
+## Installing an update in place
+
+Replacing your own bundle from the network is a capability worth being careful
+with, so it is worth being exact about what makes it safe here.
+
+The published checksum is **not** what makes it safe. It travels from the same
+release over the same connection as the download, so it proves the bytes
+arrived intact and nothing more.
+
+The control that matters is the code signature. Before anything is moved, the
+downloaded app must satisfy the **running app's own designated requirement**,
+which pins the signing certificate. Whoever substituted the download cannot
+produce a bundle signed with that key, so a swapped app is refused while the
+working copy is still untouched. The check runs twice: once on the app inside
+the image, and again on the staged copy after the quarantine flag is cleared.
+
+Everything is staged before anything is replaced, and the old bundle is kept
+until the new one is in place. A failure at any step — mount, verification,
+copy, move — leaves the app exactly as it was. An app that cannot write to its
+own directory, or that is running from a disk image, does not attempt this at
+all and falls back to revealing the download in Finder.
+
+Perch runs three system binaries to do it, with fixed paths and no user input
+in their arguments: `hdiutil` to mount the image, `ditto` to copy the bundle
+with its signature intact, and `xattr` to clear the quarantine flag from a
+build it has just verified against its own signing key. Nothing else in Perch
+executes a subprocess.
 
 ## Deliberate design choices
 

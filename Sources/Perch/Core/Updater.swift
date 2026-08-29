@@ -41,6 +41,7 @@ final class Updater: ObservableObject {
         case upToDate
         case available(version: String)
         case downloading(progress: Double)
+        case installing
         case ready(path: String)
         case failed(String)
     }
@@ -164,23 +165,56 @@ final class Updater: ObservableObject {
                     throw UpdateError.checksumMismatch
                 }
 
-                let downloads = FileManager.default
-                    .urls(for: .downloadsDirectory, in: .userDomainMask).first
-                    ?? FileManager.default.temporaryDirectory
-                let destination = downloads.appendingPathComponent(dmgURL.lastPathComponent)
-                try? FileManager.default.removeItem(at: destination)
-                try FileManager.default.moveItem(at: tempURL, to: destination)
+                // Staged where it can be swapped in without a second copy.
+                let staging = FileManager.default.temporaryDirectory
+                    .appendingPathComponent(dmgURL.lastPathComponent)
+                try? FileManager.default.removeItem(at: staging)
+                try FileManager.default.moveItem(at: tempURL, to: staging)
 
-                state = .ready(path: destination.path)
-                NSWorkspace.shared.activateFileViewerSelecting([destination])
-                Notifier.show("Perch \(release.version) downloaded",
-                              "Verified and revealed in Finder. Open it and drag Perch to Applications.",
-                              duration: 6)
+                if UpdateInstaller.canInstallInPlace {
+                    state = .installing
+                    Notifier.show("Installing Perch \(release.version)",
+                                  "Perch will restart in a moment.", duration: 4)
+                    do {
+                        // Does not return: it relaunches the new copy.
+                        try UpdateInstaller.install(from: staging)
+                    } catch {
+                        // Anything that goes wrong leaves the working app in
+                        // place, so fall back to handing over the download.
+                        try? FileManager.default.removeItem(at: staging)
+                        reveal(dmgURL: dmgURL, from: tempURL, version: release.version,
+                               note: error.localizedDescription)
+                    }
+                } else {
+                    reveal(dmgURL: dmgURL, from: staging, version: release.version, note: nil)
+                }
             } catch {
                 state = .failed(error.localizedDescription)
                 Notifier.show("Download failed", error.localizedDescription)
             }
         }
+    }
+
+    /// The original behaviour: put the verified image in Downloads and show
+    /// it. Used when the app cannot replace itself — running from a disk image
+    /// or a folder it cannot write — and whenever an install attempt fails.
+    private func reveal(dmgURL: URL, from source: URL, version: String, note: String?) {
+        let downloads = FileManager.default
+            .urls(for: .downloadsDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+        let destination = downloads.appendingPathComponent(dmgURL.lastPathComponent)
+        try? FileManager.default.removeItem(at: destination)
+        do { try FileManager.default.moveItem(at: source, to: destination) }
+        catch {
+            state = .failed(error.localizedDescription)
+            return
+        }
+        state = .ready(path: destination.path)
+        NSWorkspace.shared.activateFileViewerSelecting([destination])
+        Notifier.show(note == nil ? "Perch \(version) downloaded"
+                                  : "Perch \(version) needs installing by hand",
+                      note ?? "Verified and revealed in Finder. Open it and drag Perch to Applications.",
+                      duration: 7)
     }
 
     private func expectedChecksum(from url: URL, dmgName: String) async throws -> String? {

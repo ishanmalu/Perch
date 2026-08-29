@@ -41,6 +41,34 @@ if let i = CommandLine.arguments.firstIndex(of: "--probe-layout") {
     }
 }
 
+if let i = CommandLine.arguments.firstIndex(of: "--probe-update") {
+    _ = NSApplication.shared
+    MainActor.assumeIsolated {
+        print("running from : \(Bundle.main.bundleURL.path)")
+        print("in-place ok  : \(UpdateInstaller.canInstallInPlace)")
+        if CommandLine.arguments.indices.contains(i + 1) {
+            let candidate = URL(fileURLWithPath: CommandLine.arguments[i + 1])
+            print("candidate    : \(candidate.path)")
+            if candidate.pathExtension == "dmg",
+               CommandLine.arguments.indices.contains(i + 2) {
+                // Swap a throwaway copy instead of the running app, so the
+                // whole path can be exercised without relaunching anything.
+                let target = URL(fileURLWithPath: CommandLine.arguments[i + 2])
+                do {
+                    try UpdateInstaller.swap(from: candidate, replacing: target)
+                    print("swap         : ok")
+                } catch {
+                    print("swap         : FAILED — \(error.localizedDescription)")
+                    exit(1)
+                }
+            } else {
+                print("same signer  : \(UpdateInstaller.probeRequirement(candidate))")
+            }
+        }
+        exit(0)
+    }
+}
+
 if CommandLine.arguments.contains("--probe-stats") {
     _ = NSApplication.shared
     MainActor.assumeIsolated { SelfTest.probeStats() }

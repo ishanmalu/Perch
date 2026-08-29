@@ -496,6 +496,7 @@ struct MainPanelView: View {
         case .checking: return "Checking for updates…"
         case .available(let v): return "Perch \(v) available"
         case .downloading(let p): return "Downloading… \(Int(p * 100))%"
+        case .installing: return "Installing — Perch will restart"
         case .ready: return "Downloaded — revealed in Finder"
         case .upToDate: return "Perch \(updater.currentVersion) — up to date"
         case .failed(let why): return why
