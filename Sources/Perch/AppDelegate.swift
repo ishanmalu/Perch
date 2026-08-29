@@ -229,6 +229,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             ("win.left", .left), ("win.right", .right), ("win.top", .top), ("win.bottom", .bottom),
             ("win.maximize", .maximize), ("win.center", .center),
             ("win.thirdL", .thirdLeft), ("win.thirdC", .thirdCenter), ("win.thirdR", .thirdRight),
+            ("win.topLeft", .topLeft), ("win.topRight", .topRight),
+            ("win.bottomLeft", .bottomLeft), ("win.bottomRight", .bottomRight),
         ]
         for (id, action) in windowBindings {
             hk.register(id) { WindowManager.shared.apply(action) }
