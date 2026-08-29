@@ -413,6 +413,7 @@
   }
   .demo-cap b { display: block; margin-bottom: 4px; font-size: 13px; color: var(--text); font-weight: 600; }
   .demo-cap span { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .demo-cap kbd.soft { font-style: italic; letter-spacing: 0; }
   .demo-cap kbd {
     font: inherit; font-size: 10px; padding: 1px 5px; border-radius: 4px;
     border: 1px solid var(--line); background: var(--bg-soft); color: var(--muted);
@@ -868,11 +869,14 @@
           <tr><td><kbd>⌃⌥`</kbd></td><td>Searchable window switcher</td></tr>
           <tr><td><kbd>⌃⌥←</kbd> <kbd>→</kbd></td><td>Left / right half — press again to cycle ⅓, ⅔</td></tr>
           <tr><td><kbd>⌃⌥↑</kbd> <kbd>↓</kbd></td><td>Top / bottom half</td></tr>
-          <tr><td><kbd>⌃⌥↩</kbd></td><td>Maximize</td></tr>
+          <tr><td><kbd>⌃⌥U</kbd> <kbd>I</kbd> <kbd>J</kbd> <kbd>K</kbd></td><td>Quarters — top left, top right, bottom left, bottom right</td></tr>
+      <tr><td><kbd>⌃⌥D</kbd> <kbd>F</kbd> <kbd>G</kbd></td><td>Left / centre / right third</td></tr>
+      <tr><td><kbd>⌃⌥C</kbd></td><td>Centre without resizing</td></tr>
+      <tr><td><kbd>⌃⌥↩</kbd></td><td>Maximize</td></tr>
           <tr><td><kbd>⌃⌥⌫</kbd></td><td>Restore original size</td></tr>
           <tr><td><kbd>⌃⌥⇧←</kbd> <kbd>→</kbd></td><td>Move to previous / next display</td></tr>
           <tr><td><kbd>⌃⌥N</kbd></td><td>Night mode</td></tr>
-          <tr><td><kbd>⌃⌥K</kbd></td><td>Screen cleaning</td></tr>
+          <tr><td><kbd>⌃⌥⇧S</kbd></td><td>Screen cleaning</td></tr>
           <tr><td><kbd>⌃⌥⇧L</kbd></td><td>Keyboard cleaning</td></tr>
           <tr><td><kbd>⌃⌥⇧T</kbd></td><td>Trackpad cleaning</td></tr>
         </tbody>
@@ -1199,6 +1203,13 @@ Scripts/install.sh</pre>
    so their controls have to actually respond. Selecting anything writes a line
    underneath explaining what it does. */
 (function () {
+  // Some actions have no global shortcut and are reached from the panel.
+  function keyTag(k) {
+    return k === 'panel'
+      ? '<kbd class="soft">in the panel</kbd>'
+      : '<kbd>' + k + '</kbd>';
+  }
+
   var winGrid = document.getElementById('winGrid');
   var toolGrid = document.getElementById('toolGrid');
 
@@ -1221,12 +1232,12 @@ Scripts/install.sh</pre>
       { n:'Full screen',  k:'⌃⌥↩', w:[[0,0,1,1]],
         d:'Fills the screen without entering macOS full screen, so the menu bar stays put.' },
       // Built-in layouts: these tile every window at once rather than moving one.
-      { n:'Halves',       k:'⌃⌥1', b:true, w:[[0,0,.5,1],[.5,0,.5,1]], d:'Tiles the frontmost windows into two halves.' },
-      { n:'Thirds',       k:'⌃⌥2', b:true, w:[[0,0,.3333,1],[.3333,0,.3333,1],[.6666,0,.3333,1]], d:'Tiles the frontmost windows into three columns.' },
-      { n:'Main + Stack', k:'⌃⌥3', b:true, w:[[0,0,.62,1],[.62,0,.38,.5],[.62,.5,.38,.5]],
+      { n:'Halves',       k:'panel', b:true, w:[[0,0,.5,1],[.5,0,.5,1]], d:'Tiles the frontmost windows into two halves.' },
+      { n:'Thirds',       k:'panel', b:true, w:[[0,0,.3333,1],[.3333,0,.3333,1],[.6666,0,.3333,1]], d:'Tiles the frontmost windows into three columns.' },
+      { n:'Main + Stack', k:'panel', b:true, w:[[0,0,.62,1],[.62,0,.38,.5],[.62,.5,.38,.5]],
         d:'The frontmost window keeps the large pane; the next two stack beside it.' },
-      { n:'Quarters',     k:'⌃⌥4', b:true, w:[[0,0,.5,.5],[.5,0,.5,.5],[0,.5,.5,.5],[.5,.5,.5,.5]], d:'Four windows, one per quarter.' },
-      { n:'Focus',        k:'⌃⌥5', b:true, w:[[.15,.05,.7,.9]], d:'Centres one window and leaves a margin around it.' }
+      { n:'Quarters',     k:'panel', b:true, w:[[0,0,.5,.5],[.5,0,.5,.5],[0,.5,.5,.5],[.5,.5,.5,.5]], d:'Four windows, one per quarter.' },
+      { n:'Focus',        k:'panel', b:true, w:[[.15,.05,.7,.9]], d:'Centres one window and leaves a margin around it.' }
     ];
     var wName = document.getElementById('winName'), wDesc = document.getElementById('winDesc');
     var wTiles = [];
@@ -1270,7 +1281,7 @@ Scripts/install.sh</pre>
 
     function selectWin(i) {
       wTiles.forEach(function (t,k){ t.classList.toggle('on', k===i); });
-      wName.innerHTML = L[i].n + '<kbd>' + L[i].k + '</kbd>';
+      wName.innerHTML = L[i].n + keyTag(L[i].k);
       wDesc.textContent = L[i].d;
     }
     selectWin(0);
@@ -1294,17 +1305,17 @@ Scripts/install.sh</pre>
   /* ---- Tools tab ---- */
   if (toolGrid) {
     var T = [
-      { n:'Screen Clean',  i:'i-sparkle',  k:'⌃⌥S',
+      { n:'Screen Clean',  i:'i-sparkle',  k:'⌃⌥⇧S',
         d:'Fills every display with black so smudges and dust actually show up. Move the mouse or press ⎋ to exit.' },
-      { n:'Keyboard Clean',i:'i-keyboard', k:'⌃⌥K',
+      { n:'Keyboard Clean',i:'i-keyboard', k:'⌃⌥⇧L',
         d:'Swallows every keystroke so you can wipe the keys without typing into anything. Keys are counted, never recorded.' },
       { n:'Clipboard',     i:'i-clipboard',k:'⌘⇧V',
         d:'The last 200 things you copied, searchable. Stored locally, and anything credential-shaped is skipped.' },
       { n:'Switcher',      i:'i-switch',   k:'⌥Tab',
         d:'Every window rather than every app, in the order you last used them, with live previews. W closes one.' },
-      { n:'Disk Clean',    i:'i-drive',    k:'⌃⌥⌦',
+      { n:'Disk Clean',    i:'i-drive',    k:'panel',
         d:'Caches, logs and old downloads. A path guard refuses system and home directories, and everything goes to the Trash.' },
-      { n:'Trackpad Clean',i:'i-trackpad', k:'⌃⌥T',
+      { n:'Trackpad Clean',i:'i-trackpad', k:'⌃⌥⇧T',
         d:'Freezes the pointer only. The keyboard stays live, so press ⎋ to unlock when you are done wiping.' }
     ];
     var tName = document.getElementById('toolName'), tDesc = document.getElementById('toolDesc');
@@ -1323,7 +1334,7 @@ Scripts/install.sh</pre>
     });
     function selectTool(i) {
       tBtns.forEach(function (b,k){ b.classList.toggle('on', k===i); });
-      tName.innerHTML = T[i].n + '<kbd>' + T[i].k + '</kbd>';
+      tName.innerHTML = T[i].n + keyTag(T[i].k);
       tDesc.textContent = T[i].d;
     }
     selectTool(0);

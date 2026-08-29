@@ -489,6 +489,10 @@ private struct ShortcutSettings: View {
         ("clipboard", "Clipboard history"),
         ("switcher", "Window switcher"),
         ("switcher.altTab", "Alt-Tab (hold to switch)"),
+        ("win.topLeft", "Top Left Quarter"),
+        ("win.topRight", "Top Right Quarter"),
+        ("win.bottomLeft", "Bottom Left Quarter"),
+        ("win.bottomRight", "Bottom Right Quarter"),
         ("nightMode", "Night mode"),
         ("screenClean", "Screen cleaning"),
         ("keyboardClean", "Keyboard cleaning"),
@@ -536,6 +540,8 @@ private struct ShortcutSettings: View {
         case "screenClean": return "sparkles.tv"
         case "keyboardClean": return "keyboard"
         case "trackpadClean": return "rectangle.and.hand.point.up.left"
+        case "win.topLeft", "win.topRight", "win.bottomLeft", "win.bottomRight":
+            return "square.grid.2x2"
         case "switcher.altTab": return "arrow.left.arrow.right"
         case "nightMode": return "moon.fill"
         default: return "macwindow"
@@ -550,6 +556,7 @@ private struct ShortcutSettings: View {
         case "screenClean": return .cyan
         case "keyboardClean": return .mint
         case "trackpadClean": return .pink
+        case "win.topLeft", "win.topRight", "win.bottomLeft", "win.bottomRight": return .blue
         case "switcher.altTab": return .blue
         case "nightMode": return .orange
         default: return .gray

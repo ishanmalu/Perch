@@ -34,7 +34,7 @@ struct HotkeySpec: Codable, Equatable {
         "switcher":       .init(keyCode: UInt32(kVK_ANSI_Grave), modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
         "switcher.altTab": .init(keyCode: UInt32(kVK_Tab),       modifiers: NSEvent.ModifierFlags([.option]).rawValue),
         "nightMode":      .init(keyCode: UInt32(kVK_ANSI_N),     modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
-        "screenClean":    .init(keyCode: UInt32(kVK_ANSI_K),     modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
+        "screenClean":    .init(keyCode: UInt32(kVK_ANSI_S),     modifiers: NSEvent.ModifierFlags([.control, .option, .shift]).rawValue),
         "keyboardClean":  .init(keyCode: UInt32(kVK_ANSI_L),     modifiers: NSEvent.ModifierFlags([.control, .option, .shift]).rawValue),
         "trackpadClean":  .init(keyCode: UInt32(kVK_ANSI_T),     modifiers: NSEvent.ModifierFlags([.control, .option, .shift]).rawValue),
         "win.left":       .init(keyCode: UInt32(kVK_LeftArrow),  modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
@@ -46,6 +46,12 @@ struct HotkeySpec: Codable, Equatable {
         "win.restore":    .init(keyCode: UInt32(kVK_Delete),     modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
         "win.nextScreen": .init(keyCode: UInt32(kVK_RightArrow), modifiers: NSEvent.ModifierFlags([.control, .option, .shift]).rawValue),
         "win.prevScreen": .init(keyCode: UInt32(kVK_LeftArrow),  modifiers: NSEvent.ModifierFlags([.control, .option, .shift]).rawValue),
+        // Corners follow the layout Rectangle and Magnet use, so the muscle
+        // memory transfers. Screen Clean moved off ⌃⌥K to make room.
+        "win.topLeft":     .init(keyCode: UInt32(kVK_ANSI_U),    modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
+        "win.topRight":    .init(keyCode: UInt32(kVK_ANSI_I),    modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
+        "win.bottomLeft":  .init(keyCode: UInt32(kVK_ANSI_J),    modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
+        "win.bottomRight": .init(keyCode: UInt32(kVK_ANSI_K),    modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
         "win.thirdL":     .init(keyCode: UInt32(kVK_ANSI_D),     modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
         "win.thirdC":     .init(keyCode: UInt32(kVK_ANSI_F),     modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
         "win.thirdR":     .init(keyCode: UInt32(kVK_ANSI_G),     modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
