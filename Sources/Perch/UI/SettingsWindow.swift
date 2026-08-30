@@ -192,6 +192,28 @@ private struct WindowSettings: View {
                    + "panes. Holding Option while picking a layout flips this either way.")
                     .font(.caption).foregroundStyle(.secondary)
             }
+            Section("Screenshots") {
+                Toggle("Stay armed for another after each capture", isOn: Binding(
+                    get: { prefs.screenshotBurst }, set: { prefs.screenshotBurst = $0 }))
+                Text("The reason this exists next to the built-in tool: several captures "
+                   + "in a row are one drag each, rather than a trip to the keyboard between "
+                   + "them. Escape finishes.")
+                    .font(.caption).foregroundStyle(.secondary)
+                Toggle("Save a PNG", isOn: Binding(
+                    get: { prefs.screenshotToFile }, set: { prefs.screenshotToFile = $0 }))
+                Toggle("Copy to the clipboard", isOn: Binding(
+                    get: { prefs.screenshotToClipboard }, set: { prefs.screenshotToClipboard = $0 }))
+                HStack {
+                    Text("Saved to \(Screenshot.saveFolder().path)")
+                        .font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                    Spacer()
+                    Button("Change…") { chooseScreenshotFolder() }
+                    Button("Show") {
+                        NSWorkspace.shared.open(Screenshot.saveFolder())
+                    }
+                }
+            }
+
             Section("Keep awake") {
                 Toggle("Let the display sleep during a session", isOn: Binding(
                     get: { prefs.allowDisplaySleep },
@@ -489,6 +511,7 @@ private struct ShortcutSettings: View {
         ("clipboard", "Clipboard history"),
         ("switcher", "Window switcher"),
         ("switcher.altTab", "Alt-Tab (hold to switch)"),
+        ("screenshot", "Screenshot"),
         ("win.topLeft", "Top Left Quarter"),
         ("win.topRight", "Top Right Quarter"),
         ("win.bottomLeft", "Bottom Left Quarter"),
@@ -542,6 +565,7 @@ private struct ShortcutSettings: View {
         case "trackpadClean": return "rectangle.and.hand.point.up.left"
         case "win.topLeft", "win.topRight", "win.bottomLeft", "win.bottomRight":
             return "square.grid.2x2"
+        case "screenshot": return "camera.viewfinder"
         case "switcher.altTab": return "arrow.left.arrow.right"
         case "nightMode": return "moon.fill"
         default: return "macwindow"
@@ -557,6 +581,7 @@ private struct ShortcutSettings: View {
         case "keyboardClean": return .mint
         case "trackpadClean": return .pink
         case "win.topLeft", "win.topRight", "win.bottomLeft", "win.bottomRight": return .blue
+        case "screenshot": return .pink
         case "switcher.altTab": return .blue
         case "nightMode": return .orange
         default: return .gray
@@ -609,6 +634,20 @@ private struct HotkeyField: View {
         monitor = nil
         recording = false
     }
+}
+
+/// Asks for a folder to write captures into. An empty preference means the
+/// default, so cancelling changes nothing.
+@MainActor
+func chooseScreenshotFolder() {
+    let panel = NSOpenPanel()
+    panel.canChooseDirectories = true
+    panel.canChooseFiles = false
+    panel.allowsMultipleSelection = false
+    panel.prompt = "Use Folder"
+    panel.directoryURL = Screenshot.saveFolder()
+    guard panel.runModal() == .OK, let url = panel.url else { return }
+    Prefs.shared.screenshotFolder = url.path
 }
 
 /// Apps with a window and a bundle id, for the "while an app is running"

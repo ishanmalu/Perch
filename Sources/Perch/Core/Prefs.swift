@@ -31,6 +31,18 @@ final class Prefs: ObservableObject {
     /// panes from the stacking order. Only asks when there is a choice to make.
     var askBeforeTiling: Bool { get { get("win.askTiling", true) } set { set("win.askTiling", newValue) } }
 
+    // MARK: Screenshots
+    /// Where captures are written. Empty means Pictures/Perch.
+    var screenshotFolder: String? {
+        get { let v: String = get("shot.folder", ""); return v.isEmpty ? nil : v }
+        set { set("shot.folder", newValue ?? "") }
+    }
+    var screenshotToFile: Bool { get { get("shot.toFile", true) } set { set("shot.toFile", newValue) } }
+    var screenshotToClipboard: Bool { get { get("shot.toClipboard", true) } set { set("shot.toClipboard", newValue) } }
+    /// Stay armed after a capture so several can be taken in a row. The reason
+    /// this tool exists alongside the built-in one.
+    var screenshotBurst: Bool { get { get("shot.burst", true) } set { set("shot.burst", newValue) } }
+
     // MARK: Keep awake
     /// Let the screen sleep while the machine keeps working — the right choice
     /// for a long download, the wrong one for a presentation.

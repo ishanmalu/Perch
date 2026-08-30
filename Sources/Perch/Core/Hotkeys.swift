@@ -33,6 +33,7 @@ struct HotkeySpec: Codable, Equatable {
         "clipboard":      .init(keyCode: UInt32(kVK_ANSI_V),     modifiers: NSEvent.ModifierFlags([.command, .shift]).rawValue),
         "switcher":       .init(keyCode: UInt32(kVK_ANSI_Grave), modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
         "switcher.altTab": .init(keyCode: UInt32(kVK_Tab),       modifiers: NSEvent.ModifierFlags([.option]).rawValue),
+        "screenshot":     .init(keyCode: UInt32(kVK_ANSI_4),     modifiers: NSEvent.ModifierFlags([.control, .option, .shift]).rawValue),
         "nightMode":      .init(keyCode: UInt32(kVK_ANSI_N),     modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
         "screenClean":    .init(keyCode: UInt32(kVK_ANSI_S),     modifiers: NSEvent.ModifierFlags([.control, .option, .shift]).rawValue),
         "keyboardClean":  .init(keyCode: UInt32(kVK_ANSI_L),     modifiers: NSEvent.ModifierFlags([.control, .option, .shift]).rawValue),
