@@ -4,6 +4,22 @@ All notable changes to Perch. Versions follow [semver](https://semver.org),
 and each heading below corresponds to a published
 [release](https://github.com/ishanmalu/Perch/releases).
 
+## [1.8.5] — 2026-08-31
+
+### Changed
+- **Screenshot moved from the Tools grid to the panel header.** As a tile it
+  was a seventh item in a three-column grid, so it sat alone on a row with two
+  empty cells beside it. It is a small icon button now, ahead of the clipboard
+  one, and the grid is an even two by three again. `⌃⌥⇧4` is unchanged.
+
+### Fixed
+- The site's copy of the panel still read 1.6.0 in its footer, two releases
+  behind, because that version is written into the page rather than rendered.
+- The Screenshot caption on the site listed six modes and overflowed a caption
+  box sized for the descriptions that existed when it was built, so it was cut
+  off mid-sentence. The feature is described in the capability grid and the
+  shortcut table instead, where there is room for it.
+
 ## [1.8.0] — 2026-08-31
 
 ### Added
