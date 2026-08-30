@@ -7,7 +7,7 @@
 <meta name="description" content="A free, open-source macOS menu bar utility: window tiling, clipboard history, Alt-Tab switcher, system monitoring, night mode, disk cleaning, and screen, keyboard and trackpad cleaning.">
 <link rel="icon" href="perch-icon.png">
 <meta property="og:title" content="Perch — a dozen Mac utilities in one place">
-<meta property="og:description" content="Window tiling, clipboard history, Alt-Tab, system monitoring, night mode and cleaning modes — free and open source.">
+<meta property="og:description" content="Window tiling, screenshots, clipboard history, Alt-Tab, system monitoring, night mode and cleaning modes — free and open source.">
 <meta property="og:image" content="https://ishanmalu.github.io/Perch/perch-icon.png">
 <meta property="og:type" content="website">
 <style>
@@ -576,6 +576,7 @@
 <symbol id="i-gauge" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 12l3.5-3.5"/><path d="M12 5.5v1.2M18.5 12h-1.2M12 18.5v-1.2M5.5 12h1.2"/></symbol>
 <symbol id="i-macwindow" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 9.5h18"/><circle cx="6.4" cy="7.2" r=".55" fill="currentColor"/><circle cx="8.6" cy="7.2" r=".55" fill="currentColor"/><circle cx="10.8" cy="7.2" r=".55" fill="currentColor"/></symbol>
 <symbol id="i-tools" viewBox="0 0 24 24"><path d="M14.5 5.8a3.4 3.4 0 0 0 4.5 4.4l-8.8 8.8a1.9 1.9 0 1 1-2.7-2.7z"/><path d="M5.6 5.1l2.6 2.6"/><path d="M4.4 8.9a3.4 3.4 0 0 0 4.6 4.5"/><path d="M15.4 15.6l3.9 3.9"/></symbol>
+<symbol id="i-camera" viewBox="0 0 24 24"><path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2.2l1.1-1.8A1 1 0 0 1 8.7 4.7h6.6a1 1 0 0 1 .9.5L17.3 7h2.2A1.5 1.5 0 0 1 21 8.5v9A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="3.4"/></symbol>
 <symbol id="i-laptop" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="10" rx="1.5"/><path d="M2 19h20"/></symbol>
 <symbol id="i-bird" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" d="M15.6 3.2a3.9 3.9 0 0 0-3.9 3.9c0 .2 0 .4.1.6L4.1 12c-.5.3-.7.9-.4 1.4.2.4.6.6 1 .5l2.6-.5-2.4 6.3c-.2.5.1 1.1.6 1.3.5.2 1.1-.1 1.3-.6l1.3-3.5 2.6 3.7c.3.4 1 .5 1.4.2.4-.3.5-.9.2-1.4l-2.2-3.1 4.8-1c2.8-.6 4.8-3 4.8-5.9V6.4l1.6-1.7c.3-.3.2-.7-.2-.8l-1.9-.4a3.9 3.9 0 0 0-3.6-.3zm.7 3.2a.9.9 0 1 1 0 1.8.9.9 0 0 1 0-1.8z"/></symbol>
 <symbol id="i-window" viewBox="0 0 24 24">
@@ -662,8 +663,8 @@
   </div>
   <h1>A dozen Mac utilities. Meet Perch.</h1>
   <p class="lede">
-    Window tiling, clipboard history, Alt-Tab, system stats, night mode and
-    cleaning modes — one panel, every one on a shortcut.
+    Window tiling, screenshots, clipboard history, Alt-Tab, system stats,
+    night mode and cleaning modes — one panel, every one on a shortcut.
   </p>
 
   <p class="specs">
@@ -798,7 +799,8 @@
         <h3>The small stuff, one click away</h3>
         <p>Blank the screen to clean it. Lock the keyboard, or just the
         trackpad, and wipe without typing into anything. Clear caches to the
-        Trash. Keep the Mac awake. Paste from history. Try any of them below.</p>
+        Trash. Take a screenshot and keep taking them. Keep the Mac awake for as
+        long as you need. Paste from history. Try any of them below.</p>
         <div class="keys">
           <kbd>⌘⇧V</kbd> <kbd>⌥Tab</kbd> <kbd>⌃⌥N</kbd> <kbd>⌃⌥K</kbd>
         </div>
@@ -848,9 +850,11 @@
       <div class="cap"><svg class="ico"><use href="#i-sparkle"/></svg><div><b>Screen cleaning</b><span>Flat colours that double as a dead-pixel test.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-keyboard"/></svg><div><b>Keyboard cleaning</b><span>Input locked on a countdown so you can wipe the keys.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-trackpad"/></svg><div><b>Trackpad cleaning</b><span>Pointer frozen, keyboard live so Esc still lets you out.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-sparkle"/></svg><div><b>Screenshots</b><span>Drag to capture and the crosshair stays up for the next one. Grab a window, a display, or on a delay; read the text out of a selection; sample a colour; pin a shot above everything.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-download"/></svg><div><b>Updates install themselves</b><span>Perch replaces itself and restarts. The new build must be signed by the same key as the running one, or it is refused before anything moves.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-moon"/></svg><div><b>Night mode</b><span>6500K to 2400K via display gamma. Manual or scheduled.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-sun"/></svg><div><b>Brightness</b><span>Per display, including external monitors over any cable.</span></div></div>
-      <div class="cap"><svg class="ico"><use href="#i-coffee"/></svg><div><b>Prevent sleep</b><span>Keeps the Mac and display awake until you switch it off.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-coffee"/></svg><div><b>Keep awake</b><span>Hold it open, or for 15 minutes to 8 hours with the time left on the row. It can start itself while plugged in, while an app runs, or while the CPU is busy, and let the display sleep while the machine works.</span></div></div>
     </div>
   </div>
 </section>
@@ -1316,11 +1320,12 @@ Scripts/install.sh</pre>
         d:'Every window rather than every app, in the order you last used them, with live previews. W closes one.' },
       { n:'Disk Clean',    i:'i-drive',    k:'panel',
         d:'Caches, logs and old downloads. A path guard refuses system and home directories, and everything goes to the Trash.' },
-      { n:'Screenshot',    i:'i-sparkle',  k:'⌃⌥⇧4',
-        d:'Drag to capture, and the crosshair stays up for the next one. W grabs a window, T copies the text in a selection, C samples a colour, P leaves it pinned on screen.' },
       { n:'Trackpad Clean',i:'i-trackpad', k:'⌃⌥⇧T',
-        d:'Freezes the pointer only. The keyboard stays live, so press ⎋ to unlock when you are done wiping.' }
+        d:'Freezes the pointer only. The keyboard stays live, so press ⎋ to unlock when you are done wiping.' },
+      { n:'Screenshot',    i:'i-camera',   k:'⌃⌥⇧4',
+        d:'Drag to capture and the crosshair stays up for the next one. W grabs a window, F a display, D after a countdown, T copies the text in a selection, C samples a colour, P pins it above everything.' }
     ];
+
     var tName = document.getElementById('toolName'), tDesc = document.getElementById('toolDesc');
     var tBtns = T.map(function (item, i) {
       var b = document.createElement('div');
