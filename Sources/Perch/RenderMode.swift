@@ -14,7 +14,7 @@ enum RenderMode {
     static var isActive = false
 
     /// Version shown in place of the bundle's, which is absent under the harness.
-    static var version = "1.6.0"
+    static var version = "1.8.0"
 
     /// A representative process list, so screenshots do not expose the apps
     /// running on the machine that rendered them.
