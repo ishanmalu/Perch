@@ -157,6 +157,10 @@ struct MainPanelView: View {
                 .foregroundStyle(Color.accentColor)
             Text("Perch").font(.system(size: 12.5, weight: .semibold))
             Spacer()
+            iconButton("camera.viewfinder", help: "Screenshot  (⌃⌥⇧4)") {
+                onDismiss()
+                ScreenshotOverlay.shared.open()
+            }
             iconButton("doc.on.clipboard", help: "Clipboard History  (⌘⇧V)") {
                 onDismiss()
                 ClipboardPanelController.shared.toggle()
@@ -341,9 +345,6 @@ struct MainPanelView: View {
                     tool("internaldrive", "Disk Clean", .purple) { SettingsWindow.shared.show(tab: .disk) }
                     tool("rectangle.and.hand.point.up.left", "Trackpad Clean", .pink) {
                         InputCleaner.shared.start(.trackpad)
-                    }
-                    tool("camera.viewfinder", "Screenshot", .indigo) {
-                        ScreenshotOverlay.shared.open()
                     }
                 }
             }
