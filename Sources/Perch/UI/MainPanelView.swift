@@ -342,6 +342,9 @@ struct MainPanelView: View {
                     tool("rectangle.and.hand.point.up.left", "Trackpad Clean", .pink) {
                         InputCleaner.shared.start(.trackpad)
                     }
+                    tool("camera.viewfinder", "Screenshot", .indigo) {
+                        ScreenshotOverlay.shared.open()
+                    }
                 }
             }
 

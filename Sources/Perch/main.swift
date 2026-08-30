@@ -69,6 +69,33 @@ if let i = CommandLine.arguments.firstIndex(of: "--probe-update") {
     }
 }
 
+if let i = CommandLine.arguments.firstIndex(of: "--probe-shot") {
+    let app = NSApplication.shared
+    _ = app
+    let rect: CGRect
+    if CommandLine.arguments.count > i + 4,
+       let x = Double(CommandLine.arguments[i + 1]), let y = Double(CommandLine.arguments[i + 2]),
+       let w = Double(CommandLine.arguments[i + 3]), let h = Double(CommandLine.arguments[i + 4]) {
+        rect = CGRect(x: x, y: y, width: w, height: h)
+    } else {
+        rect = CGRect(x: 100, y: 100, width: 400, height: 300)
+    }
+    print("requesting \(Int(rect.width))x\(Int(rect.height)) at \(Int(rect.minX)),\(Int(rect.minY))")
+    Task { @MainActor in
+        guard let image = await Screenshot.capture(rect: rect) else {
+            print("capture failed: \(Screenshot.lastError.map { String(describing: $0) } ?? "no error recorded")")
+            exit(1)
+        }
+        print("captured \(image.width)x\(image.height) pixels")
+        let url = Screenshot.deliver(image, to: .init(toFile: true, toClipboard: false))
+        print("saved: \(url?.path ?? "not written")")
+        exit(0)
+    }
+    RunLoop.current.run(until: Date().addingTimeInterval(20))
+    print("timed out")
+    exit(1)
+}
+
 if CommandLine.arguments.contains("--probe-stats") {
     _ = NSApplication.shared
     MainActor.assumeIsolated { SelfTest.probeStats() }

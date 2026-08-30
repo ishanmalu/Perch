@@ -137,6 +137,53 @@ enum SelfTest {
             expect(!spec.cocoaFlags.isEmpty, "\(name) requires a modifier")
         }
 
+        // Screenshot geometry. AppKit hands the selection back with a
+        // bottom-left origin; CoreGraphics captures top-left. Getting the flip
+        // wrong looks fine on the main display and mirrors on a second one, so
+        // both cases are pinned here.
+        let primaryMaxY: CGFloat = 900
+
+        // Main display, selection 100pt up from the bottom of a 900pt screen:
+        // its top edge is 200 from the bottom, so 700 from the top.
+        let onPrimary = Screenshot.globalRect(
+            local: CGRect(x: 50, y: 100, width: 300, height: 100),
+            windowFrame: CGRect(x: 0, y: 0, width: 1440, height: 900),
+            primaryMaxY: primaryMaxY)
+        expect(onPrimary == CGRect(x: 50, y: 700, width: 300, height: 100),
+               "selection on the primary display converts to top-left space")
+
+        // A display sitting above the primary spans negative y once flipped:
+        // its top edge is at -900, its bottom edge at 0. A selection at the
+        // view's origin is at the *bottom* of that display, so it ends up in
+        // the 100pt band immediately above the primary, not at the far top.
+        let aboveBottom = Screenshot.globalRect(
+            local: CGRect(x: 0, y: 0, width: 100, height: 100),
+            windowFrame: CGRect(x: 0, y: 900, width: 1440, height: 900),
+            primaryMaxY: primaryMaxY)
+        expect(aboveBottom == CGRect(x: 0, y: -100, width: 100, height: 100),
+               "a selection at the foot of an upper display sits just above the primary")
+
+        // And one at the top of that display reaches the far edge of the desktop.
+        let aboveTop = Screenshot.globalRect(
+            local: CGRect(x: 0, y: 800, width: 100, height: 100),
+            windowFrame: CGRect(x: 0, y: 900, width: 1440, height: 900),
+            primaryMaxY: primaryMaxY)
+        expect(aboveTop == CGRect(x: 0, y: -900, width: 100, height: 100),
+               "a selection at the head of an upper display reaches the top of the desktop")
+
+        // A display to the right keeps its x offset and its own flip.
+        let right = Screenshot.globalRect(
+            local: CGRect(x: 10, y: 10, width: 20, height: 30),
+            windowFrame: CGRect(x: 1440, y: 0, width: 1000, height: 600),
+            primaryMaxY: primaryMaxY)
+        expect(right == CGRect(x: 1450, y: 860, width: 20, height: 30),
+               "a display beside the primary keeps its offset")
+
+        // Size must survive untouched; a flip that scales is a flip that is wrong.
+        expect(onPrimary.size == CGSize(width: 300, height: 100)
+               && right.size == CGSize(width: 20, height: 30),
+               "conversion never changes the size of the selection")
+
         // The battery floor and a still-true trigger used to fight once a
         // second: the floor ended the session, the trigger restarted it, and a
         // notification fired every two seconds. These pin the latch that fixed it.

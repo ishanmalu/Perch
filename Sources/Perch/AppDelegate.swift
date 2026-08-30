@@ -220,6 +220,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hk.register("clipboard") { ClipboardPanelController.shared.toggle() }
         hk.register("switcher") { WindowSwitcher.shared.toggleList() }
         hk.register("switcher.altTab") { WindowSwitcher.shared.holdToSwitch(modifier: .option) }
+        // Carbon delivers hotkeys on the main thread, so this is safe.
+        hk.register("screenshot") { MainActor.assumeIsolated { ScreenshotOverlay.shared.toggle() } }
         hk.register("nightMode") { NightMode.shared.toggle() }
         hk.register("screenClean") { ScreenCleaner.shared.toggle() }
         hk.register("keyboardClean") { InputCleaner.shared.toggle(.keyboard) }
