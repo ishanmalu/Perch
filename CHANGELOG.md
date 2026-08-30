@@ -4,6 +4,44 @@ All notable changes to Perch. Versions follow [semver](https://semver.org),
 and each heading below corresponds to a published
 [release](https://github.com/ishanmalu/Perch/releases).
 
+## [1.8.0] — 2026-08-31
+
+### Added
+- **Updates install themselves.** Perch downloads, verifies, replaces itself and
+  restarts. No mounting, no dragging, no clearing the quarantine flag by hand —
+  which was the same work as a first install, every time. The checksum is not
+  what makes this safe: it comes from the same release over the same connection,
+  so it only proves the bytes arrived intact. The control is the code signature,
+  which must satisfy the running app's own designated requirement, so a
+  substituted build cannot be signed to match and is refused before anything
+  moves.
+- **A screenshot tool that stays armed.** macOS already takes screenshots; the
+  reason for another is what happens after one. Drag and it captures, and the
+  crosshair is still there for the next. Six grabs off a page is six drags
+  rather than six trips to the keyboard.
+- **Capture a window, a display, or on a delay.** `W` takes the window under the
+  pointer without whatever sits behind it, `F` takes the whole display, and `D`
+  counts down first — the only way to photograph a menu, since reaching for the
+  mouse closes it.
+- **Read the text out of a capture.** `T` copies the words instead of the
+  picture. Vision normalises a double hyphen to an em dash, which silently
+  breaks any command line put through it, so that is repaired.
+- **Sample a colour** with `C`, copied as hex.
+- **Pin a capture** with `P` and it floats above everything, which is the point
+  of taking it when you need to read it while working somewhere else.
+  Double-click to copy.
+- **Quarters have shortcuts** — `⌃⌥U I J K`, the layout Rectangle and Magnet
+  use. They were reachable only from the panel before.
+
+### Fixed
+- **The site advertised shortcuts that did not exist.** Fourteen of twenty-three
+  were wrong, nine bound to nothing, and one documented `⌃⌥K` as "bottom right"
+  when it blanked every display. Every caption is now checked against the
+  binding table rather than written from memory, and actions with no global
+  shortcut say so instead of naming a key that does nothing.
+- Screen cleaning moves to `⌃⌥⇧S`, freeing `⌃⌥K` for the bottom-right quarter
+  and putting it beside the other two cleaning modes.
+
 ## [1.7.0] — 2026-08-29
 
 ### Added
