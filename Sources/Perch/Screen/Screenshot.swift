@@ -1,5 +1,6 @@
 import AppKit
 import ScreenCaptureKit
+import Vision
 import UniformTypeIdentifiers
 
 /// Capturing the screen, and deciding what to do with the result.
@@ -58,6 +59,84 @@ enum Screenshot {
             lastError = error
             return nil
         }
+    }
+
+    /// A window under a point, topmost first, skipping Perch's own overlay.
+    /// Returned in global top-left coordinates, matching `capture(rect:)`.
+    static func window(at point: CGPoint) -> (id: CGWindowID, frame: CGRect, owner: String)? {
+        let ownPID = ProcessInfo.processInfo.processIdentifier
+        guard let info = CGWindowListCopyWindowInfo(
+            [.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]
+        else { return nil }
+
+        for entry in info {
+            guard (entry[kCGWindowLayer as String] as? Int) == 0,
+                  let pid = entry[kCGWindowOwnerPID as String] as? pid_t, pid != ownPID,
+                  let id = entry[kCGWindowNumber as String] as? CGWindowID,
+                  let bounds = entry[kCGWindowBounds as String] as? [String: CGFloat],
+                  let x = bounds["X"], let y = bounds["Y"],
+                  let w = bounds["Width"], let h = bounds["Height"]
+            else { continue }
+            let frame = CGRect(x: x, y: y, width: w, height: h)
+            if frame.contains(point) {
+                let owner = entry[kCGWindowOwnerName as String] as? String ?? "Window"
+                return (id, frame, owner)
+            }
+        }
+        return nil
+    }
+
+    /// Captures one window on its own, without whatever sits behind it.
+    static func captureWindow(id: CGWindowID) async -> CGImage? {
+        do {
+            let content = try await SCShareableContent.excludingDesktopWindows(
+                false, onScreenWindowsOnly: true)
+            guard let window = content.windows.first(where: { $0.windowID == id }) else { return nil }
+            let filter = SCContentFilter(desktopIndependentWindow: window)
+            let config = SCStreamConfiguration()
+            let scale = NSScreen.main?.backingScaleFactor ?? 2
+            config.width = max(1, Int(window.frame.width * scale))
+            config.height = max(1, Int(window.frame.height * scale))
+            config.showsCursor = false
+            config.captureResolution = .best
+            return try await SCScreenshotManager.captureImage(
+                contentFilter: filter, configuration: config)
+        } catch {
+            lastError = error
+            return nil
+        }
+    }
+
+    /// Reads the text out of a capture.
+    ///
+    /// Vision normalises a double hyphen to an em dash, which quietly breaks
+    /// any command line you OCR, so that one substitution is undone. The rest
+    /// is left alone; guessing further would do more harm than good.
+    static func recognizeText(in image: CGImage) -> String {
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.usesLanguageCorrection = false
+        let handler = VNImageRequestHandler(cgImage: image, options: [:])
+        guard (try? handler.perform([request])) != nil else { return "" }
+        let lines = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
+        return lines.joined(separator: "\n").replacingOccurrences(of: "\u{2014}-", with: "--")
+    }
+
+    /// The colour of a single pixel, for the eyedropper.
+    static func colour(at point: CGPoint) async -> NSColor? {
+        guard let image = await capture(rect: CGRect(x: point.x, y: point.y, width: 1, height: 1)),
+              let rep = NSBitmapImageRep(cgImage: image).colorAt(x: 0, y: 0)
+        else { return nil }
+        return rep.usingColorSpace(.sRGB) ?? rep
+    }
+
+    /// `#RRGGBB`, which is what a colour is usually wanted as.
+    static func hex(_ colour: NSColor) -> String {
+        let c = colour.usingColorSpace(.sRGB) ?? colour
+        return String(format: "#%02X%02X%02X",
+                      Int((c.redComponent * 255).rounded()),
+                      Int((c.greenComponent * 255).rounded()),
+                      Int((c.blueComponent * 255).rounded()))
     }
 
     /// Converts a selection in a window's own coordinates — AppKit's

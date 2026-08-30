@@ -137,6 +137,34 @@ enum SelfTest {
             expect(!spec.cocoaFlags.isEmpty, "\(name) requires a modifier")
         }
 
+        // OCR runs over whatever was captured, so it can be checked without
+        // the screen: render known text, read it back.
+        let sample = NSImage(size: NSSize(width: 640, height: 90))
+        sample.lockFocus()
+        NSColor.white.setFill(); NSRect(x: 0, y: 0, width: 640, height: 90).fill()
+        ("brew install --cask perch" as NSString).draw(
+            at: NSPoint(x: 14, y: 30),
+            withAttributes: [.font: NSFont.monospacedSystemFont(ofSize: 24, weight: .regular),
+                             .foregroundColor: NSColor.black])
+        sample.unlockFocus()
+        if let tiff = sample.tiffRepresentation,
+           let rep = NSBitmapImageRep(data: tiff), let cg = rep.cgImage {
+            let read = Screenshot.recognizeText(in: cg)
+            expect(read.contains("brew install"), "text is recognised in a capture")
+            // Vision turns a double hyphen into an em dash, which silently
+            // breaks any command line put through it.
+            expect(!read.contains("\u{2014}"), "the em dash Vision substitutes for -- is undone")
+            expect(read.contains("--cask"), "a command survives OCR intact")
+        } else {
+            expect(false, "could not build the OCR sample image")
+        }
+
+        // Hex is what a sampled colour is wanted as.
+        expect(Screenshot.hex(.white) == "#FFFFFF", "white converts to hex")
+        expect(Screenshot.hex(.black) == "#000000", "black converts to hex")
+        expect(Screenshot.hex(NSColor(srgbRed: 1, green: 0.5, blue: 0, alpha: 1)) == "#FF8000",
+               "a mid channel rounds rather than truncates")
+
         // Screenshot geometry. AppKit hands the selection back with a
         // bottom-left origin; CoreGraphics captures top-left. Getting the flip
         // wrong looks fine on the main display and mirrors on a second one, so
