@@ -66,9 +66,15 @@ struct SystemDetailView: View {
         }
         // Link details change slowly, so read them when the tab opens and then
         // alongside the sampler rather than on a timer of their own.
-        .onAppear { refreshWiFi(); AudioControl.shared.start() }
-        .onChange(of: metric) { _, _ in refreshWiFi() }
+        .onAppear { refreshWiFi(); syncAudio() }
+        .onChange(of: metric) { _, _ in refreshWiFi(); syncAudio() }
         .onReceive(hardware.$interfaces.dropFirst()) { _ in refreshWiFi() }
+    }
+
+    /// Enumerating audio processes walks every one of them, so it only runs
+    /// while the tab that shows the result is on screen.
+    private func syncAudio() {
+        metric == .sound ? AudioControl.shared.start() : AudioControl.shared.stop()
     }
 
     private func refreshWiFi() {
