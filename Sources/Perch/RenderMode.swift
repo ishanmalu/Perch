@@ -45,6 +45,9 @@ enum RenderMode {
         channel: 36, band: "5 GHz", widthMHz: 80,
         standard: "Wi-Fi 6", security: "WPA3")
 
+    /// A representative set of apps making noise, for documentation images.
+    static let demoAudio = ["Music", "Safari", "Discord"]
+
     /// Resolves an installed app's icon, falling back to the generic
     /// application icon rather than the blank document one.
     static func icon(forBundleID id: String) -> NSImage? {
