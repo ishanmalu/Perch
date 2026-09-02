@@ -899,12 +899,31 @@
     <p class="section-sub">Free, and takes about a minute.</p>
 
     <div class="tabs" role="tablist" style="justify-content:center">
-      <button class="tab" role="tab" aria-selected="true" data-panel="p-dmg">Download</button>
+      <button class="tab" role="tab" aria-selected="true" data-panel="p-cmd">One command</button>
+      <button class="tab" role="tab" aria-selected="false" data-panel="p-dmg">Download</button>
       <button class="tab" role="tab" aria-selected="false" data-panel="p-brew">Homebrew</button>
       <button class="tab" role="tab" aria-selected="false" data-panel="p-src">Build it</button>
     </div>
 
-    <div class="panel" id="p-dmg" style="max-width:640px;margin:0 auto">
+    <div class="panel" id="p-cmd" style="max-width:640px;margin:0 auto">
+      <p class="section-sub" style="margin-bottom:14px">
+        Fetches the latest release, checks it against the published checksum, installs it,
+        clears the flag macOS puts on downloads, and starts it. Asks for no privileges.
+      </p>
+<pre>curl -fsSL https://ishanmalu.github.io/Perch/install.sh | bash</pre>
+      <p style="margin-top:16px;color:var(--muted);font-size:14.4px">
+        Piping a script into a shell means trusting it, which is a fair thing to be wary of.
+        Read it first if you would rather:
+      </p>
+<pre>curl -fsSL https://ishanmalu.github.io/Perch/install.sh -o install.sh
+less install.sh &amp;&amp; bash install.sh</pre>
+      <p style="margin-top:16px;color:var(--muted);font-size:14.4px">
+        Then grant Accessibility access under System Settings → Privacy &amp; Security →
+        Accessibility, and press <kbd>⌃⌥Space</kbd>. Updates after this install themselves.
+      </p>
+    </div>
+
+    <div class="panel" id="p-dmg" hidden style="max-width:640px;margin:0 auto">
       <ol class="steps">
         <li>
           <h4>Download the DMG</h4>

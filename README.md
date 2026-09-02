@@ -32,7 +32,27 @@ Night mode · Disk cleaning · Screen, keyboard and trackpad cleaning
 ## Install
 
 Perch is free, open source, and needs macOS 14 or later. The binary is
-universal — Apple silicon and Intel — and about 4 MB.
+universal — Apple silicon and Intel — and about 6 MB.
+
+### One command
+
+```bash
+curl -fsSL https://ishanmalu.github.io/Perch/install.sh | bash
+```
+
+Fetches the latest release, checks it against the published checksum, installs
+it, clears the flag macOS puts on downloads, and starts it. It asks for no
+privileges and touches nothing outside the app.
+
+Piping a script into a shell means trusting it, which is a fair thing to be
+wary of. Read it first if you would rather:
+
+```bash
+curl -fsSL https://ishanmalu.github.io/Perch/install.sh -o install.sh
+less install.sh && bash install.sh
+```
+
+Updates after this install themselves — press Check in the panel footer.
 
 ### Download the DMG
 
