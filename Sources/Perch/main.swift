@@ -96,6 +96,20 @@ if let i = CommandLine.arguments.firstIndex(of: "--probe-shot") {
     exit(1)
 }
 
+if CommandLine.arguments.contains("--probe-audio") {
+    _ = NSApplication.shared
+    MainActor.assumeIsolated {
+        let a = AudioControl.shared
+        if CommandLine.arguments.contains("--demo") { RenderMode.isActive = true }
+        a.refresh()
+        print("output device : \(a.currentDevice?.name ?? "none")")
+        print("volume        : \(Int(a.volume * 100))%  settable=\(a.volumeSettable)  muted=\(a.muted)")
+        print("devices       : \(a.devices.map(\.name).joined(separator: ", "))")
+        print("playing now   : \(a.players.isEmpty ? "nothing" : a.players.map { "\($0.name)#\($0.id)" }.joined(separator: ", "))")
+        exit(0)
+    }
+}
+
 if CommandLine.arguments.contains("--probe-stats") {
     _ = NSApplication.shared
     MainActor.assumeIsolated { SelfTest.probeStats() }

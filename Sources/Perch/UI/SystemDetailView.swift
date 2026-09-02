@@ -3,7 +3,7 @@ import AppKit
 
 /// Which metric the System tab is showing in detail.
 enum SystemMetric: String, CaseIterable, Identifiable {
-    case cpu, gpu, memory, disk, network
+    case cpu, gpu, memory, disk, network, sound
     var id: String { rawValue }
 
     var short: String {
@@ -13,6 +13,7 @@ enum SystemMetric: String, CaseIterable, Identifiable {
         case .memory: return "Mem"
         case .disk: return "Disk"
         case .network: return "Net"
+        case .sound: return "Sound"
         }
     }
 
@@ -23,6 +24,7 @@ enum SystemMetric: String, CaseIterable, Identifiable {
         case .memory: return .green
         case .disk: return .orange
         case .network: return .teal
+        case .sound: return .indigo
         }
     }
 }
@@ -37,6 +39,7 @@ struct SystemDetailView: View {
     @ObservedObject var hardware = HardwareStats.shared
     @ObservedObject var processes = ProcessMonitor.shared
     @Binding var metric: SystemMetric
+    @ObservedObject private var audio = AudioControl.shared
     @State private var wifi: WiFiLink?
     @State private var query = ""
     @State private var pendingKill: ProcessGroup?
@@ -63,9 +66,15 @@ struct SystemDetailView: View {
         }
         // Link details change slowly, so read them when the tab opens and then
         // alongside the sampler rather than on a timer of their own.
-        .onAppear { refreshWiFi() }
-        .onChange(of: metric) { _, _ in refreshWiFi() }
+        .onAppear { refreshWiFi(); syncAudio() }
+        .onChange(of: metric) { _, _ in refreshWiFi(); syncAudio() }
         .onReceive(hardware.$interfaces.dropFirst()) { _ in refreshWiFi() }
+    }
+
+    /// Enumerating audio processes walks every one of them, so it only runs
+    /// while the tab that shows the result is on screen.
+    private func syncAudio() {
+        metric == .sound ? AudioControl.shared.start() : AudioControl.shared.stop()
     }
 
     private func refreshWiFi() {
@@ -110,8 +119,12 @@ struct SystemDetailView: View {
                         .foregroundStyle(.secondary)
                     Spacer()
                 }
-                Trace(values: history, tint: metric.tint)
-                    .frame(height: 34)
+                // Volume is a setting, not a measurement, so there is no
+                // trace for it and the gauge should not reserve room for one.
+                if !history.isEmpty {
+                    Trace(values: history, tint: metric.tint)
+                        .frame(height: 34)
+                }
             }
         }
         .id(metric)          // reset the trace cleanly when the metric changes
@@ -128,6 +141,8 @@ struct SystemDetailView: View {
         case .network:
             let total = hardware.interfaces.reduce(0.0) { $0 + $1.rateIn + $1.rateOut }
             return SystemMonitor.rate(total)
+        case .sound:
+            return audio.muted ? "Muted" : "\(Int(audio.volume * 100))%"
         }
     }
 
@@ -139,6 +154,7 @@ struct SystemDetailView: View {
         case .memory: return "of \(SystemMonitor.bytes(s.memTotal))"
         case .disk: return "free of \(SystemMonitor.bytes(s.diskTotal))"
         case .network: return "\(hardware.interfaces.count) active"
+        case .sound: return audio.currentDevice?.name ?? "no output"
         }
     }
 
@@ -150,6 +166,7 @@ struct SystemDetailView: View {
             case .memory:  return RenderMode.demoHistory(seed: 7, base: 61, swing: 9)
             case .disk:    return RenderMode.demoHistory(seed: 5, base: 30, swing: 24)
             case .network: return RenderMode.demoHistory(seed: 9, base: 38, swing: 26)
+            case .sound:   return []
             }
         }
         switch metric {
@@ -158,6 +175,9 @@ struct SystemDetailView: View {
         case .memory: return monitor.memHistory
         case .disk: return hardware.diskHistory
         case .network: return hardware.netHistory
+        // Volume is a setting rather than a measurement, so there is no trace
+        // to draw; the gauge shows the level and the rows show who is using it.
+        case .sound: return []
         }
     }
 
@@ -178,6 +198,103 @@ struct SystemDetailView: View {
             diskDetail
         case .network:
             networkDetail
+        case .sound:
+            soundDetail
+        }
+    }
+
+    /// Output level, where it is going, and what is currently audible.
+    ///
+    /// There are no per-app sliders because macOS has none to offer: a process
+    /// audio object carries no volume control, and the only way round that is
+    /// a virtual output device the whole system is routed through. That is a
+    /// driver, and Perch is not one.
+    @ViewBuilder
+    private var soundDetail: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            SectionHeader("Output")
+            Card(padding: 9) {
+                VStack(spacing: 8) {
+                    HStack(spacing: 8) {
+                        HoverButton(action: { audio.toggleMute() }) {
+                            Image(systemName: audio.muted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                                .font(.system(size: 11))
+                                .foregroundStyle(audio.muted ? AnyShapeStyle(Color.orange)
+                                                             : AnyShapeStyle(.secondary))
+                                .frame(width: 15)
+                        }
+                        .help(audio.muted ? "Unmute" : "Mute")
+
+                        if RenderMode.isActive || !audio.volumeSettable {
+                            StaticSlider(value: audio.volume)
+                        } else {
+                            Slider(value: Binding(get: { audio.volume },
+                                                  set: { audio.setVolume($0) }), in: 0...1)
+                                .controlSize(.mini)
+                        }
+                        Text("\(Int(audio.volume * 100))")
+                            .font(Theme.Font.numeric).foregroundStyle(.secondary)
+                            .frame(width: 26, alignment: .trailing)
+                    }
+                    if !audio.volumeSettable {
+                        Text("This output has no software volume.")
+                            .font(Theme.Font.caption).foregroundStyle(.tertiary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }
+
+            if audio.devices.count > 1 {
+                SectionHeader("Device")
+                Card(padding: 8) {
+                    VStack(spacing: 5) {
+                        ForEach(audio.devices) { device in
+                            HoverButton(action: { audio.select(device) }) {
+                                HStack(spacing: 7) {
+                                    Image(systemName: device == audio.currentDevice
+                                          ? "largecircle.fill.circle" : "circle")
+                                        .font(.system(size: 9))
+                                        .foregroundStyle(device == audio.currentDevice
+                                                         ? AnyShapeStyle(Color.indigo)
+                                                         : AnyShapeStyle(.tertiary))
+                                        .frame(width: 13)
+                                    Text(device.name).font(Theme.Font.body)
+                                        .foregroundStyle(.secondary).lineLimit(1)
+                                    Spacer(minLength: 0)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            SectionHeader("Playing now")
+            Card(padding: 9) {
+                VStack(spacing: 6) {
+                    if audio.players.isEmpty {
+                        Text("Nothing is playing.")
+                            .font(Theme.Font.caption).foregroundStyle(.tertiary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    ForEach(audio.players) { player in
+                        HStack(spacing: 7) {
+                            if let icon = player.icon {
+                                Image(nsImage: icon).resizable()
+                                    .frame(width: 14, height: 14).cornerRadius(3)
+                            } else {
+                                Image(systemName: "waveform")
+                                    .font(.system(size: 10)).foregroundStyle(.tertiary)
+                                    .frame(width: 14)
+                            }
+                            Text(player.name).font(Theme.Font.body)
+                                .foregroundStyle(.secondary).lineLimit(1)
+                            Spacer(minLength: 0)
+                            Image(systemName: "speaker.wave.2")
+                                .font(.system(size: 9)).foregroundStyle(.indigo)
+                        }
+                    }
+                }
+            }
         }
     }
 
