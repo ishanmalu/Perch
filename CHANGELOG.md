@@ -4,6 +4,40 @@ All notable changes to Perch. Versions follow [semver](https://semver.org),
 and each heading below corresponds to a published
 [release](https://github.com/ishanmalu/Perch/releases).
 
+## [1.9.0] — 2026-09-02
+
+### Added
+- **A Sound tab**, at the end of the System row. Output volume and mute, output
+  device switching, and a live list of the apps making noise, with helpers
+  folded into the app that owns them so a browser playing in a tab reads as the
+  browser.
+- **A one-command install.** Perch is signed but not notarized, so macOS
+  quarantines the download and blocks the first launch, and the instructions
+  ended by asking a stranger to paste an `xattr` command. Now:
+
+  ```
+  curl -fsSL https://ishanmalu.github.io/Perch/install.sh | bash
+  ```
+
+  It reads the latest release, verifies the download against the published
+  checksum and refuses to continue without one, installs it, clears the
+  quarantine flag and starts it. No privileges are requested, and it falls back
+  to `~/Applications` when `/Applications` is not writable.
+
+### Fixed
+- **The audio sampler never stopped.** It started when the System tab appeared
+  and then kept walking every audio process on the machine every two seconds
+  for the life of the app. It now runs only while the Sound metric is on
+  screen. Every other sampler already stopped with the panel.
+
+### Notes
+- There are no per-application volume sliders, and there cannot be without
+  shipping an audio driver. macOS has no per-application volume: a process
+  audio object carries no level control, and there is no private equivalent.
+  The only route is a virtual output device the whole system is routed
+  through — a driver, an installer and an approval prompt, which is what
+  Background Music and SoundSource are. Perch reports rather than mixes.
+
 ## [1.8.5] — 2026-08-31
 
 ### Changed
