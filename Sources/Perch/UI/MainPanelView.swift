@@ -95,6 +95,7 @@ struct MainPanelView: View {
         .onDisappear {
             HardwareStats.shared.stop()
             ProcessMonitor.shared.stop()
+            AudioControl.shared.stop()
         }
     }
 
@@ -107,6 +108,7 @@ struct MainPanelView: View {
         } else {
             HardwareStats.shared.stop()
             ProcessMonitor.shared.stop()
+            AudioControl.shared.stop()
         }
     }
 
