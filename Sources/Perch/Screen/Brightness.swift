@@ -78,8 +78,22 @@ final class BrightnessController: ObservableObject {
         for d in displays { setLevel(value, for: d.id) }
     }
 
+    /// One press of a brightness key. macOS moves in sixteenths, so matching
+    /// that keeps these keys feeling like the ones next to them.
+    static let stepSize = 1.0 / 16
+
+    /// Extracted so the clamping can be checked without a display attached.
+    /// Landing exactly on 0 would black a screen out with no way back, so the
+    /// floor is one step up from it.
+    static func stepped(_ level: Double, by delta: Double) -> Double {
+        min(1, max(stepSize, level + delta))
+    }
+
     func nudgeAll(by delta: Double) {
-        for d in displays { setLevel(level(for: d.id) + delta, for: d.id) }
+        guard !displays.isEmpty else { return }
+        for d in displays {
+            setLevel(Self.stepped(level(for: d.id), by: delta), for: d.id)
+        }
         Notifier.show("Brightness \(Int(level(for: displays.first?.id ?? 0) * 100))%", duration: 1)
     }
 

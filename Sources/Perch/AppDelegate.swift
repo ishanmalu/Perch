@@ -240,5 +240,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hk.register("win.restore") { WindowManager.shared.restore() }
         hk.register("win.nextScreen") { WindowManager.shared.moveToScreen(next: true) }
         hk.register("win.prevScreen") { WindowManager.shared.moveToScreen(next: false) }
+        let step = BrightnessController.stepSize
+        hk.register("brightness.up") { BrightnessController.shared.nudgeAll(by: step) }
+        hk.register("brightness.down") { BrightnessController.shared.nudgeAll(by: -step) }
     }
 }

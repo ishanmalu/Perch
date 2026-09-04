@@ -56,6 +56,11 @@ struct HotkeySpec: Codable, Equatable {
         "win.thirdL":     .init(keyCode: UInt32(kVK_ANSI_D),     modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
         "win.thirdC":     .init(keyCode: UInt32(kVK_ANSI_F),     modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
         "win.thirdR":     .init(keyCode: UInt32(kVK_ANSI_G),     modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
+        // The Mac's own brightness keys only reach the built-in panel. These
+        // move every display, external ones included, which is the whole point
+        // of having them.
+        "brightness.up":   .init(keyCode: UInt32(kVK_ANSI_Equal), modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
+        "brightness.down": .init(keyCode: UInt32(kVK_ANSI_Minus), modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
     ]
 }
 
