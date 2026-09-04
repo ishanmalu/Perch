@@ -364,6 +364,38 @@
     position: absolute; top: 50%; width: 11px; height: 11px; border-radius: 50%;
     background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.35); transform: translate(-50%,-50%);
   }
+  /* The brightness slider is the one control on the page that acts on the page.
+     Widened hit area: a 3px track is honest to the app but hopeless to grab. */
+  #brightSlider { cursor: grab; touch-action: none; }
+  #brightSlider::before { content: ''; position: absolute; inset: -9px 0; }
+  #brightSlider.drag { cursor: grabbing; }
+  #brightSlider:focus-visible { outline: 2px solid var(--accent); outline-offset: 6px; border-radius: 2px; }
+
+  /* Perch dims a non-built-in display with a black overlay window pinned above
+     everything, click-through, never past 0.85 so the slider stays findable
+     (Brightness.swift). This is the same trick, scoped to the page. */
+  #dimmer {
+    position: fixed; inset: 0; z-index: 9999; pointer-events: none;
+    background: #000; opacity: 0;
+  }
+  /* Night Mode shifts the gamma ramps warm. Multiply against an amber pane is
+     the closest a web page gets: it pulls the blues down instead of laying a
+     haze over everything, which is what a plain translucent overlay does. */
+  #warmer, #warmLift {
+    position: fixed; inset: 0; pointer-events: none; opacity: 0;
+    transition: opacity .45s ease;
+  }
+  /* Multiply pulls the blues out of everything light. On its own that is all a
+     warm overlay can do — against a near-black background it multiplies to
+     near-black, so a dark page would not shift at all. */
+  #warmer { z-index: 9998; background: #ff9526; mix-blend-mode: multiply; }
+  /* So the shadows get the other half of a gamma shift: screen lifts red and
+     green where there is nothing to take blue away from. Together the two read
+     as one warm ramp in either theme. */
+  #warmLift { z-index: 9997; background: #2b1600; mix-blend-mode: screen; }
+  @media (prefers-reduced-motion: reduce) {
+    #warmer, #warmLift { transition: none; }
+  }
 
   /* ---------- layout tiles ----------
      The app draws a 26pt tile glyph for each window action, then a divider and
@@ -567,6 +599,10 @@
 </script>
 </head>
 <body>
+<!-- Sits above every layer; the brightness slider sets its opacity. -->
+<div id="warmLift" aria-hidden="true"></div>
+<div id="warmer" aria-hidden="true"></div>
+<div id="dimmer" aria-hidden="true"></div>
 
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -725,13 +761,15 @@
             <div class="pp-card">
               <div class="pp-row">
                 <svg class="ico"><use href="#i-laptop"/></svg>
-                <span class="pp-slider"><i style="width:100%"></i><b style="left:100%"></b></span>
-                <span class="num">100</span>
+                <span class="pp-slider" id="brightSlider" role="slider" tabindex="0"
+                      aria-label="Display brightness" aria-valuemin="0" aria-valuemax="100"
+                      aria-valuenow="100" aria-valuetext="100%"><i></i><b></b></span>
+                <span class="num" id="brightNum">100</span>
               </div>
               <div class="pp-row">
                 <svg class="ico"><use href="#i-moon"/></svg>
                 <span>Night Mode</span><span class="sp"></span>
-                <span class="pp-toggle" id="nightToggle" role="button" tabindex="0" aria-label="Night Mode"></span>
+                <span class="pp-toggle" id="nightToggle" role="switch" tabindex="0" aria-checked="false" aria-label="Night Mode"></span>
               </div>
             </div>
           </div>
@@ -1315,17 +1353,94 @@ Scripts/install.sh</pre>
 
     var night = document.getElementById('nightToggle');
     if (night) {
+      var warmLayers = [document.getElementById('warmer'),
+                        document.getElementById('warmLift')];
       function flip(){
         night.classList.toggle('on');
+        var on = night.classList.contains('on');
+        night.setAttribute('aria-checked', String(on));
+        warmLayers.forEach(function (el) {
+          if (el) el.style.opacity = on ? '0.34' : '0';
+        });
         wName.innerHTML = 'Night Mode<kbd>⌃⌥N</kbd>';
-        wDesc.textContent = night.classList.contains('on')
-          ? 'Warming the display by shifting the gamma ramps, the way f.lux does. No overlay window, so screenshots are unaffected.'
+        wDesc.textContent = on
+          ? 'On — and warming this page, so you can see it. In the app it shifts the gamma ramps the way f.lux does, with no overlay window, so screenshots are unaffected.'
           : 'Off. Night Mode warms the display by shifting the gamma ramps rather than covering the screen.';
       }
       night.addEventListener('click', flip);
       night.addEventListener('keydown', function(e){
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); }
       });
+    }
+
+    /* ---- Brightness: the slider dims the page it is sitting on ----
+       Perch dims a display it has no backlight control over by floating a
+       black overlay above everything, click-through, never past 0.85 so the
+       slider stays visible (Brightness.swift). Same mechanism here. */
+    var slider = document.getElementById('brightSlider');
+    var numEl  = document.getElementById('brightNum');
+    var dimmer = document.getElementById('dimmer');
+    if (slider && numEl && dimmer) {
+      var MAX_DIM = 0.85;
+      var fillEl = slider.querySelector('i'), knobEl = slider.querySelector('b');
+      var level = 1;
+
+      function paintBright() {
+        var pct = Math.round(level * 100);
+        fillEl.style.width = (level * 100) + '%';
+        knobEl.style.left  = (level * 100) + '%';
+        numEl.textContent = pct;
+        slider.setAttribute('aria-valuenow', pct);
+        slider.setAttribute('aria-valuetext', pct + '%');
+        dimmer.style.opacity = ((1 - level) * MAX_DIM).toFixed(3);
+      }
+
+      // No global shortcut reaches brightness, so it is tagged like the other
+      // panel-only actions rather than given a key it does not have.
+      function describeBright() {
+        wTiles.forEach(function (t) { t.classList.remove('on'); });
+        wName.innerHTML = 'Brightness' + keyTag('panel');
+        wDesc.textContent = level === 1
+          ? 'Every display on one slider, external monitors included. Drag it — this one really does dim the page.'
+          : 'At ' + Math.round(level * 100) + '%. A built-in display moves its actual backlight; anything else is dimmed with an overlay, which is what you are looking at.';
+      }
+
+      function fromPointer(e) {
+        var r = slider.getBoundingClientRect();
+        if (r.width <= 0) return;
+        level = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+        paintBright(); describeBright();
+      }
+
+      slider.addEventListener('pointerdown', function (e) {
+        e.preventDefault();
+        slider.classList.add('drag');
+        slider.focus();
+        try { slider.setPointerCapture(e.pointerId); } catch (err) {}
+        fromPointer(e);
+      });
+      slider.addEventListener('pointermove', function (e) {
+        // Only track once captured, otherwise a plain hover moves the slider.
+        if (slider.classList.contains('drag')) fromPointer(e);
+      });
+      // pointerup and pointercancel both end a drag; a lost capture would
+      // otherwise leave the track following the cursor forever.
+      ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (ev) {
+        slider.addEventListener(ev, function () { slider.classList.remove('drag'); });
+      });
+
+      var STEP = { ArrowLeft: -0.05, ArrowDown: -0.05, ArrowRight: 0.05, ArrowUp: 0.05,
+                   PageDown: -0.2, PageUp: 0.2 };
+      slider.addEventListener('keydown', function (e) {
+        var d = STEP[e.key];
+        if (d === undefined && e.key !== 'Home' && e.key !== 'End') return;
+        e.preventDefault();
+        level = e.key === 'Home' ? 0 : e.key === 'End' ? 1
+              : Math.min(1, Math.max(0, level + d));
+        paintBright(); describeBright();
+      });
+
+      paintBright();
     }
   }
 
