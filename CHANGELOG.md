@@ -4,6 +4,25 @@ All notable changes to Perch. Versions follow [semver](https://semver.org),
 and each heading below corresponds to a published
 [release](https://github.com/ishanmalu/Perch/releases).
 
+## [1.9.2] — 2026-09-04
+
+### Added
+- **Brightness on a shortcut.** `⌃⌥=` and `⌃⌥-` move every display a
+  sixteenth at a time — the same step the Mac's own brightness keys use, but
+  those only ever reach the built-in panel. External monitors move too: where
+  there is no backlight to control, Perch dims with an overlay. A brief readout
+  shows the new level, and both shortcuts are rebindable in Settings.
+
+  The code behind this had been sitting in the app unreachable since brightness
+  control was added. `nudgeAll()` was written to be driven by a shortcut, the
+  shortcut was never registered, and nothing called it. It is wired up now
+  rather than deleted.
+
+### Fixed
+- Stepping down can no longer land on zero. A display taken to full black has
+  no visible slider to bring it back, so the floor is one step above it, and a
+  display already at zero comes back up rather than sticking.
+
 ## [1.9.1] — 2026-09-04
 
 Homepage only — the app binary is unchanged from 1.9.0. It is tagged as a

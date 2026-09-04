@@ -796,7 +796,7 @@
             </div>
           </div>
           <div class="pp-foot">
-            <svg class="bird"><use href="#i-bird"/></svg><span>Perch 1.9.1 — up to date</span>
+            <svg class="bird"><use href="#i-bird"/></svg><span>Perch 1.9.2 — up to date</span>
             <span class="sp"></span><em>Check</em>
           </div>
         </div>
@@ -848,7 +848,7 @@
             <div class="live-rows" id="liveRows"></div>
           </div>
           <div class="pp-foot">
-            <svg class="bird"><use href="#i-bird"/></svg><span>Perch 1.9.1 — up to date</span>
+            <svg class="bird"><use href="#i-bird"/></svg><span>Perch 1.9.2 — up to date</span>
             <span class="sp"></span><em>Check</em>
           </div>
         </div>
@@ -890,7 +890,7 @@
             <div class="pp-card" id="switchCard"></div>
           </div>
           <div class="pp-foot">
-            <svg class="bird"><use href="#i-bird"/></svg><span>Perch 1.9.1 — up to date</span>
+            <svg class="bird"><use href="#i-bird"/></svg><span>Perch 1.9.2 — up to date</span>
             <span class="sp"></span><em>Check</em>
           </div>
         </div>
@@ -918,7 +918,7 @@
       <div class="cap"><svg class="ico"><use href="#i-sparkle"/></svg><div><b>Screenshots</b><span>Drag to capture and the crosshair stays up for the next one. Grab a window, a display, or on a delay; read the text out of a selection; sample a colour; pin a shot above everything.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-download"/></svg><div><b>Updates install themselves</b><span>Perch replaces itself and restarts. The new build must be signed by the same key as the running one, or it is refused before anything moves.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-moon"/></svg><div><b>Night mode</b><span>6500K to 2400K via display gamma. Manual or scheduled.</span></div></div>
-      <div class="cap"><svg class="ico"><use href="#i-sun"/></svg><div><b>Brightness</b><span>Per display, including external monitors over any cable.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-sun"/></svg><div><b>Brightness</b><span>Per display, including external monitors over any cable. On a shortcut too, in the same sixteenths the Mac’s own keys use — which only ever reach the built-in panel.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-sound"/></svg><div><b>Sound</b><span>Output level and mute, switch between outputs, and see which apps are actually making noise. No per-app sliders: macOS exposes no volume on a process, and the only way round it is shipping an audio driver.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-coffee"/></svg><div><b>Keep awake</b><span>Hold it open, or for 15 minutes to 8 hours with the time left on the row. It can start itself while plugged in, while an app runs, or while the CPU is busy, and let the display sleep while the machine works.</span></div></div>
     </div>
@@ -946,6 +946,7 @@
           <tr><td><kbd>⌃⌥⌫</kbd></td><td>Restore original size</td></tr>
           <tr><td><kbd>⌃⌥⇧←</kbd> <kbd>→</kbd></td><td>Move to previous / next display</td></tr>
           <tr><td><kbd>⌃⌥⇧4</kbd></td><td>Screenshot — stays armed; W window, F display, D delayed, T text, C colour, P pin</td></tr>
+      <tr><td><kbd>⌃⌥=</kbd> <kbd>⌃⌥-</kbd></td><td>Brightness up / down on every display, external ones included</td></tr>
       <tr><td><kbd>⌃⌥N</kbd></td><td>Night mode</td></tr>
           <tr><td><kbd>⌃⌥⇧S</kbd></td><td>Screen cleaning</td></tr>
           <tr><td><kbd>⌃⌥⇧L</kbd></td><td>Keyboard cleaning</td></tr>
@@ -1530,11 +1531,9 @@ Scripts/install.sh</pre>
         dimmer.style.opacity = ((1 - level) * MAX_DIM).toFixed(3);
       }
 
-      // No global shortcut reaches brightness, so it is tagged like the other
-      // panel-only actions rather than given a key it does not have.
       function describeBright() {
         wTiles.forEach(function (t) { t.classList.remove('on'); });
-        wName.innerHTML = 'Brightness' + keyTag('panel');
+        wName.innerHTML = 'Brightness<kbd>⌃⌥=</kbd><kbd>⌃⌥-</kbd>';
         wDesc.textContent = level === 1
           ? 'Every display on one slider, external monitors included. Drag it — this one really does dim the page.'
           : 'At ' + Math.round(level * 100) + '%. A built-in display moves its actual backlight; anything else is dimmed with an overlay, which is what you are looking at.';

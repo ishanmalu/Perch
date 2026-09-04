@@ -517,6 +517,8 @@ private struct ShortcutSettings: View {
         ("win.bottomLeft", "Bottom Left Quarter"),
         ("win.bottomRight", "Bottom Right Quarter"),
         ("nightMode", "Night mode"),
+        ("brightness.up", "Brightness up"),
+        ("brightness.down", "Brightness down"),
         ("screenClean", "Screen cleaning"),
         ("keyboardClean", "Keyboard cleaning"),
         ("trackpadClean", "Trackpad cleaning"),
@@ -568,6 +570,8 @@ private struct ShortcutSettings: View {
         case "screenshot": return "camera.viewfinder"
         case "switcher.altTab": return "arrow.left.arrow.right"
         case "nightMode": return "moon.fill"
+        case "brightness.up": return "sun.max.fill"
+        case "brightness.down": return "sun.min"
         default: return "macwindow"
         }
     }
@@ -584,6 +588,7 @@ private struct ShortcutSettings: View {
         case "screenshot": return .pink
         case "switcher.altTab": return .blue
         case "nightMode": return .orange
+        case "brightness.up", "brightness.down": return .yellow
         default: return .gray
         }
     }

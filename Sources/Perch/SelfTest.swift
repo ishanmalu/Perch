@@ -137,6 +137,17 @@ enum SelfTest {
             expect(!spec.cocoaFlags.isEmpty, "\(name) requires a modifier")
         }
 
+        print("\nBrightness steps stay in range")
+        let step = BrightnessController.stepSize
+        expect(BrightnessController.stepped(0.5, by: step) == 0.5625,
+               "one press moves a sixteenth")
+        expect(BrightnessController.stepped(1.0, by: step) == 1.0,
+               "stepping up from full stays at full")
+        expect(BrightnessController.stepped(0.05, by: -step) == step,
+               "stepping down floors at one step, never black")
+        expect(BrightnessController.stepped(0.0, by: -step) == step,
+               "a display already at zero comes back rather than sticking")
+
         // OCR runs over whatever was captured, so it can be checked without
         // the screen: render known text, read it back.
         let sample = NSImage(size: NSSize(width: 640, height: 90))
