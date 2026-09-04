@@ -4,6 +4,41 @@ All notable changes to Perch. Versions follow [semver](https://semver.org),
 and each heading below corresponds to a published
 [release](https://github.com/ishanmalu/Perch/releases).
 
+## [1.9.1] — 2026-09-04
+
+Homepage only — the app binary is unchanged from 1.9.0. It is tagged as a
+release so the published site and the version it names stay in step.
+
+### Added
+- **The panel demos on the homepage actually work.** Dragging the brightness
+  slider dims the page and Night Mode warms it, using the same mechanism the
+  app uses: where Perch has no backlight to move it floats a black overlay
+  above everything, click-through and clamped at 0.85 so the slider never
+  disappears. Night Mode needs two layers, because multiplying an amber pane
+  against a near-black backdrop gives near-black — a screen layer lifts red and
+  green in the shadows so the dark theme warms too.
+- **The Sound tab is on the site.** The headline feature of 1.9.0 had not made
+  it onto the homepage at all.
+
+### Fixed
+- **The demo showed a GPU feature that does not exist.** It drew a ranked list
+  of processes using the GPU; Perch has never had a per-process GPU breakdown,
+  and the caption printed beside it already said so. Disk and network had a
+  milder version of the same problem, rendering as bars what the app renders as
+  values. Only CPU and memory rank anything, so only they keep bars now.
+- **The panel footer read 1.8.0**, through two releases. The release workflow
+  now refuses to publish when the homepage does not name the version being
+  tagged.
+- **The site drew no graph for anyone who asked for reduced motion.** The trace
+  only ever got its path from the animation frame, so the gauge was empty.
+- The metric tabs, and the brightness slider, were unreachable by keyboard.
+- Memory was tinted purple on the site against green in the app; the download
+  size was stated as 4 MB, which was neither the 2.5 MB download nor the 7 MB
+  install; the build-from-source step said `cd perch` after cloning `Perch`,
+  which fails on a case-sensitive volume; and the privacy section counted two
+  network features when installing an update makes three.
+- An unclosed `<div>` in the privacy section.
+
 ## [1.9.0] — 2026-09-02
 
 ### Added
