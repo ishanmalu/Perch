@@ -18,6 +18,17 @@ jobs:
       - name: Derive version
         id: version
         run: echo "value=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+      # The homepage draws the panel footer, version string included, and it
+      # sat on 1.8.0 through two releases because nothing checked. Fail here
+      # rather than publish a site that misreports what is current.
+      - name: Homepage states this version
+        run: |
+          want="${GITHUB_REF_NAME#v}"
+          if ! grep -q "Perch $want — up to date" docs/index.html; then
+            echo "docs/index.html does not mention $want:" >&2
+            grep -o 'Perch [0-9][^<]*— up to date' docs/index.html | sort -u >&2
+            exit 1
+          fi
       # Imported before the build so Scripts/build-app.sh finds the identity
       # in the keychain and signs with it instead of falling back to ad-hoc.
       # A stable identity is what stops macOS dropping the Accessibility grant
