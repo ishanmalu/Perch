@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Perch — a dozen Mac utilities in one place</title>
-<meta name="description" content="A free, open-source macOS menu bar utility: window tiling, clipboard history, Alt-Tab switcher, system monitoring, night mode, disk cleaning, and screen, keyboard and trackpad cleaning.">
+<meta name="description" content="A free, open-source macOS menu bar utility: window tiling, screenshots, clipboard history, Alt-Tab switcher, system and sound monitoring, night mode, disk cleaning, and screen, keyboard and trackpad cleaning.">
 <link rel="icon" href="perch-icon.png">
 <meta property="og:title" content="Perch — a dozen Mac utilities in one place">
 <meta property="og:description" content="Window tiling, screenshots, clipboard history, Alt-Tab, system monitoring, night mode and cleaning modes — free and open source.">
@@ -230,7 +230,7 @@
   .live-tabs { display: flex; gap: 2px; padding: 9px 9px 4px; }
   .live-tab {
     flex: 1; text-align: center; padding: 5px 0; border-radius: 7px;
-    font-size: 10.5px; font-weight: 600; color: var(--muted);
+    font-size: 9.5px; font-weight: 600; color: var(--muted);
     transition: background .3s ease, color .3s ease;
   }
   .live-tab.on { background: var(--mtint); color: #fff; }
@@ -278,6 +278,27 @@
     font-size: 10.5px; color: var(--muted); width: 54px;
     text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;
   }
+  /* Value rows (GPU, disk), interface columns (network) and the audible list
+     (sound). Only CPU and memory rank things with bars, so only they get one. */
+  .live-row .val {
+    font-size: 10.5px; color: var(--muted); margin-left: auto;
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .live-row .val.good { color: var(--free-fg); }
+  .live-row .col {
+    font-size: 9.5px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--muted); width: 54px; text-align: right;
+    font-variant-numeric: tabular-nums; flex: none;
+  }
+  .live-row .col.up { color: var(--faint); }
+  .live-row .dot { color: var(--mtint); font-size: 9px; flex: none; }
+  .live-colhead { justify-content: flex-end; font-size: 8.5px; color: var(--faint); }
+  .live-colhead span { width: 54px; text-align: right; }
+  /* Volume is a setting, not a measurement, so the Sound tab has no trace —
+     the same reason the app leaves the graph off that tab. */
+  .live.no-spark .live-spark { display: none; }
+  .live.no-spark .live-gauge { padding-bottom: 11px; }
+  .live-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   @media (max-width: 900px) { .live { width: 100%; max-width: 320px; } }
 
 
@@ -363,6 +384,38 @@
   .pp-slider b {
     position: absolute; top: 50%; width: 11px; height: 11px; border-radius: 50%;
     background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.35); transform: translate(-50%,-50%);
+  }
+  /* The brightness slider is the one control on the page that acts on the page.
+     Widened hit area: a 3px track is honest to the app but hopeless to grab. */
+  #brightSlider { cursor: grab; touch-action: none; }
+  #brightSlider::before { content: ''; position: absolute; inset: -9px 0; }
+  #brightSlider.drag { cursor: grabbing; }
+  #brightSlider:focus-visible { outline: 2px solid var(--accent); outline-offset: 6px; border-radius: 2px; }
+
+  /* Perch dims a non-built-in display with a black overlay window pinned above
+     everything, click-through, never past 0.85 so the slider stays findable
+     (Brightness.swift). This is the same trick, scoped to the page. */
+  #dimmer {
+    position: fixed; inset: 0; z-index: 9999; pointer-events: none;
+    background: #000; opacity: 0;
+  }
+  /* Night Mode shifts the gamma ramps warm. Multiply against an amber pane is
+     the closest a web page gets: it pulls the blues down instead of laying a
+     haze over everything, which is what a plain translucent overlay does. */
+  #warmer, #warmLift {
+    position: fixed; inset: 0; pointer-events: none; opacity: 0;
+    transition: opacity .45s ease;
+  }
+  /* Multiply pulls the blues out of everything light. On its own that is all a
+     warm overlay can do — against a near-black background it multiplies to
+     near-black, so a dark page would not shift at all. */
+  #warmer { z-index: 9998; background: #ff9526; mix-blend-mode: multiply; }
+  /* So the shadows get the other half of a gamma shift: screen lifts red and
+     green where there is nothing to take blue away from. Together the two read
+     as one warm ramp in either theme. */
+  #warmLift { z-index: 9997; background: #2b1600; mix-blend-mode: screen; }
+  @media (prefers-reduced-motion: reduce) {
+    #warmer, #warmLift { transition: none; }
   }
 
   /* ---------- layout tiles ----------
@@ -567,6 +620,10 @@
 </script>
 </head>
 <body>
+<!-- Sits above every layer; the brightness slider sets its opacity. -->
+<div id="warmLift" aria-hidden="true"></div>
+<div id="warmer" aria-hidden="true"></div>
+<div id="dimmer" aria-hidden="true"></div>
 
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -577,6 +634,7 @@
 <symbol id="i-macwindow" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 9.5h18"/><circle cx="6.4" cy="7.2" r=".55" fill="currentColor"/><circle cx="8.6" cy="7.2" r=".55" fill="currentColor"/><circle cx="10.8" cy="7.2" r=".55" fill="currentColor"/></symbol>
 <symbol id="i-tools" viewBox="0 0 24 24"><path d="M14.5 5.8a3.4 3.4 0 0 0 4.5 4.4l-8.8 8.8a1.9 1.9 0 1 1-2.7-2.7z"/><path d="M5.6 5.1l2.6 2.6"/><path d="M4.4 8.9a3.4 3.4 0 0 0 4.6 4.5"/><path d="M15.4 15.6l3.9 3.9"/></symbol>
 <symbol id="i-camera" viewBox="0 0 24 24"><path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2.2l1.1-1.8A1 1 0 0 1 8.7 4.7h6.6a1 1 0 0 1 .9.5L17.3 7h2.2A1.5 1.5 0 0 1 21 8.5v9A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="3.4"/></symbol>
+<symbol id="i-sound" viewBox="0 0 24 24"><path d="M11 5 6.5 9H3v6h3.5L11 19z"/><path d="M15.5 9.2a4 4 0 0 1 0 5.6"/><path d="M18.4 6.3a8 8 0 0 1 0 11.4"/></symbol>
 <symbol id="i-laptop" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="10" rx="1.5"/><path d="M2 19h20"/></symbol>
 <symbol id="i-bird" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" d="M15.6 3.2a3.9 3.9 0 0 0-3.9 3.9c0 .2 0 .4.1.6L4.1 12c-.5.3-.7.9-.4 1.4.2.4.6.6 1 .5l2.6-.5-2.4 6.3c-.2.5.1 1.1.6 1.3.5.2 1.1-.1 1.3-.6l1.3-3.5 2.6 3.7c.3.4 1 .5 1.4.2.4-.3.5-.9.2-1.4l-2.2-3.1 4.8-1c2.8-.6 4.8-3 4.8-5.9V6.4l1.6-1.7c.3-.3.2-.7-.2-.8l-1.9-.4a3.9 3.9 0 0 0-3.6-.3zm.7 3.2a.9.9 0 1 1 0 1.8.9.9 0 0 1 0-1.8z"/></symbol>
 <symbol id="i-window" viewBox="0 0 24 24">
@@ -672,7 +730,7 @@
     <span>macOS 14+</span>
     <span>Apple silicon &amp; Intel</span>
     <span>No telemetry</span>
-    <span>4 MB</span>
+    <span>2.5 MB download</span>
   </p>
 
   <div class="cta">
@@ -725,18 +783,20 @@
             <div class="pp-card">
               <div class="pp-row">
                 <svg class="ico"><use href="#i-laptop"/></svg>
-                <span class="pp-slider"><i style="width:100%"></i><b style="left:100%"></b></span>
-                <span class="num">100</span>
+                <span class="pp-slider" id="brightSlider" role="slider" tabindex="0"
+                      aria-label="Display brightness" aria-valuemin="0" aria-valuemax="100"
+                      aria-valuenow="100" aria-valuetext="100%"><i></i><b></b></span>
+                <span class="num" id="brightNum">100</span>
               </div>
               <div class="pp-row">
                 <svg class="ico"><use href="#i-moon"/></svg>
                 <span>Night Mode</span><span class="sp"></span>
-                <span class="pp-toggle" id="nightToggle" role="button" tabindex="0" aria-label="Night Mode"></span>
+                <span class="pp-toggle" id="nightToggle" role="switch" tabindex="0" aria-checked="false" aria-label="Night Mode"></span>
               </div>
             </div>
           </div>
           <div class="pp-foot">
-            <svg class="bird"><use href="#i-bird"/></svg><span>Perch 1.8.0 — up to date</span>
+            <svg class="bird"><use href="#i-bird"/></svg><span>Perch 1.9.1 — up to date</span>
             <span class="sp"></span><em>Check</em>
           </div>
         </div>
@@ -749,9 +809,11 @@
         <p class="row-num">02 — SYSTEM</p>
         <h3>Know what your Mac is doing</h3>
         <p>Click CPU and you get per-core load and the processes driving it,
-        helpers grouped under the app that owns them. Click GPU, memory, disk or
-        network and you get the same treatment for each. End a runaway process
-        without opening Activity Monitor, and pin any figure next to the clock.</p>
+        helpers grouped under the app that owns them. GPU, memory, disk, network
+        and sound each get the treatment that suits them — a ranked list where
+        ranking means something, plain figures where it does not. End a runaway
+        process without opening Activity Monitor, and pin any figure next to the
+        clock.</p>
         <div class="keys"><kbd>⌃⌥Space</kbd></div>
       </div>
       <div class="row-shot">
@@ -782,11 +844,11 @@
                       stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
               </svg>
             </div>
-            <p class="live-label" id="liveLabel">PER CORE</p>
+            <p class="live-label" id="liveLabel">BY CPU</p>
             <div class="live-rows" id="liveRows"></div>
           </div>
           <div class="pp-foot">
-            <svg class="bird"><use href="#i-bird"/></svg><span>Perch 1.8.0 — up to date</span>
+            <svg class="bird"><use href="#i-bird"/></svg><span>Perch 1.9.1 — up to date</span>
             <span class="sp"></span><em>Check</em>
           </div>
         </div>
@@ -828,7 +890,7 @@
             <div class="pp-card" id="switchCard"></div>
           </div>
           <div class="pp-foot">
-            <svg class="bird"><use href="#i-bird"/></svg><span>Perch 1.8.0 — up to date</span>
+            <svg class="bird"><use href="#i-bird"/></svg><span>Perch 1.9.1 — up to date</span>
             <span class="sp"></span><em>Check</em>
           </div>
         </div>
@@ -848,7 +910,7 @@
       <div class="cap"><svg class="ico"><use href="#i-layout"/></svg><div><b>Custom layouts</b><span>Five presets that tile your frontmost windows at once.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-switch"/></svg><div><b>Alt-Tab switcher</b><span>Live window previews, type to filter, close or quit inline.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-clipboard"/></svg><div><b>Clipboard history</b><span>Searchable, pinnable, with image previews and source apps.</span></div></div>
-      <div class="cap"><svg class="ico"><use href="#i-activity"/></svg><div><b>System monitoring</b><span>CPU, memory, disk, network, battery health, thermals.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-activity"/></svg><div><b>System monitoring</b><span>CPU, GPU, memory, disk, network, battery health, thermals.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-drive"/></svg><div><b>Disk cleaning</b><span>Sixteen cache targets plus your own. Always to the Trash.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-sparkle"/></svg><div><b>Screen cleaning</b><span>Flat colours that double as a dead-pixel test.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-keyboard"/></svg><div><b>Keyboard cleaning</b><span>Input locked on a countdown so you can wipe the keys.</span></div></div>
@@ -857,6 +919,7 @@
       <div class="cap"><svg class="ico"><use href="#i-download"/></svg><div><b>Updates install themselves</b><span>Perch replaces itself and restarts. The new build must be signed by the same key as the running one, or it is refused before anything moves.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-moon"/></svg><div><b>Night mode</b><span>6500K to 2400K via display gamma. Manual or scheduled.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-sun"/></svg><div><b>Brightness</b><span>Per display, including external monitors over any cable.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-sound"/></svg><div><b>Sound</b><span>Output level and mute, switch between outputs, and see which apps are actually making noise. No per-app sliders: macOS exposes no volume on a process, and the only way round it is shipping an audio driver.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-coffee"/></svg><div><b>Keep awake</b><span>Hold it open, or for 15 minutes to 8 hours with the time left on the row. It can start itself while plugged in, while an app runs, or while the CPU is busy, and let the display sleep while the machine works.</span></div></div>
     </div>
   </div>
@@ -982,7 +1045,7 @@ open -a Perch</pre>
         Needs Swift 6 and the macOS SDK. Command Line Tools are enough — full Xcode is not required.
       </p>
       <pre>git clone https://github.com/ishanmalu/Perch.git
-cd perch
+cd Perch
 Scripts/install.sh</pre>
       <p style="margin-top:16px;color:var(--muted);font-size:14.4px">
         Builds, runs the self-test, installs to <code>/Applications</code> and launches it.
@@ -999,7 +1062,7 @@ Scripts/install.sh</pre>
     <div class="caps">
       <div class="cap"><svg class="ico"><use href="#i-keylock"/></svg><div><b>Keystrokes are counted, never recorded</b><span>The cleaning modes discard every event they swallow. Key codes are never stored or logged.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-lock"/></svg><div><b>Clipboard history stays local</b><span>Owner-only permissions. Password managers and credential-shaped strings are skipped.</span></div></div>
-      <div class="cap"><svg class="ico"><use href="#i-nonet"/></svg><div><b>Two network features, both manual</b><span>The update check talks to GitHub. The speed test fetches a block of bytes from Cloudflare when you press Run. Nothing else opens a socket.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-nonet"/></svg><div><b>Every network call is one you asked for</b><span>Checking for an update, and downloading it, talk to GitHub. The speed test fetches a block of bytes from Cloudflare when you press Run. Nothing else opens a socket.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-shield"/></svg><div><b>Disk cleaning cannot go rogue</b><span>A path guard rejects system and home directories. Removal is always to the Trash.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-window"/></svg><div><b>Accessibility reads geometry, not content</b><span>Window positions, sizes, titles and app names. Never what is inside a window.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-switch"/></svg><div><b>Window previews are optional</b><span>Captured only while the switcher is open, held in memory, never written to disk.</span></div></div>
@@ -1009,7 +1072,8 @@ Scripts/install.sh</pre>
       Every release ships a checksum, and you can run the built-in checks yourself with
       <code>Perch --selftest</code>.
     </p>
-  </section>
+  </div>
+</section>
 
 <footer>
   <div class="wrap">
@@ -1052,28 +1116,54 @@ Scripts/install.sh</pre>
 
 <script>
 /* Animated System panel. Mirrors what the app's System tab does — cycles
-   through each metric, moves the trace, and updates the rows underneath.
-   The figures are illustrative, not a reading of the visitor's machine. */
+   through each metric, moves the trace, and updates the detail underneath.
+   The figures are illustrative, not a reading of the visitor's machine.
+
+   Not every metric is a ranked list of bars. In the app only CPU and memory
+   rank processes; GPU and disk are value rows, network is two right-aligned
+   columns, and sound lists what is audible. Each shape is drawn as it really
+   is rather than forced into bars. */
 (function () {
   var root = document.getElementById('live');
   if (!root) return;
 
+  function pct(v)  { return Math.round(v) + '%'; }
+  function rate(v) { return (v / 25).toFixed(1) + ' MB/s'; }
+
   var METRICS = [
-    { key: 'CPU',  tint: '#3b82f6', label: 'BY CPU',     base: 22, swing: 9,
-      unit: '%', sub: '10 cores',
-      rows: ['System', 'Safari', 'Spotify', 'Finder'] },
-    { key: 'GPU',  tint: '#f43f5e', label: 'BY GPU',     base: 18, swing: 11,
-      unit: '%', sub: 'Apple silicon',
-      rows: ['WindowServer', 'Safari', 'Spotify'] },
-    { key: 'Mem',  tint: '#a855f7', label: 'BY MEMORY',  base: 58, swing: 5,
-      unit: '%', sub: '16 GB',
-      rows: ['Safari', 'Spotify', 'Finder', 'Mail'] },
-    { key: 'Disk', tint: '#f59e0b', label: 'THROUGHPUT', base: 24, swing: 13,
-      unit: ' MB/s', sub: 'read + write',
-      rows: ['Read', 'Write'] },
-    { key: 'Net',  tint: '#14b8a6', label: 'INTERFACES', base: 30, swing: 15,
-      unit: ' KB/s', sub: '3 active',
-      rows: ['Wi-Fi', 'Ethernet', 'AirDrop'] }
+    { key: 'CPU', tint: '#3b82f6', base: 26, swing: 16, spark: true,
+      sub: 'of 10 cores', head: pct, label: 'BY CPU', type: 'bars',
+      items: [{ n: 'System' }, { n: 'Safari' }, { n: 'Spotify' }, { n: 'Finder' }] },
+
+    // The app's GPU tab is the renderer and its thermal state. There is no
+    // per-process GPU breakdown in Perch, so none is drawn here.
+    { key: 'GPU', tint: '#ec4899', base: 34, swing: 22, spark: true,
+      sub: 'Apple M2 Pro', head: pct, label: '', type: 'info',
+      items: [{ n: 'Renderer', v: 'Apple M2 Pro' },
+              { n: 'Thermal', v: 'Nominal', tone: 'good' }] },
+
+    { key: 'Mem', tint: '#22c55e', base: 61, swing: 9, spark: true,
+      sub: 'of 16 GB', head: function (v) { return (v / 100 * 16).toFixed(1) + ' GB'; },
+      label: 'BY MEMORY', type: 'bars',
+      items: [{ n: 'Safari' }, { n: 'Spotify' }, { n: 'Finder' }, { n: 'Mail' }] },
+
+    { key: 'Disk', tint: '#f59e0b', base: 30, swing: 24, spark: true,
+      sub: 'free of 1 TB', head: function () { return '562 GB'; },
+      label: '', type: 'info',
+      items: [{ n: 'Read', live: 1 }, { n: 'Write', live: 0.6 },
+              { n: 'Used', v: '438 GB' }, { n: 'Capacity', v: '1 TB' }] },
+
+    { key: 'Net', tint: '#14b8a6', base: 38, swing: 26, spark: true,
+      sub: '3 active', head: rate, label: 'INTERFACES', type: 'net',
+      items: [{ n: 'Wi-Fi', live: 1 }, { n: 'Ethernet', live: 0.35 },
+              { n: 'AirDrop', live: 0.08 }] },
+
+    // Volume is a setting rather than a measurement, so there is no trace to
+    // draw — the app omits the graph on this tab too.
+    { key: 'Sound', tint: '#6366f1', spark: false,
+      sub: 'MacBook Pro Speakers', head: function () { return '70%'; },
+      label: 'PLAYING NOW', type: 'play',
+      items: [{ n: 'Spotify' }, { n: 'Safari' }] }
   ];
 
   var tabsEl  = document.getElementById('liveTabs');
@@ -1088,7 +1178,13 @@ Scripts/install.sh</pre>
     var el = document.createElement('div');
     el.className = 'live-tab';
     el.textContent = m.key;
+    el.setAttribute('role', 'tab');
+    el.setAttribute('tabindex', '0');
+    el.setAttribute('aria-selected', 'false');
     el.addEventListener('click', function () { select(i, true); });
+    el.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(i, true); }
+    });
     tabsEl.appendChild(el);
     return el;
   });
@@ -1098,7 +1194,7 @@ Scripts/install.sh</pre>
   var SPEED = 0.45;        // wave units per second
   var TEXT_EVERY = 1.5;    // seconds between readout updates
   var current = 0, hold = false, t = 0, lastFrame = 0, sinceText = TEXT_EVERY;
-  var history = [], bars = [];
+  var history = [], parts = [];
 
   // Weighted toward the slow term: the fast one only adds a little texture,
   // otherwise the readout jitters instead of drifting.
@@ -1108,29 +1204,73 @@ Scripts/install.sh</pre>
          + Math.sin(x * 0.37 + seed) * 0.10;
   }
 
+  function row() {
+    var el = document.createElement('div');
+    el.className = 'live-row';
+    rowsEl.appendChild(el);
+    return el;
+  }
+
   function buildRows(m) {
     rowsEl.innerHTML = '';
-    bars = m.rows.map(function (name, i) {
-      var row = document.createElement('div');
-      row.className = 'live-row';
-      row.innerHTML = '<span class="nm">' + name + '</span>' 
-        + '<span class="live-bar"><i></i></span><span class="pc"></span>';
-      rowsEl.appendChild(row);
-      return { fill: row.querySelector('i'), pc: row.querySelector('.pc'),
-               seed: i * 1.9, value: m.base,
-               // Rows read as a ranked list, the way the app sorts them.
-               rank: 1 - i * 0.24 };
-    });
+    parts = [];
+
+    if (m.type === 'bars') {
+      m.items.forEach(function (item, i) {
+        var el = row();
+        el.innerHTML = '<span class="nm"></span><span class="live-bar"><i></i></span>'
+                     + '<span class="pc"></span>';
+        el.querySelector('.nm').textContent = item.n;
+        parts.push({ kind: 'bar', fill: el.querySelector('i'), out: el.querySelector('.pc'),
+                     seed: i * 1.9, value: m.base,
+                     // Rows read as a ranked list, the way the app sorts them.
+                     rank: 1 - i * 0.24 });
+      });
+
+    } else if (m.type === 'info') {
+      m.items.forEach(function (item, i) {
+        var el = row();
+        el.innerHTML = '<span class="nm"></span><span class="val"></span>';
+        el.querySelector('.nm').textContent = item.n;
+        var out = el.querySelector('.val');
+        if (item.tone) out.classList.add(item.tone);
+        if (item.live) parts.push({ kind: 'rate', out: out, seed: i * 2.3, scale: item.live });
+        else out.textContent = item.v;
+      });
+
+    } else if (m.type === 'net') {
+      m.items.forEach(function (item, i) {
+        var el = row();
+        el.innerHTML = '<span class="nm"></span><span class="col"></span>'
+                     + '<span class="col up"></span>';
+        el.querySelector('.nm').textContent = item.n;
+        var cols = el.querySelectorAll('.col');
+        parts.push({ kind: 'pair', down: cols[0], up: cols[1],
+                     seed: i * 2.7, scale: item.live });
+      });
+      var head = row();
+      head.className = 'live-row live-colhead';
+      head.innerHTML = '<span>down</span><span>up</span>';
+
+    } else if (m.type === 'play') {
+      m.items.forEach(function (item) {
+        var el = row();
+        el.innerHTML = '<span class="dot">▸</span><span class="nm"></span>'
+                     + '<span class="val">audible</span>';
+        el.querySelector('.nm').textContent = item.n;
+      });
+    }
   }
 
   var mName = document.getElementById('metricName');
   var mDesc = document.getElementById('metricDesc');
   var COPY = {
-    CPU:  ['CPU', '⌃⌥Space', 'Per-core load with the processes driving it, helpers grouped under the app that owns them.'],
-    GPU:  ['GPU', '⌃⌥Space', 'Utilisation read from IOAccelerator, alongside the renderer and its thermal state.'],
-    Mem:  ['Memory', '⌃⌥Space', 'Pressure and swap, and which apps hold the pages. Footprints are per app, not per helper.'],
-    Disk: ['Disk', '⌃⌥Space', 'Read and write throughput from IOBlockStorageDriver, with free space against capacity.'],
-    Net:  ['Network', '⌃⌥Space', 'Throughput per interface, the Wi-Fi link rate and signal, and a speed test you can run.']
+    CPU:   ['CPU', 'Per-core load with the processes driving it, helpers grouped under the app that owns them.'],
+    GPU:   ['GPU', 'Utilisation read from IOAccelerator, with the renderer and its thermal state.'],
+    Mem:   ['Memory', 'Pressure and swap, and which apps hold the pages. Footprints are per app, not per helper.'],
+    Disk:  ['Disk', 'Read and write throughput from IOBlockStorageDriver, with free space against capacity.'],
+    Net:   ['Network', 'Throughput per interface, the Wi-Fi link rate and signal, and a speed test you can run.'],
+    Sound: ['Sound', 'Output level, which device it is going to, and what is currently audible. There are no per-app sliders because macOS has none to offer.']
   };
 
   function select(i, manual) {
@@ -1138,49 +1278,63 @@ Scripts/install.sh</pre>
     if (manual) hold = true;
     var m = METRICS[i];
     root.style.setProperty('--mtint', m.tint);
-    tabEls.forEach(function (el, k) { el.classList.toggle('on', k === i); });
+    root.classList.toggle('no-spark', !m.spark);
+    tabEls.forEach(function (el, k) {
+      el.classList.toggle('on', k === i);
+      el.setAttribute('aria-selected', String(k === i));
+    });
     labelEl.textContent = m.label;
+    labelEl.hidden = !m.label;
     subEl.textContent = m.sub;
     if (mName && COPY[m.key]) {
-      mName.innerHTML = COPY[m.key][0] + '<kbd>' + COPY[m.key][1] + '</kbd>';
-      mDesc.textContent = COPY[m.key][2];
+      mName.innerHTML = COPY[m.key][0] + '<kbd>⌃⌥Space</kbd>';
+      mDesc.textContent = COPY[m.key][1];
     }
     // Pre-fill the trace, otherwise switching metric shows it drawing in.
     history = [];
-    for (var k = 0; k < 64; k++) {
-      history.push(Math.max(2, Math.min(100,
-        m.base + wave(t + (k - 64) * (SPEED / 27), i * 3) * m.swing)));
+    if (m.spark) {
+      for (var k = 0; k < 64; k++) {
+        history.push(Math.max(2, Math.min(100,
+          m.base + wave(t + (k - 64) * (SPEED / 27), i * 3) * m.swing)));
+      }
     }
     buildRows(m);
     // Force the headline to redraw on the next frame; otherwise it keeps the
-    // previous metric's number and unit until the next text tick.
-    sinceText = TEXT_EVERY;
+    // previous metric's number until the next text tick.
+    sinceText = 0;
+    draw();
   }
 
-  function frame(now) {
+  /* One frame of everything that is not the trace. Split out so the
+     reduced-motion path can render a complete panel without animating —
+     it used to leave the graph with no path at all. */
+  function draw() {
     var m = METRICS[current];
-    var dt = lastFrame ? Math.min(0.25, (now - lastFrame) / 1000) : 0;
-    lastFrame = now;
-    t += dt * SPEED;
-    sinceText += dt;
+    var v = m.spark
+      ? Math.max(2, Math.min(100, m.base + wave(t, current * 3) * m.swing))
+      : m.base || 0;
+    valEl.textContent = m.head(v);
 
-    var v = Math.max(2, Math.min(100, m.base + wave(t, current * 3) * m.swing));
-    history.push(v);
-    if (history.length > 64) history.shift();
+    parts.forEach(function (p) {
+      if (p.kind === 'bar') {
+        p.out.textContent = Math.round(p.value) + '%';
+      } else if (p.kind === 'rate') {
+        p.out.textContent = rate(Math.max(2, m.base + wave(t * 0.5, p.seed) * m.swing) * p.scale);
+      } else if (p.kind === 'pair') {
+        var d = Math.max(1, m.base + wave(t * 0.5, p.seed) * m.swing) * p.scale;
+        p.down.textContent = rate(d);
+        p.up.textContent = rate(d * 0.22);
+      }
+    });
+    return v;
+  }
 
-    // Text updates a few times a second; at 60fps the digits would flicker.
-    if (sinceText >= TEXT_EVERY) {
-      sinceText = 0;
-      valEl.textContent = (m.unit === '%' ? Math.round(v) : (v / 4).toFixed(1)) + m.unit;
-      bars.forEach(function (b) {
-        b.pc.textContent = (m.unit === '%' ? Math.round(b.value)
-                                           : (b.value / 4).toFixed(1)) + m.unit;
-      });
-    }
-
+  function drawSpark() {
     // Trace across a fixed 260x46 viewBox, scaled to the range actually in
     // view. A fixed 0-100 axis flattens metrics that sit in a narrow band.
-    var n = history.length, d = '', step = 260 / 63;
+    var n = history.length;
+    if (!n) { lineEl.removeAttribute('d'); fillEl.removeAttribute('d'); return; }
+    var d = '', step = 260 / 63;
     var lo = Math.min.apply(null, history), hi = Math.max.apply(null, history);
     var pad = Math.max(2, (hi - lo) * 0.25);
     lo -= pad; hi += pad;
@@ -1195,13 +1349,30 @@ Scripts/install.sh</pre>
       var lastX = (n - 1 + (64 - n)) * step, firstX = (64 - n) * step;
       fillEl.setAttribute('d', d + 'L' + lastX.toFixed(1) + ' 46L' + firstX.toFixed(1) + ' 46Z');
     }
+  }
 
-    bars.forEach(function (b) {
-      var bv = Math.max(2, Math.min(100,
-        (m.base + wave(t * 0.4, b.seed) * m.swing * 1.3) * b.rank));
-      b.value = bv;
-      b.fill.style.width = bv.toFixed(1) + '%';
+  function frame(now) {
+    var m = METRICS[current];
+    var dt = lastFrame ? Math.min(0.25, (now - lastFrame) / 1000) : 0;
+    lastFrame = now;
+    t += dt * SPEED;
+    sinceText += dt;
+
+    if (m.spark) {
+      history.push(Math.max(2, Math.min(100, m.base + wave(t, current * 3) * m.swing)));
+      if (history.length > 64) history.shift();
+      drawSpark();
+    }
+
+    parts.forEach(function (p) {
+      if (p.kind !== 'bar') return;
+      p.value = Math.max(2, Math.min(100,
+        (m.base + wave(t * 0.4, p.seed) * m.swing * 1.3) * p.rank));
+      p.fill.style.width = p.value.toFixed(1) + '%';
     });
+
+    // Text updates a few times a second; at 60fps the digits would flicker.
+    if (sinceText >= TEXT_EVERY) { sinceText = 0; draw(); }
 
     requestAnimationFrame(frame);
   }
@@ -1209,14 +1380,16 @@ Scripts/install.sh</pre>
   select(0);
 
   if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    // Draw one static frame and stop.
-    var m0 = METRICS[0];
-    valEl.textContent = Math.round(m0.base) + m0.unit;
-    bars.forEach(function (b, i) {
-      var bv = m0.base + wave(1 + i, b.seed) * m0.swing;
-      b.fill.style.width = bv.toFixed(1) + '%';
-      b.pc.textContent = Math.round(bv) + m0.unit;
+    // One complete static frame — trace included — and stop.
+    t = 1;
+    parts.forEach(function (p) {
+      if (p.kind !== 'bar') return;
+      p.value = Math.max(2, Math.min(100, (METRICS[0].base
+        + wave(t * 0.4, p.seed) * METRICS[0].swing * 1.3) * p.rank));
+      p.fill.style.width = p.value.toFixed(1) + '%';
     });
+    draw();
+    drawSpark();
   } else {
     requestAnimationFrame(frame);
     setInterval(function () {
@@ -1315,17 +1488,94 @@ Scripts/install.sh</pre>
 
     var night = document.getElementById('nightToggle');
     if (night) {
+      var warmLayers = [document.getElementById('warmer'),
+                        document.getElementById('warmLift')];
       function flip(){
         night.classList.toggle('on');
+        var on = night.classList.contains('on');
+        night.setAttribute('aria-checked', String(on));
+        warmLayers.forEach(function (el) {
+          if (el) el.style.opacity = on ? '0.34' : '0';
+        });
         wName.innerHTML = 'Night Mode<kbd>⌃⌥N</kbd>';
-        wDesc.textContent = night.classList.contains('on')
-          ? 'Warming the display by shifting the gamma ramps, the way f.lux does. No overlay window, so screenshots are unaffected.'
+        wDesc.textContent = on
+          ? 'On — and warming this page, so you can see it. In the app it shifts the gamma ramps the way f.lux does, with no overlay window, so screenshots are unaffected.'
           : 'Off. Night Mode warms the display by shifting the gamma ramps rather than covering the screen.';
       }
       night.addEventListener('click', flip);
       night.addEventListener('keydown', function(e){
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); }
       });
+    }
+
+    /* ---- Brightness: the slider dims the page it is sitting on ----
+       Perch dims a display it has no backlight control over by floating a
+       black overlay above everything, click-through, never past 0.85 so the
+       slider stays visible (Brightness.swift). Same mechanism here. */
+    var slider = document.getElementById('brightSlider');
+    var numEl  = document.getElementById('brightNum');
+    var dimmer = document.getElementById('dimmer');
+    if (slider && numEl && dimmer) {
+      var MAX_DIM = 0.85;
+      var fillEl = slider.querySelector('i'), knobEl = slider.querySelector('b');
+      var level = 1;
+
+      function paintBright() {
+        var pct = Math.round(level * 100);
+        fillEl.style.width = (level * 100) + '%';
+        knobEl.style.left  = (level * 100) + '%';
+        numEl.textContent = pct;
+        slider.setAttribute('aria-valuenow', pct);
+        slider.setAttribute('aria-valuetext', pct + '%');
+        dimmer.style.opacity = ((1 - level) * MAX_DIM).toFixed(3);
+      }
+
+      // No global shortcut reaches brightness, so it is tagged like the other
+      // panel-only actions rather than given a key it does not have.
+      function describeBright() {
+        wTiles.forEach(function (t) { t.classList.remove('on'); });
+        wName.innerHTML = 'Brightness' + keyTag('panel');
+        wDesc.textContent = level === 1
+          ? 'Every display on one slider, external monitors included. Drag it — this one really does dim the page.'
+          : 'At ' + Math.round(level * 100) + '%. A built-in display moves its actual backlight; anything else is dimmed with an overlay, which is what you are looking at.';
+      }
+
+      function fromPointer(e) {
+        var r = slider.getBoundingClientRect();
+        if (r.width <= 0) return;
+        level = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+        paintBright(); describeBright();
+      }
+
+      slider.addEventListener('pointerdown', function (e) {
+        e.preventDefault();
+        slider.classList.add('drag');
+        slider.focus();
+        try { slider.setPointerCapture(e.pointerId); } catch (err) {}
+        fromPointer(e);
+      });
+      slider.addEventListener('pointermove', function (e) {
+        // Only track once captured, otherwise a plain hover moves the slider.
+        if (slider.classList.contains('drag')) fromPointer(e);
+      });
+      // pointerup and pointercancel both end a drag; a lost capture would
+      // otherwise leave the track following the cursor forever.
+      ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (ev) {
+        slider.addEventListener(ev, function () { slider.classList.remove('drag'); });
+      });
+
+      var STEP = { ArrowLeft: -0.05, ArrowDown: -0.05, ArrowRight: 0.05, ArrowUp: 0.05,
+                   PageDown: -0.2, PageUp: 0.2 };
+      slider.addEventListener('keydown', function (e) {
+        var d = STEP[e.key];
+        if (d === undefined && e.key !== 'Home' && e.key !== 'End') return;
+        e.preventDefault();
+        level = e.key === 'Home' ? 0 : e.key === 'End' ? 1
+              : Math.min(1, Math.max(0, level + d));
+        paintBright(); describeBright();
+      });
+
+      paintBright();
     }
   }
 
