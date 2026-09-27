@@ -9,7 +9,7 @@
 Window tiling · Clipboard history · Alt-Tab switcher · System monitoring
 Night mode · Disk cleaning · Screen, keyboard and trackpad cleaning
 
-[**Website**](https://ishanmalu.github.io/Perch/) · [**Download**](../../releases/latest) · [Changelog](CHANGELOG.md) · [Security](SECURITY.md)
+[**Website**](https://perch.ishanmalu.dev/) · [**Download**](../../releases/latest) · [Changelog](CHANGELOG.md) · [Security](SECURITY.md)
 
 [![CI](https://github.com/ishanmalu/Perch/actions/workflows/ci.yml/badge.svg)](https://github.com/ishanmalu/Perch/actions/workflows/ci.yml)
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black)
@@ -37,7 +37,7 @@ universal — Apple silicon and Intel — and about 6 MB.
 ### One command
 
 ```bash
-curl -fsSL https://ishanmalu.github.io/Perch/install.sh | bash
+curl -fsSL https://perch.ishanmalu.dev/install.sh | bash
 ```
 
 Fetches the latest release, checks it against the published checksum, installs
@@ -48,7 +48,7 @@ Piping a script into a shell means trusting it, which is a fair thing to be
 wary of. Read it first if you would rather:
 
 ```bash
-curl -fsSL https://ishanmalu.github.io/Perch/install.sh -o install.sh
+curl -fsSL https://perch.ishanmalu.dev/install.sh -o install.sh
 less install.sh && bash install.sh
 ```
 

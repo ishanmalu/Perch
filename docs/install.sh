@@ -2,7 +2,7 @@
 #
 # Installs the latest Perch release.
 #
-#   curl -fsSL https://ishanmalu.github.io/Perch/install.sh | bash
+#   curl -fsSL https://perch.ishanmalu.dev/install.sh | bash
 #
 # Perch is signed but not notarized, because notarizing needs a paid Apple
 # Developer account. macOS therefore quarantines the download and blocks the
@@ -13,7 +13,7 @@
 # It asks for no privileges and touches nothing outside the app itself. If you
 # would rather read it before running it, that is the better habit:
 #
-#   curl -fsSL https://ishanmalu.github.io/Perch/install.sh -o install.sh
+#   curl -fsSL https://perch.ishanmalu.dev/install.sh -o install.sh
 #   less install.sh && bash install.sh
 #
 set -euo pipefail
