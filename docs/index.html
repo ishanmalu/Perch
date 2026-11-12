@@ -6,6 +6,9 @@
 <title>Perch — every Mac utility you keep installing, in one menu</title>
 <meta name="description" content="A free, open-source macOS menu bar utility: display resolution and refresh rate, monitor brightness, window tiling and snapping, workspaces, screen recording, screenshots and markup, clipboard history and snippets, focus timer, battery health, app uninstaller, system monitoring and more.">
 <link rel="icon" href="perch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&family=Inter+Tight:wght@500..800&display=swap" rel="stylesheet">
 <meta property="og:title" content="Perch — a dozen Mac utilities in one place">
 <meta property="og:description" content="Window tiling, screenshots, clipboard history, Alt-Tab, system monitoring, night mode and cleaning modes — free and open source.">
 <meta property="og:image" content="https://perch.ishanmalu.dev/perch-icon.png">
@@ -49,8 +52,15 @@
     margin: 0;
     background: var(--bg);
     color: var(--text);
-    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, system-ui, sans-serif;
+    /* Inter everywhere, so the page reads the same on every platform; Inter
+       Tight for headlines, where the extra density looks like Apple's display
+       type. cv11 gives the single-storey a, ss01 the open digits. */
+    font: 16px/1.6 Inter, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-feature-settings: "cv11", "ss01", "ss03";
+    font-optical-sizing: auto;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
   .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
   a { color: var(--accent); text-decoration: none; }
@@ -173,7 +183,14 @@
     .tiling i:nth-child(3) { display: none; }
   }
 
-  /* ---------- Perch 2 hero ---------- */
+  /* ---------- hero ---------- */
+  h1, h2, h3, .eyebrow, nav b {
+    font-family: "Inter Tight", Inter, -apple-system, system-ui, sans-serif;
+  }
+  h1 { font-weight: 720 !important; letter-spacing: -.03em !important; word-spacing: .04em; }
+  h2 { font-weight: 700 !important; letter-spacing: -.026em !important; }
+  h3 { font-weight: 660 !important; letter-spacing: -.018em !important; }
+  .lede, .section-sub { letter-spacing: -.008em; }
   .hero-icon {
     width: 132px; height: 132px; margin: 0 auto 22px; display: block;
     filter: drop-shadow(0 18px 30px rgba(20, 40, 90, .22)) drop-shadow(0 3px 6px rgba(0,0,0,.08));
@@ -881,7 +898,7 @@
 
 <header class="wrap">
   <img class="hero-icon" src="perch-icon.png" alt="Perch app icon" width="132" height="132">
-  <p class="eyebrow">Perch 2</p>
+  <p class="eyebrow">Perch</p>
   <h1>Everything your menu bar was missing.</h1>
   <p class="lede">
     Displays, windows, recording, focus, battery and a dozen more utilities
@@ -910,7 +927,7 @@
 
 <section id="new" class="new">
   <div class="wrap">
-    <p class="eyebrow">New in Perch 2</p>
+    <p class="eyebrow">New in Perch</p>
     <h2>Twelve new reasons to keep it open.</h2>
     <p class="section-sub">Built from the apps people pay for separately — display managers,
     menu bar organisers, screen recorders, uninstallers — and folded into the one you already have.</p>
