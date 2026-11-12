@@ -4,6 +4,44 @@ All notable changes to Perch. Versions follow [semver](https://semver.org),
 and each heading below corresponds to a published
 [release](https://github.com/ishanmalu/Perch/releases).
 
+## [1.10.0] — 2026-11-12
+
+The biggest release yet: utilities you would otherwise install one by one.
+
+### Added
+- **Display modes.** Resolution and refresh rate for every display, HiDPI modes
+  included, from the panel or Settings. A 15-second Keep or Revert undoes a mode
+  the display can't show. Scaled modes that can't reach half the display's top
+  rate (a 30 Hz "HiDPI" mode on a 144 Hz monitor) are kept out of the list.
+- **Display presets** that remember each display's mode, brightness and
+  position, and can apply themselves when the same monitors connect.
+- **Arrangement:** make any display main, place it beside the main one, mirror.
+- **Hardware monitor controls over DDC** on Apple silicon — brightness,
+  contrast, volume and input — falling back to software dimming where a monitor
+  or adapter doesn't answer.
+- **Extra brightness** past 100% using the HDR headroom on XDR and HDR screens.
+- **Drag-to-edge window snapping** with a live preview: halves, fill, quarters.
+- **Workspaces** that save every open app and window position, reopen what's
+  missing on restore, and can restore themselves when you dock.
+- **Menu bar icon hider** — a chevron and a divider; ⌘-drag icons past it.
+- **Focus timer** with the countdown beside the menu bar icon, optional Do Not
+  Disturb through Shortcuts, and your **next meeting** with a Join button.
+- **Battery health** — capacity against design, cycles, condition — and a
+  **charge limit** on Macs whose firmware exposes a charging switch.
+- **App uninstaller** that finds an app's leftovers by exact bundle identifier
+  and moves everything to the Trash.
+- **Microphone switching** in the Sound panel.
+- **Snippets:** typed triggers that expand to saved text, with `{date}`,
+  `{time}` and `{clipboard}`. Never active while macOS has Secure Input on.
+- **Screen recording** of a region to MP4 or GIF (`⌃⌥⇧4`, then R), stopped
+  from the menu bar, and **markup** — arrows, boxes, highlighter, pixelate —
+  from the overlay (A) or a pinned shot's right-click.
+- Shortcuts `⌃⌥⇧P` (focus) and `⌃⌥⇧B` (menu bar icons).
+
+### Changed
+- Settings is a sidebar now, one colour per section, matching the panel.
+- The homepage has a new hero and a section for everything above.
+
 ## [1.9.2] — 2026-09-04
 
 ### Added

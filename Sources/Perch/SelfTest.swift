@@ -168,6 +168,10 @@ enum SelfTest {
         expect(DM.rateLabel(59.94) == "59.94 Hz" && DM.rateLabel(120) == "120 Hz",
                "fractional rates keep their decimals")
 
+        print("\nVersion ordering")
+        expect(Updater.isNewer("1.10.0", than: "1.9.2"), "1.10.0 is newer than 1.9.2, not older")
+        expect(!Updater.isNewer("1.9.2", than: "1.10.0"), "and never the other way round")
+
         print("\nDisplay presets and arrangement")
         let kA = DisplayKey(vendor: 1, model: 2, serial: 3), kB = DisplayKey(vendor: 4, model: 5, serial: 6)
         let entry = { (k: DisplayKey) in DisplayPreset.Entry(key: k, name: "", mode: nil, brightness: 1, origin: .zero) }
