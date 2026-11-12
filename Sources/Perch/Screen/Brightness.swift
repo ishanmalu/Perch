@@ -16,6 +16,8 @@ final class BrightnessController: ObservableObject {
         var name: String
         var isBuiltin: Bool
         var level: Double     // 0...1 — real backlight, or 1 - overlay opacity
+        /// External monitor answering DDC, so the slider drives its backlight.
+        var hardware = false
     }
 
     @Published private(set) var displays: [Display] = []
@@ -50,7 +52,8 @@ final class BrightnessController: ObservableObject {
         for screen in NSScreen.screens {
             guard let id = screen.displayID else { continue }
             let builtin = CGDisplayIsBuiltin(id) != 0
-            list.append(Display(id: id, name: screen.localizedName, isBuiltin: builtin, level: level(for: id)))
+            list.append(Display(id: id, name: screen.localizedName, isBuiltin: builtin,
+                                level: level(for: id), hardware: !builtin && DDC.shared.supports(id)))
         }
         displays = list
     }
@@ -60,12 +63,23 @@ final class BrightnessController: ObservableObject {
             var v: Float = 0
             if get(id, &v) == 0 { return Double(v) }
         }
+        if CGDisplayIsBuiltin(id) == 0, DDC.shared.supports(id),
+           let hw = DDC.shared.cachedLevel(.brightness, for: id) {
+            return hw
+        }
         return 1 - (dimAmount[id] ?? 0)
     }
 
     func setLevel(_ value: Double, for id: CGDirectDisplayID) {
         let v = min(1, max(0, value))
         if CGDisplayIsBuiltin(id) != 0, let set = setBrightness, set(id, Float(v)) == 0 {
+            updateCache(id, v)
+            return
+        }
+        if CGDisplayIsBuiltin(id) == 0, DDC.shared.supports(id) {
+            // Real backlight: drop any software dimming left from before.
+            setOverlayDim(0, for: id)
+            DDC.shared.writeLevel(.brightness, v, for: id)
             updateCache(id, v)
             return
         }

@@ -3,9 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Perch — a dozen Mac utilities in one place</title>
-<meta name="description" content="A free, open-source macOS menu bar utility: window tiling, screenshots, clipboard history, Alt-Tab switcher, system and sound monitoring, night mode, disk cleaning, and screen, keyboard and trackpad cleaning.">
+<title>Perch — every Mac utility you keep installing, in one menu</title>
+<meta name="description" content="A free, open-source macOS menu bar utility: display resolution and refresh rate, monitor brightness, window tiling and snapping, workspaces, screen recording, screenshots and markup, clipboard history and snippets, focus timer, battery health, app uninstaller, system monitoring and more.">
 <link rel="icon" href="perch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&family=Inter+Tight:wght@500..800&display=swap" rel="stylesheet">
 <meta property="og:title" content="Perch — a dozen Mac utilities in one place">
 <meta property="og:description" content="Window tiling, screenshots, clipboard history, Alt-Tab, system monitoring, night mode and cleaning modes — free and open source.">
 <meta property="og:image" content="https://perch.ishanmalu.dev/perch-icon.png">
@@ -49,8 +52,15 @@
     margin: 0;
     background: var(--bg);
     color: var(--text);
-    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, system-ui, sans-serif;
+    /* Inter everywhere, so the page reads the same on every platform; Inter
+       Tight for headlines, where the extra density looks like Apple's display
+       type. cv11 gives the single-storey a, ss01 the open digits. */
+    font: 16px/1.6 Inter, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-feature-settings: "cv11", "ss01", "ss03";
+    font-optical-sizing: auto;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
   .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
   a { color: var(--accent); text-decoration: none; }
@@ -172,6 +182,153 @@
     .tiling i:nth-child(2) { left: 80px; width: 69px; opacity: .9; }
     .tiling i:nth-child(3) { display: none; }
   }
+
+  /* ---------- hero ---------- */
+  h1, h2, h3, .eyebrow, nav b {
+    font-family: "Inter Tight", Inter, -apple-system, system-ui, sans-serif;
+  }
+  h1 { font-weight: 720 !important; letter-spacing: -.03em !important; word-spacing: .04em; }
+  h2 { font-weight: 700 !important; letter-spacing: -.026em !important; }
+  h3 { font-weight: 660 !important; letter-spacing: -.018em !important; }
+  .lede, .section-sub { letter-spacing: -.008em; }
+  .hero-icon {
+    width: 132px; height: 132px; margin: 0 auto 22px; display: block;
+    filter: drop-shadow(0 18px 30px rgba(20, 40, 90, .22)) drop-shadow(0 3px 6px rgba(0,0,0,.08));
+    animation: icon-in .9s cubic-bezier(.2,.8,.2,1) both;
+  }
+  @keyframes icon-in { from { opacity: 0; transform: translateY(10px) scale(.94); } }
+  .eyebrow {
+    font-size: 15px; font-weight: 600; letter-spacing: -.005em; margin: 0 0 10px;
+    background: linear-gradient(90deg, #2f6df6, #7c4dff 55%, #e0428d);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  header .eyebrow { text-align: center; }
+  @media (prefers-reduced-motion: reduce) { .hero-icon { animation: none; } }
+
+  /* ---------- what's new bento ---------- */
+  section.new { padding-top: 40px; }
+  section.new .eyebrow, section.new h2 { text-align: center; }
+  section.new h2 { font-size: clamp(28px, 4.2vw, 44px); letter-spacing: -.03em; line-height: 1.1; }
+  .bento { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+  .b {
+    position: relative; overflow: hidden;
+    background: var(--card); border: 1px solid var(--line); border-radius: 26px;
+    padding: 30px 30px 0; box-shadow: var(--shadow);
+    display: flex; flex-direction: column;
+  }
+  .b h3 { font-size: clamp(20px, 2.3vw, 25px); letter-spacing: -.022em; line-height: 1.18; margin: 14px 0 10px; font-weight: 680; }
+  .b p { color: var(--muted); font-size: 15px; line-height: 1.58; margin: 0 0 22px; }
+  .b-tag {
+    display: inline-flex; align-items: center; gap: 7px; align-self: flex-start;
+    font-size: 12.5px; font-weight: 650; color: var(--t);
+    padding: 5px 11px 5px 8px; border-radius: 99px;
+    background: color-mix(in srgb, var(--t) 12%, transparent);
+  }
+  .b-tag svg.ico { width: 15px; height: 15px; }
+  .b-wide { grid-column: 1 / -1; display: grid; grid-template-columns: .82fr 1.18fr; gap: 26px; padding: 40px 0 0 40px; align-items: end; }
+  .b-wide .b-text { padding-bottom: 40px; align-self: center; }
+  .b-rev { grid-template-columns: 1.18fr .82fr; padding: 40px 40px 0 0; }
+  .b-rev .b-shot { order: -1; }
+  .b-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 9px; }
+  .b-list li { font-size: 14px; color: var(--text); padding-left: 22px; position: relative; }
+  .b-list li::before {
+    content: ''; position: absolute; left: 2px; top: 6px; width: 11px; height: 7px;
+    border-left: 2px solid var(--accent); border-bottom: 2px solid var(--accent);
+    transform: rotate(-45deg);
+  }
+  .b-shot { margin: 0; align-self: end; }
+  .b-shot img { width: 100%; display: block; }
+  .b-wide .b-shot img { width: 104%; max-width: none; margin-bottom: -14px; }
+  .b-rev .b-shot img { margin-left: -4%; }
+  /* The captures carry macOS's own window shadow in a transparent margin, so
+     they bleed slightly past the card padding and sit flush on its bottom edge. */
+  .b-shot.small { margin: auto -18px -14px; }
+  .b-shot.small img { width: 100%; }
+  .b-shot img.dark { display: none; }
+  :root[data-theme="dark"] .b-shot img.light { display: none; }
+  :root[data-theme="dark"] .b-shot img.dark { display: block; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .b-shot img.light { display: none; }
+    :root:not([data-theme="light"]) .b-shot img.dark { display: block; }
+  }
+  .b-strip {
+    grid-column: 1 / -1; padding: 28px 30px; display: grid;
+    grid-template-columns: repeat(4, 1fr); gap: 24px;
+  }
+  .b-strip div { display: flex; flex-direction: column; gap: 5px; }
+  .b-strip svg.ico { width: 22px; height: 22px; color: var(--accent); margin-bottom: 4px; }
+  .b-strip b { font-size: 15px; letter-spacing: -.01em; }
+  .b-strip span { font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+
+  /* Small animated illustrations, CSS only. */
+  .snap-art, .ws-art, .rec-art, .focus-art {
+    margin: auto -30px 0; height: 150px; position: relative;
+    background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 14%, var(--bg-soft)), var(--bg-soft));
+    border-top: 1px solid var(--line);
+  }
+  .snap-art i {
+    position: absolute; top: 14px; bottom: 14px; left: 50%; right: 14px; border-radius: 10px;
+    border: 2px solid color-mix(in srgb, var(--accent) 70%, transparent);
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    animation: snap-preview 4s ease-in-out infinite;
+  }
+  .snap-art b {
+    position: absolute; top: 34px; left: 18%; width: 34%; height: 78px; border-radius: 9px;
+    background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow);
+    animation: snap-win 4s cubic-bezier(.6,0,.3,1) infinite;
+  }
+  @keyframes snap-preview { 0%, 30% { opacity: 0; } 42%, 72% { opacity: 1; } 82%, 100% { opacity: 0; } }
+  @keyframes snap-win {
+    0%, 10% { left: 18%; top: 34px; width: 34%; height: 78px; }
+    40%, 70% { left: 58%; top: 30px; width: 34%; height: 78px; }
+    80%, 92% { left: calc(50% + 2px); top: 16px; width: calc(50% - 18px); height: 118px; }
+    100% { left: 18%; top: 34px; width: 34%; height: 78px; }
+  }
+  .ws-art i {
+    position: absolute; top: 16px; height: 118px; border-radius: 9px;
+    background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow);
+    animation: ws 4.5s cubic-bezier(.6,0,.3,1) infinite;
+  }
+  .ws-art i::before {
+    content: ''; position: absolute; left: 8px; top: 7px; width: 22px; height: 5px; border-radius: 3px;
+    background: linear-gradient(90deg, #ff5f57 0 5px, transparent 5px 8.5px, #febc2e 8.5px 13.5px, transparent 13.5px 17px, #28c840 17px);
+  }
+  .ws-art i:nth-child(1) { left: 14px; width: calc(50% - 21px); --x: 30%; }
+  .ws-art i:nth-child(2) { left: calc(50% + 7px); width: calc(50% - 21px); height: 55px; }
+  .ws-art i:nth-child(3) { left: calc(50% + 7px); top: 79px; width: calc(50% - 21px); height: 55px; }
+  .ws-art i:nth-child(2) { animation-delay: .15s; } .ws-art i:nth-child(3) { animation-delay: .3s; }
+  @keyframes ws { 0%, 15% { transform: translate(18px, 22px) scale(.7); opacity: 0; } 35%, 85% { transform: none; opacity: 1; } 100% { transform: translate(18px, 22px) scale(.7); opacity: 0; } }
+  .rec-art::after {
+    content: ''; position: absolute; inset: 22px 18% 22px 18%; border-radius: 6px;
+    border: 2px solid #ef4444; animation: rec-pulse 1.6s ease-in-out infinite;
+  }
+  .rec-art span {
+    position: absolute; right: 16px; top: 12px; font: 600 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--text); background: var(--card); border: 1px solid var(--line); padding: 3px 8px; border-radius: 7px;
+  }
+  .rec-art span::first-letter { color: #ef4444; }
+  @keyframes rec-pulse { 50% { opacity: .45; } }
+  .focus-art { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+  .focus-art b {
+    font: 600 30px ui-monospace, SFMono-Regular, Menlo, monospace; color: #f97316; letter-spacing: -.02em;
+  }
+  .focus-art span {
+    font-size: 13px; color: var(--muted); background: var(--card); border: 1px solid var(--line);
+    padding: 6px 12px; border-radius: 99px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .snap-art i, .snap-art b, .ws-art i, .rec-art::after { animation: none; }
+  }
+  @media (max-width: 860px) {
+    .bento { grid-template-columns: 1fr; }
+    .b-wide, .b-rev { grid-template-columns: 1fr; padding: 30px 30px 0; gap: 8px; }
+    .b-wide .b-text { padding-bottom: 18px; }
+    .b-rev .b-shot { order: 0; }
+    .b-wide .b-shot, .b-rev .b-shot { margin: 0 -30px; }
+    .b-wide .b-shot img, .b-rev .b-shot img { margin: 0; border-radius: 0; }
+    .b-strip { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 480px) { .b-strip { grid-template-columns: 1fr; } }
 
   /* ---------- early-stage notice ---------- */
   .notice {
@@ -692,6 +849,30 @@
     <symbol id="i-download" viewBox="0 0 24 24">
       <path d="M12 3v12M7 11l5 5 5-5M4 20h16"/>
     </symbol>
+    <symbol id="i-display" viewBox="0 0 24 24">
+      <rect x="3" y="4" width="18" height="12" rx="2"/><path d="M9 20h6M12 16v4"/>
+    </symbol>
+    <symbol id="i-record" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5" fill="currentColor"/>
+    </symbol>
+    <symbol id="i-pen" viewBox="0 0 24 24">
+      <path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/>
+    </symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24">
+      <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/><path d="M10 11l4 5M14 11l-4 5"/>
+    </symbol>
+    <symbol id="i-timer" viewBox="0 0 24 24">
+      <circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9.5 2.5h5"/>
+    </symbol>
+    <symbol id="i-battery" viewBox="0 0 24 24">
+      <rect x="2.5" y="7" width="17" height="10" rx="2.5"/><path d="M22 10.5v3"/><rect x="5" y="9.5" width="9" height="5" rx="1" fill="currentColor" stroke="none"/>
+    </symbol>
+    <symbol id="i-menubar" viewBox="0 0 24 24">
+      <rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M15 7h.01M18 7h.01"/><path d="M8 13l-2 2 2 2"/>
+    </symbol>
+    <symbol id="i-text" viewBox="0 0 24 24">
+      <path d="M5 7V5h14v2M12 5v14M9 19h6"/>
+    </symbol>
     <symbol id="i-shield" viewBox="0 0 24 24">
       <path d="M12 3l8 3v6c0 5-3.4 8.4-8 9-4.6-.6-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>
     </symbol>
@@ -703,6 +884,7 @@
     <img src="perch-icon.png" alt="">
     <b>Perch</b>
     <span class="spacer"></span>
+    <a class="link hide-sm" href="#new">What’s new</a>
     <a class="link hide-sm" href="#features">Features</a>
     <a class="link hide-sm" href="#shortcuts">Shortcuts</a>
     <a class="link" href="#install">Install</a>
@@ -715,14 +897,12 @@
 </nav>
 
 <header class="wrap">
-  <div class="tiling" aria-hidden="true">
-    <div class="bar"><u></u><u></u><u></u><em></em></div>
-    <div class="screen"><i></i><i></i><i></i></div>
-  </div>
-  <h1>A dozen Mac utilities. Meet Perch.</h1>
+  <img class="hero-icon" src="perch-icon.png" alt="Perch app icon" width="132" height="132">
+  <p class="eyebrow">Perch</p>
+  <h1>Everything your menu bar was missing.</h1>
   <p class="lede">
-    Window tiling, screenshots, clipboard history, Alt-Tab, system stats,
-    night mode and cleaning modes — one panel, every one on a shortcut.
+    Displays, windows, recording, focus, battery and a dozen more utilities
+    you would otherwise install one by one — in a single, quiet panel.
   </p>
 
   <p class="specs">
@@ -730,7 +910,7 @@
     <span>macOS 14+</span>
     <span>Apple silicon &amp; Intel</span>
     <span>No telemetry</span>
-    <span>2.5 MB download</span>
+    <span>Under 5 MB</span>
   </p>
 
   <div class="cta">
@@ -744,6 +924,108 @@
     <a href="https://github.com/ishanmalu/Perch/issues">Issues</a> welcome.
   </div>
 </header>
+
+<section id="new" class="new">
+  <div class="wrap">
+    <p class="eyebrow">New in Perch</p>
+    <h2>Twelve new reasons to keep it open.</h2>
+    <p class="section-sub">Built from the apps people pay for separately — display managers,
+    menu bar organisers, screen recorders, uninstallers — and folded into the one you already have.</p>
+
+    <div class="bento">
+      <article class="b b-wide">
+        <div class="b-text">
+          <span class="b-tag" style="--t:#14b8c4"><svg class="ico"><use href="#i-display"/></svg>Displays</span>
+          <h3>Resolution and refresh rate, per display.</h3>
+          <p>Every mode your monitor supports, HiDPI ones included — switch a 144&nbsp;Hz panel
+          between rates in a click. A 15-second Keep or Revert keeps a bad mode from leaving you
+          with a black screen. Save a whole desk as a preset and it applies itself when you plug in.</p>
+          <ul class="b-list">
+            <li>Hardware brightness, contrast, volume and input over DDC</li>
+            <li>Make main, place left, right, above or below, mirror</li>
+            <li>Extra brightness past 100% on XDR and HDR screens</li>
+          </ul>
+        </div>
+        <figure class="b-shot">
+          <img class="light" src="shots/settings-displays-light.png" alt="Perch display settings: an external 1920 by 1080 monitor at 144 hertz" loading="lazy">
+          <img class="dark" src="shots/settings-displays-dark.png" alt="" loading="lazy">
+        </figure>
+      </article>
+
+      <article class="b">
+        <span class="b-tag" style="--t:#3b82f6"><svg class="ico"><use href="#i-window"/></svg>Windows</span>
+        <h3>Drag to an edge. It snaps.</h3>
+        <p>Left or right for halves, top to fill, corners for quarters — with a preview before you let go.</p>
+        <div class="snap-art" aria-hidden="true"><i></i><b></b></div>
+      </article>
+
+      <article class="b">
+        <span class="b-tag" style="--t:#6366f1"><svg class="ico"><use href="#i-layout"/></svg>Workspaces</span>
+        <h3>Your desk, in one click.</h3>
+        <p>Save every open app and where its windows sit. Restore opens what’s missing and puts it all back — automatically when you dock.</p>
+        <div class="ws-art" aria-hidden="true"><i></i><i></i><i></i></div>
+      </article>
+
+      <article class="b">
+        <span class="b-tag" style="--t:#ef4444"><svg class="ico"><use href="#i-record"/></svg>Capture</span>
+        <h3>Record a region. Mark it up.</h3>
+        <p>Drag to record an MP4 or a GIF ready to paste, stop from the menu bar. Arrows, boxes, highlighter and pixelate before anything leaves your Mac.</p>
+        <div class="rec-art" aria-hidden="true"><span>● 0:12</span></div>
+      </article>
+
+      <article class="b">
+        <span class="b-tag" style="--t:#f97316"><svg class="ico"><use href="#i-timer"/></svg>Focus</span>
+        <h3>Focus blocks, in the menu bar.</h3>
+        <p>A countdown next to the icon, Do Not Disturb through Shortcuts, and your next meeting with a Join button.</p>
+        <div class="focus-art" aria-hidden="true"><b>◉ 24:13</b><span>Design review · in 12 min</span></div>
+      </article>
+
+      <article class="b b-wide b-rev">
+        <div class="b-text">
+          <span class="b-tag" style="--t:#ec4899"><svg class="ico"><use href="#i-menubar"/></svg>Menu bar</span>
+          <h3>A tidier menu bar.</h3>
+          <p>Tuck the icons you rarely use behind a chevron — ⌘-drag them past the divider
+          and they hide until you want them. No screen recording, no private API.</p>
+          <ul class="b-list">
+            <li>Focus timer and meeting peek, set up here</li>
+            <li>Icons hide again on their own after a few seconds</li>
+          </ul>
+        </div>
+        <figure class="b-shot">
+          <img class="light" src="shots/settings-menuBar-light.png" alt="Perch menu bar and focus settings" loading="lazy">
+          <img class="dark" src="shots/settings-menuBar-dark.png" alt="" loading="lazy">
+        </figure>
+      </article>
+
+      <article class="b b-half">
+        <span class="b-tag" style="--t:#22c55e"><svg class="ico"><use href="#i-battery"/></svg>Battery</span>
+        <h3>Health you can read.</h3>
+        <p>Capacity against design, cycle count and condition — and a charge limit on Macs whose firmware allows one.</p>
+        <figure class="b-shot small">
+          <img class="light" src="shots/settings-battery-light.png" alt="Perch battery health: 92 percent, 171 cycles" loading="lazy">
+          <img class="dark" src="shots/settings-battery-dark.png" alt="" loading="lazy">
+        </figure>
+      </article>
+
+      <article class="b b-half">
+        <span class="b-tag" style="--t:#64748b"><svg class="ico"><use href="#i-trash"/></svg>Apps</span>
+        <h3>Uninstall properly.</h3>
+        <p>Drop an app in and Perch finds what it left in your Library — caches, preferences, containers. Everything goes to the Trash.</p>
+        <figure class="b-shot small">
+          <img class="light" src="shots/settings-apps-light.png" alt="Perch app uninstaller" loading="lazy">
+          <img class="dark" src="shots/settings-apps-dark.png" alt="" loading="lazy">
+        </figure>
+      </article>
+
+      <article class="b b-strip">
+        <div><svg class="ico"><use href="#i-text"/></svg><b>Snippets</b><span>Type <code>;date</code> anywhere and it expands. Never watches password fields.</span></div>
+        <div><svg class="ico"><use href="#i-sound"/></svg><b>Inputs</b><span>Switch microphones from the Sound panel, next to outputs.</span></div>
+        <div><svg class="ico"><use href="#i-sun"/></svg><b>Extra brightness</b><span>Use the HDR headroom macOS keeps for video.</span></div>
+        <div><svg class="ico"><use href="#i-pen"/></svg><b>Settings, rebuilt</b><span>A sidebar with a colour for every section.</span></div>
+      </article>
+    </div>
+  </div>
+</section>
 
 <section id="features">
   <div class="wrap">
@@ -920,6 +1202,14 @@
       <div class="cap"><svg class="ico"><use href="#i-moon"/></svg><div><b>Night mode</b><span>6500K to 2400K via display gamma. Manual or scheduled.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-sun"/></svg><div><b>Brightness</b><span>Per display, including external monitors over any cable. On a shortcut too, in the same sixteenths the Mac’s own keys use — which only ever reach the built-in panel.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-sound"/></svg><div><b>Sound</b><span>Output level and mute, switch between outputs, and see which apps are actually making noise. No per-app sliders: macOS exposes no volume on a process, and the only way round it is shipping an audio driver.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-display"/></svg><div><b>Display modes</b><span>Resolution, refresh rate, presets, arrangement, mirroring, DDC hardware controls.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-layout"/></svg><div><b>Snapping &amp; workspaces</b><span>Drag-to-edge tiling, and saved sets of apps and windows.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-record"/></svg><div><b>Recording &amp; markup</b><span>Region to MP4 or GIF; arrows, boxes, highlighter, pixelate.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-timer"/></svg><div><b>Focus &amp; calendar</b><span>Pomodoro blocks in the menu bar, next meeting with Join.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-menubar"/></svg><div><b>Menu bar hider</b><span>Rarely used icons behind a chevron.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-battery"/></svg><div><b>Battery</b><span>Health, cycles, condition; charge limit where supported.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-trash"/></svg><div><b>Uninstaller</b><span>The app and its leftovers, to the Trash.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-text"/></svg><div><b>Snippets</b><span>Typed triggers that expand to saved text.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-coffee"/></svg><div><b>Keep awake</b><span>Hold it open, or for 15 minutes to 8 hours with the time left on the row. It can start itself while plugged in, while an app runs, or while the CPU is busy, and let the display sleep while the machine works.</span></div></div>
     </div>
   </div>
@@ -945,7 +1235,9 @@
       <tr><td><kbd>⌃⌥↩</kbd></td><td>Maximize</td></tr>
           <tr><td><kbd>⌃⌥⌫</kbd></td><td>Restore original size</td></tr>
           <tr><td><kbd>⌃⌥⇧←</kbd> <kbd>→</kbd></td><td>Move to previous / next display</td></tr>
-          <tr><td><kbd>⌃⌥⇧4</kbd></td><td>Screenshot — stays armed; W window, F display, D delayed, T text, C colour, P pin</td></tr>
+          <tr><td><kbd>⌃⌥⇧4</kbd></td><td>Screenshot — stays armed; W window, F display, D delayed, T text, C colour, P pin, A mark up, R record (press again to stop)</td></tr>
+          <tr><td><kbd>⌃⌥⇧P</kbd></td><td>Start / stop a focus block</td></tr>
+          <tr><td><kbd>⌃⌥⇧B</kbd></td><td>Show / hide menu bar icons</td></tr>
       <tr><td><kbd>⌃⌥=</kbd> <kbd>⌃⌥-</kbd></td><td>Brightness up / down on every display, external ones included</td></tr>
       <tr><td><kbd>⌃⌥N</kbd></td><td>Night mode</td></tr>
           <tr><td><kbd>⌃⌥⇧S</kbd></td><td>Screen cleaning</td></tr>
@@ -1592,7 +1884,13 @@ Scripts/install.sh</pre>
       { n:'Disk Clean',    i:'i-drive',    k:'panel',
         d:'Caches, logs and old downloads. A path guard refuses system and home directories, and everything goes to the Trash.' },
       { n:'Trackpad Clean',i:'i-trackpad', k:'⌃⌥⇧T',
-        d:'Freezes the pointer only. The keyboard stays live, so press ⎋ to unlock when you are done wiping.' }
+        d:'Freezes the pointer only. The keyboard stays live, so press ⎋ to unlock when you are done wiping.' },
+      { n:'Record',        i:'i-record',   k:'⌃⌥⇧4 R',
+        d:'Drag a region to record it as an MP4 or a GIF. The menu bar icon turns into a red dot with the time; click it to stop.' },
+      { n:'Mark Up',       i:'i-pen',      k:'⌃⌥⇧4 A',
+        d:'Capture, then draw arrows and boxes, highlight, or pixelate anything private before you copy or save it.' },
+      { n:'Uninstall',     i:'i-trash',    k:'panel',
+        d:'Choose or drop an app; Perch lists the caches, preferences and containers it left behind and trashes the lot.' }
     ];
 
     var tName = document.getElementById('toolName'), tDesc = document.getElementById('toolDesc');

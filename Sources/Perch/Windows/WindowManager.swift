@@ -144,6 +144,29 @@ final class WindowManager {
         }
     }
 
+    /// Places a specific window into a pane of a specific screen — used by
+    /// snapping and workspaces, which already know both.
+    func place(_ win: AXWindow, pane: Pane, on screen: NSScreen) {
+        guard requireAccess() else { return }
+        if let f = win.frame { remember(win, f) }
+        move(win, to: rect(for: pane, on: screen))
+    }
+
+    /// Where a window sits as a fraction of its screen's usable area, so a
+    /// workspace can put it back on a screen of a different size.
+    func unitPane(of frame: CGRect) -> (Pane, NSScreen) {
+        let s = screen(containing: frame)
+        let a = axFrame(of: s)
+        return (Pane(Double((frame.minX - a.minX) / a.width), Double((frame.minY - a.minY) / a.height),
+                     Double(min(1, frame.width / a.width)), Double(min(1, frame.height / a.height))), s)
+    }
+
+    /// A screen's usable area in AppKit coordinates, for drawing previews.
+    func previewRect(for pane: Pane, on screen: NSScreen) -> NSRect {
+        let r = rect(for: pane, on: screen)
+        return NSRect(x: r.minX, y: primaryHeight - r.maxY, width: r.width, height: r.height)
+    }
+
     func moveToScreen(next: Bool) {
         guard requireAccess(), let win = AX.focusedWindow(), let current = win.frame else { return }
         let screens = NSScreen.screens

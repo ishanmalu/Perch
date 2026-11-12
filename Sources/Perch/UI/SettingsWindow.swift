@@ -2,16 +2,40 @@ import AppKit
 import SwiftUI
 
 enum SettingsTab: String, CaseIterable, Identifiable {
-    case general, windows, clipboard, disk, shortcuts
+    case general, displays, windows, menuBar, clipboard, battery, apps, disk, shortcuts
     var id: String { rawValue }
-    var title: String { rawValue.capitalized }
+    var title: String {
+        switch self {
+        case .menuBar: return "Menu Bar & Focus"
+        case .clipboard: return "Clipboard & Snippets"
+        default: return rawValue.capitalized
+        }
+    }
     var symbol: String {
         switch self {
         case .general: return "gearshape"
+        case .displays: return "display"
         case .windows: return "macwindow"
+        case .menuBar: return "menubar.rectangle"
         case .clipboard: return "doc.on.clipboard"
+        case .battery: return "battery.75percent"
+        case .apps: return "trash"
         case .disk: return "internaldrive"
         case .shortcuts: return "keyboard"
+        }
+    }
+    /// Same tints the panel uses for these tools, so the two read as one app.
+    var tint: Color {
+        switch self {
+        case .general: return .gray
+        case .displays: return .teal
+        case .windows: return .blue
+        case .menuBar: return .pink
+        case .clipboard: return .orange
+        case .battery: return .green
+        case .apps: return .red
+        case .disk: return .purple
+        case .shortcuts: return .indigo
         }
     }
 }
@@ -31,8 +55,11 @@ final class SettingsWindow {
         let host = NSHostingController(rootView: SettingsRoot(selection: selection))
         let w = NSWindow(contentViewController: host)
         w.title = "Perch Settings"
-        w.styleMask = [.titled, .closable, .miniaturizable]
-        w.setContentSize(CGSize(width: 640, height: 520))
+        w.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
+        w.titlebarAppearsTransparent = true
+        w.toolbarStyle = .unified
+        w.setContentSize(CGSize(width: 780, height: 560))
+        w.contentMinSize = CGSize(width: 700, height: 460)
         w.center()
         w.isReleasedWhenClosed = false
         window = w
@@ -49,23 +76,35 @@ private struct SettingsRoot: View {
     @ObservedObject var selection: SettingsSelection
 
     var body: some View {
-        TabView(selection: $selection.tab) {
-            ForEach(SettingsTab.allCases) { tab in
-                page(tab)
-                    .tabItem { Label(tab.title, systemImage: tab.symbol) }
-                    .tag(tab)
+        NavigationSplitView {
+            List(SettingsTab.allCases, selection: Binding(
+                get: { selection.tab }, set: { if let t = $0 { selection.tab = t } })) { tab in
+                Label {
+                    Text(tab.title)
+                } icon: {
+                    GlyphBadge(symbol: tab.symbol, tint: tab.tint, size: 20)
+                }
+                .tag(tab)
             }
+            .listStyle(.sidebar)
+            .navigationSplitViewColumnWidth(min: 190, ideal: 200, max: 240)
+        } detail: {
+            page(selection.tab)
+                .navigationTitle(selection.tab.title)
         }
-        .padding(14)
-        .frame(width: 640, height: 520)
+        .frame(minWidth: 700, minHeight: 460)
     }
 
     @ViewBuilder
     private func page(_ tab: SettingsTab) -> some View {
         switch tab {
         case .general: GeneralSettings()
+        case .displays: DisplaySettings()
         case .windows: WindowSettings()
+        case .menuBar: MenuBarSettings()
         case .clipboard: ClipboardSettings()
+        case .battery: BatterySettings()
+        case .apps: AppsSettings()
         case .disk: DiskSettings()
         case .shortcuts: ShortcutSettings()
         }
@@ -179,6 +218,12 @@ private struct WindowSettings: View {
     var body: some View {
         Form {
             Section {
+                Toggle("Drag a window to a screen edge to tile it", isOn: Binding(
+                    get: { prefs.snapEnabled },
+                    set: { prefs.snapEnabled = $0; WindowSnapping.shared.sync() }))
+                Text("Left or right edge for halves, top to fill, corners for quarters. "
+                   + "A preview shows where it will land; let go anywhere else and nothing happens.")
+                    .font(.caption).foregroundStyle(.secondary)
                 Stepper("Gap between windows: \(prefs.windowGap) px",
                         value: Binding(get: { prefs.windowGap }, set: { prefs.windowGap = $0 }), in: 0...40, step: 2)
                 Toggle("Animate window moves", isOn: Binding(
@@ -192,6 +237,7 @@ private struct WindowSettings: View {
                    + "panes. Holding Option while picking a layout flips this either way.")
                     .font(.caption).foregroundStyle(.secondary)
             }
+            WorkspaceSection()
             Section("Screenshots") {
                 Toggle("Stay armed for another after each capture", isOn: Binding(
                     get: { prefs.screenshotBurst }, set: { prefs.screenshotBurst = $0 }))
@@ -373,6 +419,7 @@ private struct ClipboardSettings: View {
                     Button("Clear everything", role: .destructive) { store.clearAll(keepPinned: false) }
                 }
             }
+            SnippetSection()
         }
         .formStyle(.grouped)
     }
@@ -519,6 +566,8 @@ private struct ShortcutSettings: View {
         ("nightMode", "Night mode"),
         ("brightness.up", "Brightness up"),
         ("brightness.down", "Brightness down"),
+        ("focus", "Start / stop focus timer"),
+        ("menuHider", "Show / hide menu bar icons"),
         ("screenClean", "Screen cleaning"),
         ("keyboardClean", "Keyboard cleaning"),
         ("trackpadClean", "Trackpad cleaning"),
@@ -572,6 +621,8 @@ private struct ShortcutSettings: View {
         case "nightMode": return "moon.fill"
         case "brightness.up": return "sun.max.fill"
         case "brightness.down": return "sun.min"
+        case "focus": return "timer"
+        case "menuHider": return "menubar.arrow.up.rectangle"
         default: return "macwindow"
         }
     }
@@ -589,6 +640,8 @@ private struct ShortcutSettings: View {
         case "switcher.altTab": return .blue
         case "nightMode": return .orange
         case "brightness.up", "brightness.down": return .yellow
+        case "focus": return .orange
+        case "menuHider": return .gray
         default: return .gray
         }
     }

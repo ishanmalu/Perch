@@ -109,6 +109,30 @@ private final class PinView: NSView {
         Notifier.show("Copied", "The pinned capture is on the clipboard.", duration: 2)
     }
 
+    /// Right-click: mark it up, copy it, or let it go.
+    override func menu(for event: NSEvent) -> NSMenu? {
+        let m = NSMenu()
+        m.addItem(withTitle: "Mark Up…", action: #selector(annotate), keyEquivalent: "").target = self
+        m.addItem(withTitle: "Copy", action: #selector(copyImage), keyEquivalent: "").target = self
+        m.addItem(.separator())
+        m.addItem(withTitle: "Close", action: #selector(closePin), keyEquivalent: "").target = self
+        return m
+    }
+
+    @objc private func annotate() {
+        guard let cg = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return }
+        MainActor.assumeIsolated { Annotator.show(cg) }
+        onClose?()
+    }
+
+    @objc private func copyImage() {
+        let pb = NSPasteboard.general
+        pb.clearContents()
+        pb.writeObjects([image])
+    }
+
+    @objc private func closePin() { onClose?() }
+
     private var closeRect: NSRect {
         NSRect(x: bounds.maxX - 24, y: bounds.maxY - 24, width: 18, height: 18)
     }

@@ -148,6 +148,128 @@ enum SelfTest {
         expect(BrightnessController.stepped(0.0, by: -step) == step,
                "a display already at zero comes back rather than sticking")
 
+        print("\nDisplay modes group and pick sanely")
+        typealias DM = DisplayModeController
+        let modeSample: [DM.Mode] = [
+            .init(width: 1512, height: 982, pixelWidth: 3024, pixelHeight: 1964, refresh: 120, isNative: true),
+            .init(width: 1512, height: 982, pixelWidth: 3024, pixelHeight: 1964, refresh: 60),
+            .init(width: 1800, height: 1169, pixelWidth: 3600, pixelHeight: 2338, refresh: 60),
+            .init(width: 1800, height: 1169, pixelWidth: 1800, pixelHeight: 1169, refresh: 60),
+            .init(width: 1800, height: 1169, pixelWidth: 1800, pixelHeight: 1169, refresh: 120),
+        ]
+        let res = DM.resolutions(in: modeSample)
+        expect(res.map(\.id) == ["1800x1169@2x", "1800x1169", "1512x982@2x"],
+               "largest first, HiDPI before low-res of the same size")
+        expect(DM.refreshRates(in: modeSample, for: res[2]) == [120, 60], "rates fastest first")
+        expect(DM.best(in: modeSample, resolution: res[0], refresh: 120)?.refresh == 60,
+               "falls back to the fastest rate a resolution has")
+        expect(DM.best(in: modeSample, resolution: res[1], refresh: 60)?.refresh == 60,
+               "keeps the current rate when the new resolution offers it")
+        expect(DM.rateLabel(59.94) == "59.94 Hz" && DM.rateLabel(120) == "120 Hz",
+               "fractional rates keep their decimals")
+
+        print("\nDisplay presets and arrangement")
+        let kA = DisplayKey(vendor: 1, model: 2, serial: 3), kB = DisplayKey(vendor: 4, model: 5, serial: 6)
+        let entry = { (k: DisplayKey) in DisplayPreset.Entry(key: k, name: "", mode: nil, brightness: 1, origin: .zero) }
+        var desk = DisplayPreset(name: "Desk", entries: [entry(kA), entry(kB)]); desk.autoApply = true
+        let solo = DisplayPreset(name: "Solo", entries: [entry(kA)], autoApply: true)
+        expect(DisplayPreset.autoMatch([solo, desk], connected: [kA, kB])?.name == "Desk",
+               "auto-apply needs the exact set of displays")
+        expect(DisplayPreset.autoMatch([desk], connected: [kA]) == nil,
+               "a missing display means no match")
+        let main = CGRect(x: 0, y: 0, width: 1512, height: 982)
+        expect(DisplayArrangement.origin(for: CGSize(width: 2560, height: 1440), beside: main, .left)
+               == CGPoint(x: -2560, y: -229), "left of main sits flush and centred")
+        expect(DisplayArrangement.origin(for: CGSize(width: 1920, height: 1080), beside: main, .above)
+               == CGPoint(x: -204, y: -1080), "above main sits flush and centred")
+
+        print("\nDDC packets")
+        let w = DDC.writePacket(0x10, 50)
+        let wantChk: UInt8 = 0x6E ^ 0x51 ^ 0x84 ^ 0x03 ^ 0x10 ^ 0x32
+        expect(w == [0x84, 0x03, 0x10, 0x00, 0x32, wantChk],
+               "brightness write packet and checksum")
+        let readChk: UInt8 = 0x6E ^ 0x51 ^ 0x82 ^ 0x01 ^ 0x10
+        expect(DDC.readRequest(0x10).last == readChk, "read request checksum")
+        let reply: [UInt8] = [0x6E, 0x88, 0x02, 0x00, 0x10, 0x00, 0x00, 0x64, 0x00, 0x46, 0x00]
+        expect(DDC.parseReply(reply, code: 0x10).map { $0.0 == 70 && $0.1 == 100 } == true,
+               "reply parses current and max")
+        expect(DDC.parseReply(reply, code: 0x62) == nil, "a reply for another code is rejected")
+        var bad = reply; bad[3] = 0x01
+        expect(DDC.parseReply(bad, code: 0x10) == nil, "an unsupported-code reply is rejected")
+
+        print("\nXDR gain never dims or clips")
+        expect(XDRBoost.gain(headroom: 1.6, amount: 0) == 1, "zero boost is a no-op")
+        expect(XDRBoost.gain(headroom: 1.6, amount: 1) == 1.6, "full boost stops at the headroom")
+        expect(XDRBoost.gain(headroom: 0.8, amount: 1) == 1, "no headroom never dims")
+
+        print("\nSnap zones")
+        let scr = CGRect(x: 0, y: 0, width: 1000, height: 800)
+        typealias Z = WindowSnapping
+        expect(Z.zone(for: CGPoint(x: 0, y: 400), in: scr) == .left, "left edge halves")
+        expect(Z.zone(for: CGPoint(x: 999, y: 400), in: scr) == .right, "right edge halves")
+        expect(Z.zone(for: CGPoint(x: 500, y: 799), in: scr) == .top, "top edge fills")
+        expect(Z.zone(for: CGPoint(x: 0, y: 790), in: scr) == .topLeft, "top-left corner quarters")
+        expect(Z.zone(for: CGPoint(x: 999, y: 5), in: scr) == .bottomRight, "bottom-right corner quarters")
+        expect(Z.zone(for: CGPoint(x: 0, y: 713), in: scr) == .topLeft,
+               "a corner is big enough to hit: 87 pt down the left edge still counts")
+        expect(Z.zone(for: CGPoint(x: 0, y: 650), in: scr) == .left, "further down it's a half again")
+        let nat: [DM.Mode] = [
+            .init(width: 2560, height: 1664, pixelWidth: 2560, pixelHeight: 1664, refresh: 60, isNative: true),
+            .init(width: 1280, height: 832, pixelWidth: 2560, pixelHeight: 1664, refresh: 60, isNative: true),
+            .init(width: 1470, height: 956, pixelWidth: 2940, pixelHeight: 1912, refresh: 60),
+        ]
+        expect(DM.nativeResolution(in: nat)?.id == "1280x832@2x", "only one resolution is labelled native")
+        let ext: [DM.Mode] = [
+            .init(width: 1920, height: 1080, pixelWidth: 1920, pixelHeight: 1080, refresh: 144, isNative: true),
+            .init(width: 1920, height: 1080, pixelWidth: 1920, pixelHeight: 1080, refresh: 60, isNative: true),
+            .init(width: 1280, height: 720, pixelWidth: 1280, pixelHeight: 720, refresh: 60),
+        ]
+        expect(DM.nativeResolution(in: ext)?.id == "1920x1080", "a 1080p monitor's native is its plain mode")
+        let ext30 = ext + [.init(width: 1920, height: 1080, pixelWidth: 3840, pixelHeight: 2160, refresh: 30)]
+        expect(DM.resolutions(in: ext30).first?.id == "1920x1080",
+               "a 30 Hz HiDPI mode on a 144 Hz monitor isn't offered")
+        let slow = DM.Resolution(width: 1920, height: 1080, hiDPI: true)
+        expect(DM.resolutions(in: ext30, keeping: slow).contains(slow),
+               "but if the display is already in it, it stays listed")
+        expect(DM.refreshRates(in: ext, for: DM.resolutions(in: ext)[0]) == [144, 60], "144 Hz is offered at 1080p")
+        expect(Z.zone(for: CGPoint(x: 500, y: 400), in: scr) == nil, "the middle does nothing")
+        expect(Z.zone(for: CGPoint(x: 500, y: 0), in: scr) == nil, "the bottom edge alone does nothing")
+
+        print("\nWorkspaces")
+        var ws = Workspace(name: "Desk", placements: [], displays: [kA, kB]); ws.autoRestore = true
+        expect(Workspaces.autoMatch([ws], connected: [kA, kB])?.name == "Desk", "restores on its displays")
+        expect(Workspaces.autoMatch([ws], connected: [kA]) == nil, "not on a different set")
+
+        print("\nFocus and calendar")
+        expect(FocusTimer.clock(1500) == "25:00" && FocusTimer.clock(59.2) == "1:00", "timer clock rounds up")
+        expect(CalendarPeek.joinLink(in: [nil, "Room 4", "Join: https://zoom.us/j/123?pwd=x"])?.host == "zoom.us",
+               "finds a Zoom link in the notes")
+        expect(CalendarPeek.joinLink(in: ["https://example.com/agenda"]) == nil, "ignores ordinary links")
+
+        print("\nBattery charge limit")
+        typealias CC = ChargeControl
+        expect(CC.shouldCharge(percent: 80, limit: 80, currentlyAllowed: true) == false, "stops at the limit")
+        expect(CC.shouldCharge(percent: 79, limit: 80, currentlyAllowed: false) == false, "stays off inside the band")
+        expect(CC.shouldCharge(percent: 77, limit: 80, currentlyAllowed: false) == true, "resumes below the band")
+        expect(CC.shouldCharge(percent: 99, limit: 100, currentlyAllowed: false) == true, "100 means no limit")
+        expect(SMC.fourCC("CHTE") == 0x43485445, "SMC key encoding")
+
+        print("\nUninstaller only matches exact names")
+        typealias U = AppUninstaller
+        expect(U.isLeftover("com.acme.Notes.plist", bundleID: "com.acme.Notes", appName: "Notes"), "plist by bundle id")
+        expect(U.isLeftover("ABCDE12345.com.acme.Notes", bundleID: "com.acme.Notes", appName: "Notes"), "group container")
+        expect(U.isLeftover("Notes", bundleID: "com.acme.Notes", appName: "Notes"), "folder named for the app")
+        expect(!U.isLeftover("NotesSync", bundleID: "com.acme.Notes", appName: "Notes"), "no prefix match on names")
+        expect(!U.isLeftover("com.acme.NotesHelper", bundleID: "com.acme.Notes", appName: "Notes"), "no prefix match on ids")
+        expect(!U.isLeftover("Go", bundleID: "com.x.go", appName: "Go"), "very short names aren't trusted")
+
+        print("\nSnippets")
+        let snips = [Snippet(trigger: ";sig", text: "A"), Snippet(trigger: ";sig2", text: "B")]
+        expect(SnippetStore.match("hello ;sig", in: snips)?.text == "A", "trigger at the end expands")
+        expect(SnippetStore.match("hello ;sig2", in: snips)?.text == "B", "longest trigger wins")
+        expect(SnippetStore.match(";sig and more", in: snips) == nil, "only a trigger at the end counts")
+        expect(SnippetStore.render("x{clipboard}y", clipboard: "Z") == "xZy", "clipboard placeholder")
+
         // OCR runs over whatever was captured, so it can be checked without
         // the screen: render known text, read it back.
         let sample = NSImage(size: NSSize(width: 640, height: 90))
