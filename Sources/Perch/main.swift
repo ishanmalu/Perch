@@ -1,5 +1,51 @@
 import AppKit
 
+// The root battery helper: no UI, never touches NSApplication.
+if CommandLine.arguments.contains("--charge-daemon") {
+    ChargeControl.runDaemon()
+}
+
+// Read-only look at what the battery and SMC expose on this Mac.
+if CommandLine.arguments.contains("--probe-battery") {
+    if let b = BatteryInfo.read() {
+        print("battery \(b.percent)%  charging=\(b.charging)  plugged=\(b.pluggedIn)")
+        print("cycles \(b.cycleCount)  design \(b.designCapacity) mAh  max \(b.maxCapacity) mAh  health \(Int(b.health * 100))%")
+        print("temp \(b.temperature.map { String(format: "%.1f°C", $0) } ?? "?")  condition \(b.condition ?? "Normal")")
+    } else { print("no battery") }
+    if let smc = SMC() {
+        for k in ["#KEY", "BCLM", "CHWA", "CH0I"] + [ChargeControl.modernKey] + ChargeControl.legacyKeys {
+            print("\(k): \(smc.info(k).map { "\($0.size) bytes \($0.type) = \(smc.read(k) ?? [])" } ?? "absent")")
+        }
+        print("charge control: \(ChargeControl.method(smc))")
+        if CommandLine.arguments.contains("--keys") {
+            let ch = smc.allKeys().filter { $0.hasPrefix("CH") || $0.hasPrefix("B") && $0.contains("CL") }
+            print("CH* keys: " + ch.map { k in "\(k)=\(smc.read(k) ?? [])" }.joined(separator: " "))
+        }
+    } else { print("SMC unavailable") }
+    exit(0)
+}
+
+// Read-only: which external displays answer DDC, and what they report.
+if CommandLine.arguments.contains("--probe-ddc") {
+    _ = NSApplication.shared
+    let ddc = DDC.shared
+    print("IOAVService available: \(ddc.isAvailable)")
+    RunLoop.current.run(until: Date().addingTimeInterval(3))
+    for screen in NSScreen.screens {
+        guard let id = screen.displayID, CGDisplayIsBuiltin(id) == 0 else { continue }
+        print("\(screen.localizedName) (\(id)): answers DDC = \(ddc.supports(id))")
+        for code in [DDC.VCP.brightness, .contrast, .volume, .input] {
+            var done = false
+            ddc.read(code, for: id) { r in
+                print("  \(code): \(r.map { "\($0.0) of \($0.1)" } ?? "no reply")"); done = true
+            }
+            let until = Date().addingTimeInterval(2)
+            while !done && Date() < until { RunLoop.current.run(until: Date().addingTimeInterval(0.05)) }
+        }
+    }
+    exit(0)
+}
+
 if CommandLine.arguments.contains("--selftest") {
     SelfTest.run()
 }

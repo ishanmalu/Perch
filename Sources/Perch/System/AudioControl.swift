@@ -38,6 +38,8 @@ final class AudioControl: ObservableObject {
     @Published private(set) var players: [Player] = []
     @Published private(set) var devices: [Device] = []
     @Published private(set) var currentDevice: Device?
+    @Published private(set) var inputs: [Device] = []
+    @Published private(set) var currentInput: Device?
     /// False on a device with no software volume, such as some HDMI outputs.
     @Published private(set) var volumeSettable = false
 
@@ -67,6 +69,9 @@ final class AudioControl: ObservableObject {
         let device = Self.defaultOutput()
         currentDevice = device.map { Device(id: $0, name: Self.name(of: $0)) }
         devices = Self.outputDevices()
+        inputs = Self.devices(scope: kAudioDevicePropertyScopeInput)
+        currentInput = Self.defaultDevice(kAudioHardwarePropertyDefaultInputDevice)
+            .map { Device(id: $0, name: Self.name(of: $0)) }
         if let device {
             volume = Double(Self.volume(of: device) ?? 0)
             volumeSettable = Self.volumeIsSettable(device)
@@ -102,9 +107,12 @@ final class AudioControl: ObservableObject {
         muted = value == 1
     }
 
-    func select(_ device: Device) {
+    func selectInput(_ device: Device) { setDefault(device, kAudioHardwarePropertyDefaultInputDevice) }
+    func select(_ device: Device) { setDefault(device, kAudioHardwarePropertyDefaultOutputDevice) }
+
+    private func setDefault(_ device: Device, _ selector: AudioObjectPropertySelector) {
         var id = device.id
-        var a = Self.address(kAudioHardwarePropertyDefaultOutputDevice)
+        var a = Self.address(selector)
         let size = UInt32(MemoryLayout<AudioDeviceID>.size)
         guard AudioObjectSetPropertyData(AudioObjectID(kAudioObjectSystemObject),
                                          &a, 0, nil, size, &id) == noErr else { return }
@@ -169,7 +177,19 @@ final class AudioControl: ObservableObject {
         return value == 1
     }
 
-    private static func outputDevices() -> [Device] {
+    private static func defaultDevice(_ selector: AudioObjectPropertySelector) -> AudioDeviceID? {
+        var id = AudioDeviceID(0)
+        var size = UInt32(MemoryLayout<AudioDeviceID>.size)
+        var a = address(selector)
+        guard AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject),
+                                         &a, 0, nil, &size, &id) == noErr, id != 0 else { return nil }
+        return id
+    }
+
+    private static func outputDevices() -> [Device] { devices(scope: kAudioDevicePropertyScopeOutput) }
+
+    /// Devices with at least one channel in `scope` — outputs or inputs.
+    private static func devices(scope: AudioObjectPropertyScope) -> [Device] {
         var size: UInt32 = 0
         var a = address(kAudioHardwarePropertyDevices)
         let system = AudioObjectID(kAudioObjectSystemObject)
@@ -181,7 +201,7 @@ final class AudioControl: ObservableObject {
             // A device with no output channels is an input, and does not belong
             // in a list of places sound can come out of.
             var cfgSize: UInt32 = 0
-            var cfg = address(kAudioDevicePropertyStreamConfiguration, kAudioDevicePropertyScopeOutput)
+            var cfg = address(kAudioDevicePropertyStreamConfiguration, scope)
             guard AudioObjectGetPropertyDataSize(id, &cfg, 0, nil, &cfgSize) == noErr, cfgSize > 0
             else { return nil }
             let buffer = UnsafeMutableRawPointer.allocate(byteCount: Int(cfgSize), alignment: 16)

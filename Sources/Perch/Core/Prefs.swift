@@ -23,6 +23,9 @@ final class Prefs: ObservableObject {
         set { set("clip.ignored", newValue) }
     }
 
+    /// Expand typed triggers into saved text.
+    var snippetsEnabled: Bool { get { get("snip.enabled", false) } set { set("snip.enabled", newValue) } }
+
     // MARK: Windows
     var windowGap: Int { get { get("win.gap", 0) } set { set("win.gap", newValue) } }
     var respectStageManager: Bool { get { get("win.stage", true) } set { set("win.stage", newValue) } }
@@ -30,6 +33,9 @@ final class Prefs: ObservableObject {
     /// Ask which window goes in which pane before tiling, rather than filling
     /// panes from the stacking order. Only asks when there is a choice to make.
     var askBeforeTiling: Bool { get { get("win.askTiling", true) } set { set("win.askTiling", newValue) } }
+
+    /// Drag a window against a screen edge to tile it.
+    var snapEnabled: Bool { get { get("win.snap", true) } set { set("win.snap", newValue) } }
 
     // MARK: Screenshots
     /// Where captures are written. Empty means Pictures/Perch.
@@ -42,6 +48,9 @@ final class Prefs: ObservableObject {
     /// Stay armed after a capture so several can be taken in a row. The reason
     /// this tool exists alongside the built-in one.
     var screenshotBurst: Bool { get { get("shot.burst", true) } set { set("shot.burst", newValue) } }
+
+    /// "mp4" or "gif".
+    var recordFormat: String { get { get("rec.format", "mp4") } set { set("rec.format", newValue) } }
 
     // MARK: Keep awake
     /// Let the screen sleep while the machine keeps working — the right choice
@@ -64,6 +73,18 @@ final class Prefs: ObservableObject {
     /// pushed off a crowded menu bar or hidden behind the notch.
     var menuBarStat: String { get { get("sys.menuStat", "none") } set { set("sys.menuStat", newValue) } }
     var sampleInterval: Double { get { get("sys.interval", 2.0) } set { set("sys.interval", newValue) } }
+
+    // MARK: Menu bar
+    var menuHiderEnabled: Bool { get { get("menu.hider", false) } set { set("menu.hider", newValue) } }
+    var menuHiderStartCollapsed: Bool { get { get("menu.hiderCollapsed", true) } set { set("menu.hiderCollapsed", newValue) } }
+    /// Seconds after showing before icons tuck away again; 0 never.
+    var menuHiderAutoCollapse: Int { get { get("menu.hiderAuto", 10) } set { set("menu.hiderAuto", newValue) } }
+
+    // MARK: Focus
+    var focusMinutes: Int { get { get("focus.work", 25) } set { set("focus.work", newValue) } }
+    var breakMinutes: Int { get { get("focus.break", 5) } set { set("focus.break", newValue) } }
+    var focusUsesShortcuts: Bool { get { get("focus.shortcuts", true) } set { set("focus.shortcuts", newValue) } }
+    var calendarEnabled: Bool { get { get("cal.enabled", false) } set { set("cal.enabled", newValue) } }
 
     // MARK: Updates
     /// Off by default — the network check is opt-in, not assumed.

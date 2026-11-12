@@ -12,6 +12,8 @@ enum ShotMode: String {
     case text       // read the words out of it instead
     case colour     // sample one pixel
     case pin        // save it and leave it floating
+    case annotate   // mark it up before saving
+    case record     // record the region as video
 
     var hint: String {
         switch self {
@@ -19,6 +21,9 @@ enum ShotMode: String {
         case .text:   return "Drag to copy the text in it"
         case .colour: return "Click to sample a colour"
         case .pin:    return "Drag to capture and pin it"
+        case .annotate: return "Drag to capture and mark it up"
+        case .record: return Prefs.shared.recordFormat == "gif" ? "Drag a region to record as GIF"
+                                                                : "Drag a region to record"
         }
     }
 }
@@ -37,7 +42,17 @@ final class ScreenshotOverlay {
 
     var isOpen: Bool { !windows.isEmpty }
 
-    func toggle() { isOpen ? close() : open() }
+    /// The same shortcut stops a recording, so there's always a key for it.
+    func toggle() {
+        if ScreenRecorder.shared.isRecording { ScreenRecorder.shared.stop(); return }
+        isOpen ? close() : open()
+    }
+
+    /// Opens straight into a mode — the panel's Record and Mark Up buttons.
+    func open(mode start: ShotMode) {
+        open()
+        setMode(start)
+    }
 
     func open() {
         guard !isOpen else { return }
@@ -62,6 +77,8 @@ final class ScreenshotOverlay {
             case "t": self.setMode(self.mode == .text ? .image : .text)
             case "c": self.setMode(self.mode == .colour ? .image : .colour)
             case "p": self.setMode(self.mode == .pin ? .image : .pin)
+            case "a": self.setMode(self.mode == .annotate ? .image : .annotate)
+            case "r": self.setMode(self.mode == .record ? .image : .record)
             case "w": self.windowPicking.toggle(); self.updateHint()
             case "f": self.captureWholeDisplay()
             case "d": self.captureAfterDelay()
@@ -152,6 +169,13 @@ final class ScreenshotOverlay {
             captureWindowUnderCursor()
             return
         }
+        if mode == .record {
+            let format: ScreenRecorder.Format = Prefs.shared.recordFormat == "gif" ? .gif : .mp4
+            taken = 0
+            close()
+            ScreenRecorder.shared.start(rect: rect, format: format)
+            return
+        }
         run { await Screenshot.capture(rect: rect) } placedAt: { rect }
     }
 
@@ -212,6 +236,13 @@ final class ScreenshotOverlay {
                                                     toClipboard: Prefs.shared.screenshotToClipboard))
                 if mode == .pin { PinnedShot.show(image, near: `where`()) }
                 taken += 1
+            case .annotate:
+                busy = false
+                Annotator.show(image)
+                close()
+                return
+            case .record:
+                break   // handled before we get here
             case .colour:
                 break   // handled before we get here
             }
@@ -237,7 +268,7 @@ final class ScreenshotOverlay {
 
     private func updateHint() {
         let action = windowPicking ? "Click a window" : mode.hint
-        let keys = "W window · F display · D delayed · T text · C colour · P pin · Esc done"
+        let keys = "W window · F display · D delayed · T text · C colour · P pin · A mark up · R record · Esc done"
         let count = taken == 0 ? "" : "\(taken) taken  ·  "
         windows.forEach { $0.setHint(count + action + "\n" + keys) }
     }

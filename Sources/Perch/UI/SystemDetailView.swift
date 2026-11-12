@@ -268,6 +268,31 @@ struct SystemDetailView: View {
                 }
             }
 
+            if audio.inputs.count > 1 {
+                SectionHeader("Input")
+                Card(padding: 8) {
+                    VStack(spacing: 5) {
+                        ForEach(audio.inputs) { device in
+                            HoverButton(action: { audio.selectInput(device) }) {
+                                HStack(spacing: 7) {
+                                    Image(systemName: device == audio.currentInput
+                                          ? "largecircle.fill.circle" : "circle")
+                                        .font(.system(size: 9))
+                                        .foregroundStyle(device == audio.currentInput
+                                                         ? AnyShapeStyle(Color.indigo)
+                                                         : AnyShapeStyle(.tertiary))
+                                        .frame(width: 13)
+                                    Image(systemName: "mic").font(.system(size: 9)).foregroundStyle(.tertiary)
+                                    Text(device.name).font(Theme.Font.body)
+                                        .foregroundStyle(.secondary).lineLimit(1)
+                                    Spacer(minLength: 0)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             SectionHeader("Playing now")
             Card(padding: 9) {
                 VStack(spacing: 6) {

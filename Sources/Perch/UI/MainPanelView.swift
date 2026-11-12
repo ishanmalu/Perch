@@ -6,6 +6,13 @@ import AppKit
 struct MainPanelView: View {
     @ObservedObject var monitor = SystemMonitor.shared
     @ObservedObject var brightness = BrightnessController.shared
+    @ObservedObject var modes = DisplayModeController.shared
+    @ObservedObject var presets = DisplayPresets.shared
+    @ObservedObject var workspaces = Workspaces.shared
+    @ObservedObject var xdr = XDRBoost.shared
+    @ObservedObject var focus = FocusTimer.shared
+    @ObservedObject var calendar = CalendarPeek.shared
+    @ObservedObject var recorder = ScreenRecorder.shared
     @ObservedObject var prefs = Prefs.shared
     @ObservedObject var updater = Updater.shared
     @ObservedObject var night = NightMode.shared
@@ -232,18 +239,30 @@ struct MainPanelView: View {
                             .help("Tile into \(layout.name)  (⌥ toggles the window picker)")
                         }
                     }
-                    HoverButton(action: { WindowManager.shared.maximizeAll() }) {
-                        HStack(spacing: 5) {
-                            Image(systemName: "rectangle.stack")
-                                .font(.system(size: 10))
-                            Text("Fill Screen With All Windows").font(Theme.Font.caption)
+                    HStack(spacing: 5) {
+                        HoverButton(action: { WindowManager.shared.maximizeAll() }) {
+                            HStack(spacing: 5) {
+                                Image(systemName: "rectangle.stack")
+                                    .font(.system(size: 10))
+                                Text(workspaces.all.isEmpty ? "Fill Screen With All Windows" : "Fill Screen")
+                                    .font(Theme.Font.caption)
+                            }
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 4)
                         }
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 4)
+                        .help("Every window on this screen filled to the whole screen. "
+                            + "Not macOS full screen: no new Space, and the menu bar stays.")
+                        if !workspaces.all.isEmpty {
+                            chipMenu("square.stack.3d.up", "Workspace", tint: .indigo) {
+                                ForEach(workspaces.all) { ws in
+                                    Button(ws.name) { onDismiss(); workspaces.restore(ws) }
+                                }
+                                Divider()
+                                Button("Manage…") { onDismiss(); SettingsWindow.shared.show(tab: .windows) }
+                            }
+                        }
                     }
-                    .help("Every window on this screen filled to the whole screen. "
-                        + "Not macOS full screen: no new Space, and the menu bar stays.")
                 }
             }
         }
@@ -269,7 +288,26 @@ struct MainPanelView: View {
 
     private var displaySection: some View {
         VStack(alignment: .leading, spacing: 5) {
-            SectionHeader("Brightness & night")
+            SectionHeader("Display & night") {
+                if !presets.presets.isEmpty && !flattened {
+                    Menu {
+                        ForEach(presets.presets) { p in
+                            Button(p.name) { presets.apply(p) }
+                        }
+                        Divider()
+                        Button("Manage…") { onDismiss(); SettingsWindow.shared.show(tab: .displays) }
+                    } label: {
+                        Text("Presets").font(Theme.Font.keycap).foregroundStyle(.secondary)
+                    }
+                    .menuStyle(.borderlessButton).menuIndicator(.visible).fixedSize()
+                } else if !flattened {
+                    Button { onDismiss(); SettingsWindow.shared.show(tab: .displays) } label: {
+                        Image(systemName: "slider.horizontal.3").font(.system(size: 9.5)).foregroundStyle(.tertiary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Display settings")
+                }
+            }
             Card(padding: 9) {
                 VStack(spacing: 7) {
                     ForEach(brightness.displays) { display in
@@ -293,6 +331,35 @@ struct MainPanelView: View {
                                 .frame(width: 26, alignment: .trailing)
                         }
                         .help(display.isBuiltin ? display.name : "\(display.name) — software dimming")
+                    }
+
+                    Divider().opacity(0.4)
+
+                    ForEach(modes.displays) { display in
+                        modeRow(display)
+                    }
+
+                    if xdr.isSupported {
+                        Divider().opacity(0.4)
+                        HStack(spacing: 7) {
+                            Image(systemName: "sun.max.trianglebadge.exclamationmark")
+                                .font(.system(size: 10))
+                                .foregroundStyle(xdr.isActive ? Color.yellow : .secondary)
+                                .frame(width: 13)
+                            if xdr.isActive && !flattened {
+                                Slider(value: $xdr.amount, in: 0...1).controlSize(.mini)
+                            } else {
+                                Text("Extra Brightness").font(Theme.Font.caption).foregroundStyle(.secondary)
+                                Spacer()
+                            }
+                            if flattened {
+                                StaticToggle(isOn: xdr.isActive)
+                            } else {
+                                Toggle("", isOn: Binding(get: { xdr.isActive }, set: { _ in xdr.toggle() }))
+                                    .labelsHidden().toggleStyle(.switch).controlSize(.mini)
+                            }
+                        }
+                        .help("Brightness past 100% using the display's HDR headroom")
                     }
 
                     Divider().opacity(0.4)
@@ -333,6 +400,138 @@ struct MainPanelView: View {
         }
     }
 
+    /// Resolution and refresh pickers for one display. Menus rather than
+    /// pickers so the row stays one line tall however many modes there are.
+    private func modeRow(_ display: DisplayModeController.Display) -> some View {
+        let current = display.current
+        let resText = current.map { $0.resolution.label + ($0.isHiDPI ? " HiDPI" : "") } ?? "—"
+        let hzText = current.map { DisplayModeController.rateLabel($0.refresh) } ?? "—"
+        return HStack(spacing: 6) {
+            Image(systemName: display.isBuiltin ? "laptopcomputer" : "display")
+                .font(.system(size: 10)).foregroundStyle(.secondary).frame(width: 13)
+            if flattened {
+                // ImageRenderer can't draw a Menu; show what it would say.
+                Text(resText + " ⌄").font(Theme.Font.caption)
+                Spacer(minLength: 4)
+                Text(hzText + " ⌄").font(Theme.Font.numeric).foregroundStyle(.secondary)
+            } else {
+            Menu {
+                ForEach(display.resolutions) { res in
+                    Button {
+                        modes.setResolution(res, for: display.id)
+                    } label: {
+                        let mark = res == current?.resolution ? "✓ " : ""
+                        let native = res == display.nativeResolution
+                        Text(mark + res.label + (res.hiDPI ? "  HiDPI" : "") + (native ? "  (native)" : ""))
+                    }
+                }
+            } label: {
+                Text(current.map { $0.resolution.label + ($0.isHiDPI ? " HiDPI" : "") } ?? "—")
+                    .font(Theme.Font.caption)
+            }
+            .menuStyle(.borderlessButton).fixedSize()
+            Spacer(minLength: 4)
+            Menu {
+                ForEach(display.refreshRates, id: \.self) { hz in
+                    Button((hz == current?.refresh ? "✓ " : "") + DisplayModeController.rateLabel(hz)) {
+                        modes.setRefresh(hz, for: display.id)
+                    }
+                }
+            } label: {
+                Text(current.map { DisplayModeController.rateLabel($0.refresh) } ?? "—")
+                    .font(Theme.Font.numeric)
+            }
+            .menuStyle(.borderlessButton).fixedSize()
+            .disabled(display.refreshRates.count < 2)
+            }
+        }
+        .help("\(display.name) — resolution and refresh rate")
+    }
+
+    // MARK: - Focus
+
+    private var focusSection: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            SectionHeader("Focus")
+            Card(padding: 9) {
+                VStack(spacing: 8) {
+                    HStack(spacing: 8) {
+                        Image(systemName: focus.phase == .rest ? "cup.and.saucer" : "timer")
+                            .font(.system(size: 10))
+                            .foregroundStyle(focus.phase == .idle ? Color.secondary
+                                             : focus.phase == .rest ? Color.green : Color.orange)
+                            .frame(width: 14)
+                        if let label = focus.label {
+                            Text(focus.phase == .rest ? "Break" : "Focus")
+                                .font(Theme.Font.body).foregroundStyle(.secondary)
+                            Text(verbatim: label)
+                                .font(Theme.Font.numeric)
+                                .foregroundStyle(focus.phase == .rest ? Color.green : Color.orange)
+                            Spacer(minLength: 6)
+                            smallButton(focus.paused == nil ? "pause.fill" : "play.fill",
+                                        help: focus.paused == nil ? "Pause" : "Resume") { focus.togglePause() }
+                            smallButton("stop.fill", help: "Stop") { focus.stop() }
+                        } else {
+                            Text("Focus \(prefs.focusMinutes) min").font(Theme.Font.body).foregroundStyle(.secondary)
+                            if focus.completedToday > 0 {
+                                Text("· \(focus.completedToday) today")
+                                    .font(Theme.Font.caption).foregroundStyle(.tertiary)
+                            }
+                            Spacer(minLength: 6)
+                            HoverButton(action: { focus.startWork() }) {
+                                Text("Start").font(Theme.Font.keycap)
+                                    .foregroundStyle(Color.orange)
+                                    .padding(.horizontal, 8).padding(.vertical, 3)
+                            }
+                        }
+                    }
+                    if prefs.calendarEnabled, let m = calendar.next {
+                        Divider().opacity(0.4)
+                        HStack(spacing: 8) {
+                            Circle().fill(Color(nsColor: m.calendarColor ?? .systemBlue))
+                                .frame(width: 7, height: 7).frame(width: 14)
+                            VStack(alignment: .leading, spacing: 0) {
+                                Text(m.title).font(Theme.Font.body).lineLimit(1)
+                                Text(CalendarPeek.when(m)).font(Theme.Font.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer(minLength: 6)
+                            if let url = m.joinURL {
+                                HoverButton(action: { onDismiss(); NSWorkspace.shared.open(url) }) {
+                                    Label("Join", systemImage: "video.fill")
+                                        .font(Theme.Font.keycap).foregroundStyle(Color.accentColor)
+                                        .padding(.horizontal, 8).padding(.vertical, 3)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func smallButton(_ symbol: String, help: String, action: @escaping () -> Void) -> some View {
+        HoverButton(action: action) {
+            Image(systemName: symbol).font(.system(size: 8.5)).foregroundStyle(.secondary)
+                .frame(width: 20, height: 17)
+        }
+        .help(help)
+    }
+
+    /// A compact menu that matches HoverButton's chrome.
+    private func chipMenu<C: View>(_ symbol: String, _ title: String, tint: Color,
+                                   @ViewBuilder content: () -> C) -> some View {
+        Menu(content: content) {
+            HStack(spacing: 4) {
+                Image(systemName: symbol).font(.system(size: 9.5)).foregroundStyle(tint)
+                Text(title).font(Theme.Font.caption).foregroundStyle(.secondary)
+            }
+        }
+        .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+        .padding(.horizontal, 8).padding(.vertical, 4)
+        .background(Theme.cardFill, in: RoundedRectangle(cornerRadius: Theme.Radius.control))
+        .overlay(RoundedRectangle(cornerRadius: Theme.Radius.control).strokeBorder(Theme.cardStroke, lineWidth: 1))
+    }
+
     // MARK: - Tools
 
     private var toolsSection: some View {
@@ -348,8 +547,23 @@ struct MainPanelView: View {
                     tool("rectangle.and.hand.point.up.left", "Trackpad Clean", .pink) {
                         InputCleaner.shared.start(.trackpad)
                     }
+                    tool(recorder.isRecording ? "stop.circle.fill" : "record.circle",
+                         recorder.isRecording ? "Stop" : "Record", .red) {
+                        onDismiss()
+                        if recorder.isRecording { recorder.stop() }
+                        else { MainActor.assumeIsolated { ScreenshotOverlay.shared.open(mode: .record) } }
+                    }
+                    tool("pencil.tip.crop.circle", "Mark Up", .yellow) {
+                        onDismiss()
+                        MainActor.assumeIsolated { ScreenshotOverlay.shared.open(mode: .annotate) }
+                    }
+                    tool("xmark.bin", "Uninstall", .gray) {
+                        onDismiss(); SettingsWindow.shared.show(tab: .apps)
+                    }
                 }
             }
+
+            focusSection
 
             VStack(alignment: .leading, spacing: 5) {
                 SectionHeader("Switches")

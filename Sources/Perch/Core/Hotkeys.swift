@@ -61,6 +61,8 @@ struct HotkeySpec: Codable, Equatable {
         // of having them.
         "brightness.up":   .init(keyCode: UInt32(kVK_ANSI_Equal), modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
         "brightness.down": .init(keyCode: UInt32(kVK_ANSI_Minus), modifiers: NSEvent.ModifierFlags([.control, .option]).rawValue),
+        "focus":           .init(keyCode: UInt32(kVK_ANSI_P), modifiers: NSEvent.ModifierFlags([.control, .option, .shift]).rawValue),
+        "menuHider":       .init(keyCode: UInt32(kVK_ANSI_B), modifiers: NSEvent.ModifierFlags([.control, .option, .shift]).rawValue),
     ]
 }
 

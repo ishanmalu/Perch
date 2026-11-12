@@ -26,14 +26,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         SystemMonitor.shared.start()
         NightMode.shared.start()
         ClipboardStore.shared.start()
+        // Presets and workspaces listen for displays connecting from launch,
+        // or auto-apply would only work after the panel had been opened.
+        _ = DisplayPresets.shared
+        _ = Workspaces.shared
+        _ = DDC.shared
+        WindowSnapping.shared.sync()
+        MenuBarHider.shared.sync()
+        SnippetStore.shared.sync()
+        CalendarPeek.shared.start()
         // Deliberately not scanning disk targets here: it walks a dozen cache
         // trees and is only needed once the user opens Disk clean.
         Task { @MainActor in Updater.shared.checkInBackgroundIfDue() }
 
-        statTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
-            self?.updateStatusTitle()
+        // Every second: the focus and recording clocks count in seconds.
+        statTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.updateStatusTitle() }
         }
         RunLoop.main.add(statTimer!, forMode: .common)
+
+        // `--settings <tab>` opens Settings on launch — for checking the window
+        // without clicking through the menu bar.
+        if let i = CommandLine.arguments.firstIndex(of: "--appearance"),
+           CommandLine.arguments.indices.contains(i + 1) {
+            NSApp.appearance = NSAppearance(named: CommandLine.arguments[i + 1] == "light" ? .aqua : .darkAqua)
+        }
+        if let i = CommandLine.arguments.firstIndex(of: "--settings") {
+            let name = CommandLine.arguments.indices.contains(i + 1) ? CommandLine.arguments[i + 1] : ""
+            SettingsWindow.shared.show(tab: SettingsTab(rawValue: name) ?? .general)
+        }
 
         // Only mention it; the system prompt appears when a feature actually
         // needs the permission, so launching never nags on its own.
@@ -44,8 +65,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    func applicationWillTerminate(_ notification: Notification) {
+    /// A recording in progress has to finish writing before the process
+    /// exits, so quitting waits for it rather than cutting the file off.
+    @MainActor func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard ScreenRecorder.shared.isRecording else { return .terminateNow }
+        ScreenRecorder.shared.stop { NSApp.reply(toApplicationShouldTerminate: true) }
+        return .terminateLater
+    }
+
+    @MainActor func applicationWillTerminate(_ notification: Notification) {
         BrightnessController.shared.clearAllDimming()
+        XDRBoost.shared.stop()
+        FocusTimer.shared.stop()
         NightMode.shared.shutdown()
         PreventSleep.shared.shutdown()
         InputCleaner.shared.stop(reason: "Perch quit")
@@ -70,7 +101,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
     }
 
-    private func updateStatusTitle() {
+    @MainActor private func updateStatusTitle() {
         guard let button = statusItem.button else { return }
         let s = SystemMonitor.shared.snapshot
         let font = NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .regular)
@@ -82,12 +113,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case "bat": text = s.batteryPercent.map { "\($0)%" } ?? ""
         default: text = ""
         }
-        button.attributedTitle = NSAttributedString(
-            string: text.isEmpty ? "" : " " + text,
-            attributes: [.font: font, .foregroundColor: NSColor.labelColor])
+        // A recording or focus block outranks the chosen stat: it's the thing
+        // with a deadline, and the icon is where people look for it.
+        let title = NSMutableAttributedString()
+        if let rec = ScreenRecorder.shared.elapsedLabel {
+            title.append(NSAttributedString(string: " ● ", attributes: [.font: font, .foregroundColor: NSColor.systemRed]))
+            title.append(NSAttributedString(string: rec, attributes: [.font: font, .foregroundColor: NSColor.labelColor]))
+        } else if let focus = FocusTimer.shared.label {
+            let resting = FocusTimer.shared.phase == .rest
+            title.append(NSAttributedString(string: resting ? " ☕︎ " : " ◉ ",
+                                            attributes: [.font: font, .foregroundColor: resting ? NSColor.systemGreen : NSColor.systemOrange]))
+            title.append(NSAttributedString(string: focus + (FocusTimer.shared.paused != nil ? " ❚❚" : ""),
+                                            attributes: [.font: font, .foregroundColor: NSColor.labelColor]))
+        } else if !text.isEmpty {
+            title.append(NSAttributedString(string: " " + text,
+                                            attributes: [.font: font, .foregroundColor: NSColor.labelColor]))
+        }
+        button.attributedTitle = title
     }
 
-    @objc private func statusClicked(_ sender: NSStatusBarButton) {
+    @MainActor @objc private func statusClicked(_ sender: NSStatusBarButton) {
+        // While recording, the icon is the stop button — the one place that's
+        // always on screen and never in the recording's way.
+        if ScreenRecorder.shared.isRecording, NSApp.currentEvent?.type != .rightMouseUp {
+            ScreenRecorder.shared.stop()
+            return
+        }
         if NSApp.currentEvent?.type == .rightMouseUp {
             showContextMenu()
         } else {
@@ -194,6 +245,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         add("Window Switcher", "switcher") { WindowSwitcher.shared.toggleList() }
         add("Night Mode", "nightMode") { NightMode.shared.toggle() }
         add("Screen Cleaning", "screenClean") { ScreenCleaner.shared.start() }
+        menu.addItem(.separator())
+        if FocusTimer.shared.phase == .idle {
+            add("Start Focus (\(Prefs.shared.focusMinutes) min)", "focus") { FocusTimer.shared.startWork() }
+        } else {
+            add(FocusTimer.shared.paused == nil ? "Pause Focus" : "Resume Focus", "") { FocusTimer.shared.togglePause() }
+            add("Stop Focus", "focus") { FocusTimer.shared.stop() }
+        }
+        if !DisplayPresets.shared.presets.isEmpty {
+            let sub = NSMenu()
+            for p in DisplayPresets.shared.presets {
+                let item = NSMenuItem(title: p.name, action: #selector(runBlock(_:)), keyEquivalent: "")
+                item.target = self
+                item.representedObject = { DisplayPresets.shared.apply(p) } as () -> Void
+                sub.addItem(item)
+            }
+            let parent = NSMenuItem(title: "Display Preset", action: nil, keyEquivalent: "")
+            parent.submenu = sub
+            menu.addItem(parent)
+        }
+        if !Workspaces.shared.all.isEmpty {
+            let sub = NSMenu()
+            for w in Workspaces.shared.all {
+                let item = NSMenuItem(title: w.name, action: #selector(runBlock(_:)), keyEquivalent: "")
+                item.target = self
+                item.representedObject = { Workspaces.shared.restore(w) } as () -> Void
+                sub.addItem(item)
+            }
+            let parent = NSMenuItem(title: "Workspace", action: nil, keyEquivalent: "")
+            parent.submenu = sub
+            menu.addItem(parent)
+        }
         add("Keyboard Cleaning", "keyboardClean") { InputCleaner.shared.start(.keyboard) }
         add("Trackpad Cleaning", "trackpadClean") { InputCleaner.shared.start(.trackpad) }
         menu.addItem(.separator())
@@ -243,5 +325,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let step = BrightnessController.stepSize
         hk.register("brightness.up") { BrightnessController.shared.nudgeAll(by: step) }
         hk.register("brightness.down") { BrightnessController.shared.nudgeAll(by: -step) }
+        hk.register("focus") {
+            FocusTimer.shared.phase == .idle ? FocusTimer.shared.startWork() : FocusTimer.shared.stop()
+        }
+        hk.register("menuHider") { MenuBarHider.shared.setCollapsed(!MenuBarHider.shared.isCollapsed) }
     }
 }

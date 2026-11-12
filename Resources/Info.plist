@@ -13,6 +13,7 @@
     <key>LSMinimumSystemVersion</key><string>14.0</string>
     <key>NSHighResolutionCapable</key><true/>
     <key>LSUIElement</key><true/>
+    <key>NSCalendarsFullAccessUsageDescription</key><string>Perch shows your next meeting in the menu bar panel, with a button to join the call.</string>
     <key>NSHumanReadableCopyright</key><string>MIT licensed. Personal project.</string>
 </dict>
 </plist>
