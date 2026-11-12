@@ -237,7 +237,7 @@ final class Updater: ObservableObject {
     // MARK: - Version comparison
 
     /// Numeric, component-wise. "1.10.0" is newer than "1.9.0".
-    static func isNewer(_ candidate: String, than current: String) -> Bool {
+    nonisolated static func isNewer(_ candidate: String, than current: String) -> Bool {
         func parts(_ s: String) -> [Int] {
             s.split(whereSeparator: { $0 == "." || $0 == "-" })
                 .compactMap { Int($0.prefix(while: \.isNumber)) }
