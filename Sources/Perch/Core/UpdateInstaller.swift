@@ -53,12 +53,17 @@ enum UpdateInstaller {
 
     /// Mounts `dmg`, verifies the app inside, swaps it in, and relaunches.
     /// Throws without touching the installed app if any step fails.
-    static func install(from dmg: URL) throws -> Never {
+    /// The slow part (hdiutil, ditto, signature checks) runs off the main
+    /// thread so the UI keeps drawing; only the relaunch happens on main.
+    @MainActor
+    static func install(from dmg: URL) async throws -> Never {
         let bundle = Bundle.main.bundleURL
         guard canInstallInPlace else {
             throw Failure.notWritable(bundle.deletingLastPathComponent().path)
         }
-        try swap(from: dmg, replacing: bundle)
+        try await Task.detached(priority: .userInitiated) {
+            try swap(from: dmg, replacing: bundle)
+        }.value
         relaunch(at: bundle)
     }
 
@@ -141,7 +146,10 @@ enum UpdateInstaller {
         var candidate: SecStaticCode?
         guard SecStaticCodeCreateWithPath(app as CFURL, [], &candidate) == errSecSuccess,
               let candidate else { return false }
-        return SecStaticCodeCheckValidity(candidate, [], requirement) == errSecSuccess
+        return SecStaticCodeCheckValidity(
+            candidate,
+            SecCSFlags(rawValue: kSecCSStrictValidate | kSecCSCheckAllArchitectures | kSecCSCheckNestedCode),
+            requirement) == errSecSuccess
     }
 
     /// Hands off to a detached shell that waits for this process to exit and

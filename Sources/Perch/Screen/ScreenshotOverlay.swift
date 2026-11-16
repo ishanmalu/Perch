@@ -251,8 +251,9 @@ final class ScreenshotOverlay {
     }
 
     private func reportCaptureFailure() {
-        Notifier.show("Nothing was captured",
-                      "Perch needs Screen Recording access in System Settings.", duration: 4)
+        Notifier.needsPermission("Nothing was captured",
+                                 "Perch needs Screen Recording access in System Settings.",
+                                 pane: "Privacy_ScreenCapture")
     }
 
     /// Re-arms for another, or ends the run.

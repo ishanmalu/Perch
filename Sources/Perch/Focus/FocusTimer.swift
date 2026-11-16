@@ -67,6 +67,7 @@ final class FocusTimer: ObservableObject {
         endsAt = Date().addingTimeInterval(TimeInterval(minutes * 60))
         ticker?.invalidate()
         ticker = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in self?.tick() }
+        ticker?.tolerance = 0.1   // let macOS coalesce wake-ups
         RunLoop.main.add(ticker!, forMode: .common)
     }
 

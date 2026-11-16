@@ -131,26 +131,51 @@ enum AX {
     }
 
     static func focusedWindow(of pid: pid_t) -> AXWindow? {
+        installGlobalTimeout
         let axApp = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(axApp, appTimeout)
         guard let w = copyValue(axApp, kAXFocusedWindowAttribute),
               CFGetTypeID(w) == AXUIElementGetTypeID() else { return nil }
         return AXWindow(element: w as! AXUIElement, pid: pid)
     }
 
     /// Every on-screen, non-minimized standard window across all regular apps.
+    ///
+    /// Apps are queried in parallel with a short messaging timeout, so one busy
+    /// or hung app costs at most `appTimeout` instead of freezing the caller
+    /// (the default AX timeout is ~6 s per call, on the main thread).
     static func allWindows() -> [AXWindow] {
-        var result: [AXWindow] = []
+        installGlobalTimeout
         let ownPID = ProcessInfo.processInfo.processIdentifier
-        for app in NSWorkspace.shared.runningApplications
-        where app.activationPolicy == .regular && app.processIdentifier != ownPID {
-            let axApp = AXUIElementCreateApplication(app.processIdentifier)
-            guard let raw = copyValue(axApp, kAXWindowsAttribute) as? [AXUIElement] else { continue }
+        let pids = NSWorkspace.shared.runningApplications
+            .filter { $0.activationPolicy == .regular && $0.processIdentifier != ownPID }
+            .map(\.processIdentifier)
+
+        var perApp = [[AXWindow]](repeating: [], count: pids.count)
+        let lock = NSLock()
+        DispatchQueue.concurrentPerform(iterations: pids.count) { i in
+            let pid = pids[i]
+            let axApp = AXUIElementCreateApplication(pid)
+            AXUIElementSetMessagingTimeout(axApp, appTimeout)
+            guard let raw = copyValue(axApp, kAXWindowsAttribute) as? [AXUIElement] else { return }
+            var found: [AXWindow] = []
             for el in raw {
-                let w = AXWindow(element: el, pid: app.processIdentifier)
+                AXUIElementSetMessagingTimeout(el, appTimeout)
+                let w = AXWindow(element: el, pid: pid)
                 guard !w.isMinimized, let f = w.frame, f.width > 80, f.height > 80 else { continue }
-                result.append(w)
+                found.append(w)
             }
+            lock.lock(); perApp[i] = found; lock.unlock()
         }
-        return result
+        return perApp.flatMap { $0 }
     }
+
+    /// Per-call ceiling for talking to another app over Accessibility.
+    static let appTimeout: Float = 0.25
+
+    /// Caps every AX call process-wide, so stray calls elsewhere (focused
+    /// window, raise, titles) can't stall the UI on an unresponsive app either.
+    private static let installGlobalTimeout: Void = {
+        AXUIElementSetMessagingTimeout(AXUIElementCreateSystemWide(), 1.0)
+    }()
 }

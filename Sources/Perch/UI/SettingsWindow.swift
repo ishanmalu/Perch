@@ -45,15 +45,16 @@ final class SettingsWindow {
     private var window: NSWindow?
     private let selection = SettingsSelection()
 
-    func show(tab: SettingsTab = .general) {
-        selection.tab = tab
+    /// With no tab given, reopens on the page the user last looked at.
+    func show(tab: SettingsTab? = nil) {
+        selection.tab = tab ?? SettingsTab(rawValue: Prefs.shared.settingsTab) ?? .general
         if let window {
             NSApp.activate(ignoringOtherApps: true)
             window.makeKeyAndOrderFront(nil)
             return
         }
         let host = NSHostingController(rootView: SettingsRoot(selection: selection))
-        let w = NSWindow(contentViewController: host)
+        let w = SettingsNSWindow(contentViewController: host)
         w.title = "Perch Settings"
         w.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
         w.titlebarAppearsTransparent = true
@@ -69,7 +70,25 @@ final class SettingsWindow {
 }
 
 final class SettingsSelection: ObservableObject {
-    @Published var tab: SettingsTab = .general
+    @Published var tab: SettingsTab = .general {
+        didSet { Prefs.shared.settingsTab = tab.rawValue }
+    }
+}
+
+/// Perch has no main menu (it is a menu bar app), so the standard window
+/// shortcuts have nothing to route through. Handle ⌘W and ⌘M here.
+private final class SettingsNSWindow: NSWindow {
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        if mods == .command, let key = event.charactersIgnoringModifiers {
+            switch key {
+            case "w": performClose(nil); return true
+            case "m": performMiniaturize(nil); return true
+            default: break
+            }
+        }
+        return super.performKeyEquivalent(with: event)
+    }
 }
 
 private struct SettingsRoot: View {
@@ -125,7 +144,7 @@ private struct GeneralSettings: View {
                     get: { launchAtLogin },
                     set: { launchAtLogin = $0; LoginItem.set(enabled: $0) }))
                 Picker("Menu bar shows", selection: Binding(
-                    get: { prefs.menuBarStat }, set: { prefs.menuBarStat = $0 })) {
+                    get: { prefs.menuBarStat }, set: { prefs.menuBarStat = $0; SystemMonitor.shared.reschedule() })) {
                     Text("Icon only").tag("none")
                     Text("CPU").tag("cpu")
                     Text("Memory").tag("mem")
@@ -188,17 +207,10 @@ private struct GeneralSettings: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section("Permissions") {
-                LabeledContent("Accessibility") {
-                    HStack {
-                        Text(AX.isTrusted(prompt: false) ? "Granted" : "Not granted")
-                            .foregroundStyle(AX.isTrusted(prompt: false) ? .green : .red)
-                        Button("Open Settings") {
-                            NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
-                        }
-                    }
-                }
-                Text("Window management, the switcher, keyboard cleaning, and paste-on-pick all need Accessibility access.")
-                    .font(.caption).foregroundStyle(.secondary)
+                // Live: re-checked on return from System Settings and every
+                // second while this page is open.
+                PermissionRows()
+                Button("Show Welcome Window…") { OnboardingWindow.shared.show() }
             }
         }
         .formStyle(.grouped)
@@ -237,6 +249,7 @@ private struct WindowSettings: View {
                    + "panes. Holding Option while picking a layout flips this either way.")
                     .font(.caption).foregroundStyle(.secondary)
             }
+            ExcludedAppsSection()
             WorkspaceSection()
             Section("Screenshots") {
                 Toggle("Stay armed for another after each capture", isOn: Binding(
@@ -552,56 +565,91 @@ private struct DiskSettings: View {
 
 private struct ShortcutSettings: View {
     @ObservedObject var prefs = Prefs.shared
+    @State private var query = ""
+    @State private var confirmReset = false
 
-    private let rows: [(String, String)] = [
-        ("panel", "Open Perch panel"),
-        ("clipboard", "Clipboard history"),
-        ("switcher", "Window switcher"),
-        ("switcher.altTab", "Alt-Tab (hold to switch)"),
-        ("screenshot", "Screenshot"),
-        ("win.topLeft", "Top Left Quarter"),
-        ("win.topRight", "Top Right Quarter"),
-        ("win.bottomLeft", "Bottom Left Quarter"),
-        ("win.bottomRight", "Bottom Right Quarter"),
-        ("nightMode", "Night mode"),
-        ("brightness.up", "Brightness up"),
-        ("brightness.down", "Brightness down"),
-        ("focus", "Start / stop focus timer"),
-        ("menuHider", "Show / hide menu bar icons"),
-        ("screenClean", "Screen cleaning"),
-        ("keyboardClean", "Keyboard cleaning"),
-        ("trackpadClean", "Trackpad cleaning"),
-        ("win.left", "Window: left half"),
-        ("win.right", "Window: right half"),
-        ("win.top", "Window: top half"),
-        ("win.bottom", "Window: bottom half"),
-        ("win.thirdL", "Window: left third"),
-        ("win.thirdC", "Window: center third"),
-        ("win.thirdR", "Window: right third"),
-        ("win.maximize", "Window: maximize"),
-        ("win.center", "Window: center"),
-        ("win.restore", "Window: restore size"),
-        ("win.nextScreen", "Window: next display"),
-        ("win.prevScreen", "Window: previous display"),
+    static let groups: [(String, [(String, String)])] = [
+        ("General", [
+            ("panel", "Open Perch Panel"),
+            ("clipboard", "Clipboard History"),
+            ("switcher", "Window Switcher"),
+            ("switcher.altTab", "Alt-Tab (Hold to Switch)"),
+            ("screenshot", "Screenshot"),
+            ("focus", "Start / Stop Focus Timer"),
+            ("menuHider", "Show / Hide Menu Bar Icons"),
+        ]),
+        ("Windows", [
+            ("win.left", "Left Half"),
+            ("win.right", "Right Half"),
+            ("win.top", "Top Half"),
+            ("win.bottom", "Bottom Half"),
+            ("win.topLeft", "Top Left Quarter"),
+            ("win.topRight", "Top Right Quarter"),
+            ("win.bottomLeft", "Bottom Left Quarter"),
+            ("win.bottomRight", "Bottom Right Quarter"),
+            ("win.thirdL", "Left Third"),
+            ("win.thirdC", "Center Third"),
+            ("win.thirdR", "Right Third"),
+            ("win.maximize", "Maximize"),
+            ("win.center", "Center"),
+            ("win.restore", "Restore Size"),
+            ("win.nextScreen", "Next Display"),
+            ("win.prevScreen", "Previous Display"),
+        ]),
+        ("Display", [
+            ("nightMode", "Night Mode"),
+            ("brightness.up", "Brightness Up"),
+            ("brightness.down", "Brightness Down"),
+        ]),
+        ("Cleaning", [
+            ("screenClean", "Screen Cleaning"),
+            ("keyboardClean", "Keyboard Cleaning"),
+            ("trackpadClean", "Trackpad Cleaning"),
+        ]),
     ]
+
+    /// Human name for a shortcut id, for conflict messages.
+    static func label(for id: String) -> String {
+        groups.flatMap(\.1).first { $0.0 == id }?.1 ?? id
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 5) {
+            HStack(spacing: 8) {
                 Image(systemName: "info.circle").foregroundStyle(.secondary)
-                Text("Click a shortcut, then press the new combination. Esc cancels.")
+                Text("Click a shortcut, then press the new combination. Esc cancels, ⌫ clears.")
                     .font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                TextField("Search", text: $query)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 160)
+                Button("Restore Defaults…") { confirmReset = true }
             }
+            .padding(.horizontal, 12).padding(.top, 8)
             List {
-                ForEach(rows, id: \.0) { id, label in
-                    HStack(spacing: 10) {
-                        GlyphBadge(symbol: symbol(for: id), tint: tint(for: id), size: 22)
-                        Text(label).font(Theme.Font.body)
-                        Spacer()
-                        HotkeyField(id: id)
+                ForEach(Self.groups, id: \.0) { group in
+                    let rows = group.1.filter { query.isEmpty || $0.1.localizedCaseInsensitiveContains(query) }
+                    if !rows.isEmpty {
+                        Section(group.0) {
+                            ForEach(rows, id: \.0) { id, label in
+                                HStack(spacing: 10) {
+                                    GlyphBadge(symbol: symbol(for: id), tint: tint(for: id), size: 22)
+                                        .accessibilityHidden(true)
+                                    Text(label).font(Theme.Font.body)
+                                    Spacer()
+                                    HotkeyField(id: id, label: label)
+                                }
+                                .padding(.vertical, 1)
+                            }
+                        }
                     }
-                    .padding(.vertical, 1)
                 }
+            }
+        }
+        .confirmationDialog("Restore all shortcuts to their defaults?", isPresented: $confirmReset) {
+            Button("Restore Defaults", role: .destructive) {
+                prefs.resetHotkeys()
+                HotkeyManager.shared.rebindAll()
             }
         }
     }
@@ -650,39 +698,99 @@ private struct ShortcutSettings: View {
 /// Click to arm, then the next key press becomes the shortcut.
 private struct HotkeyField: View {
     let id: String
+    let label: String
     @State private var recording = false
     @State private var monitor: Any?
+    @State private var conflict: (spec: HotkeySpec, owner: String)?
     @ObservedObject var prefs = Prefs.shared
+    @ObservedObject var manager = HotkeyManager.shared
 
     var body: some View {
-        Button {
-            recording ? stopRecording() : startRecording()
-        } label: {
-            Text(recording ? "Press keys…" : (prefs.hotkey(id)?.display ?? "None"))
-                .font(.system(size: 11.5, weight: .medium, design: .rounded))
-                .foregroundStyle(recording ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.primary))
-                .frame(minWidth: 96)
-                .padding(.horizontal, 9).padding(.vertical, 4)
-                .background(recording ? Color.accentColor.opacity(0.18) : Theme.cardFill,
-                            in: RoundedRectangle(cornerRadius: Theme.Radius.chip))
-                .overlay(
-                    RoundedRectangle(cornerRadius: Theme.Radius.chip)
-                        .strokeBorder(recording ? Color.accentColor.opacity(0.5) : Theme.cardStroke, lineWidth: 1)
-                )
+        HStack(spacing: 6) {
+            if manager.failed.contains(id) {
+                Label("In use", systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption).foregroundStyle(.orange)
+                    .help("macOS refused this shortcut — another app already uses it. Pick a different one.")
+            }
+            Button {
+                recording ? stopRecording() : startRecording()
+            } label: {
+                Text(recording ? "Press keys…" : (prefs.hotkey(id)?.display ?? "None"))
+                    .font(.system(size: 11.5, weight: .medium, design: .rounded))
+                    .foregroundStyle(recording ? AnyShapeStyle(Color.accentColor)
+                                     : prefs.hotkey(id) == nil ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.primary))
+                    .frame(minWidth: 96)
+                    .padding(.horizontal, 9).padding(.vertical, 4)
+                    .background(recording ? Color.accentColor.opacity(0.18) : Theme.cardFill,
+                                in: RoundedRectangle(cornerRadius: Theme.Radius.chip))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Theme.Radius.chip)
+                            .strokeBorder(recording ? Color.accentColor.opacity(0.5) : Theme.cardStroke, lineWidth: 1)
+                    )
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(label) shortcut")
+            .accessibilityValue(recording ? "Recording" : (prefs.hotkey(id)?.display ?? "None"))
+            .accessibilityHint("Press to record a new shortcut")
+
+            Button {
+                clear()
+            } label: {
+                Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary)
+            }
+            .buttonStyle(.plain)
+            .opacity(prefs.hotkey(id) == nil ? 0 : 1)
+            .disabled(prefs.hotkey(id) == nil)
+            .help("Turn this shortcut off")
+            .accessibilityLabel("Clear \(label) shortcut")
         }
-        .buttonStyle(.plain)
         .onDisappear { stopRecording() }
+        .alert("Shortcut already in use",
+               isPresented: Binding(get: { conflict != nil }, set: { if !$0 { conflict = nil } }),
+               presenting: conflict) { c in
+            Button("Use Here, Clear the Other") {
+                Prefs.shared.setHotkey(c.owner, nil)
+                HotkeyManager.shared.rebind(c.owner)
+                assign(c.spec)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { c in
+            Text("\(c.spec.display) is already assigned to “\(ShortcutSettings.label(for: c.owner))”.")
+        }
+    }
+
+    private func clear() {
+        stopRecording()
+        Prefs.shared.setHotkey(id, nil)
+        HotkeyManager.shared.rebind(id)
+    }
+
+    private func assign(_ spec: HotkeySpec) {
+        Prefs.shared.setHotkey(id, spec)
+        HotkeyManager.shared.rebind(id)
     }
 
     private func startRecording() {
         recording = true
         monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { event in
             let mods = event.modifierFlags.intersection([.command, .option, .control, .shift])
-            if event.keyCode == 53 { stopRecording(); return nil }   // Escape cancels
-            guard !mods.isEmpty else { return nil }                  // require a modifier
-            Prefs.shared.setHotkey(id, HotkeySpec(keyCode: UInt32(event.keyCode), modifiers: mods.rawValue))
-            HotkeyManager.shared.rebind(id)
+            if event.keyCode == 53 { stopRecording(); return nil }                 // Escape cancels
+            if event.keyCode == 51 || event.keyCode == 117, mods.isEmpty {          // ⌫ / ⌦ clears
+                clear(); return nil
+            }
+            // Shift alone would steal capitals from every app, so a shortcut
+            // needs ⌘, ⌥ or ⌃ — except function keys, which are free to use bare.
+            let isFunctionKey = event.specialKey.map { (0xF704...0xF726).contains(Int($0.rawValue)) } ?? false
+            guard !mods.intersection([.command, .option, .control]).isEmpty || isFunctionKey else {
+                NSSound.beep(); return nil
+            }
+            let spec = HotkeySpec(keyCode: UInt32(event.keyCode), modifiers: mods.rawValue)
             stopRecording()
+            if let owner = Prefs.shared.hotkeyOwner(of: spec, except: id) {
+                conflict = (spec, owner)
+            } else {
+                assign(spec)
+            }
             return nil
         }
     }
@@ -720,5 +828,55 @@ enum RunningApps {
                 return (id, name)
             }
             .sorted { $0.1.localizedCaseInsensitiveCompare($1.1) == .orderedAscending }
+    }
+}
+
+// MARK: - Excluded apps
+
+/// Apps Perch keeps its hands off: no snapping, no window shortcuts, not in
+/// the switcher, and ⌥⇥ passes straight through while they are in front.
+private struct ExcludedAppsSection: View {
+    @ObservedObject var prefs = Prefs.shared
+
+    var body: some View {
+        Section("Excluded apps") {
+            if prefs.excludedApps.isEmpty {
+                Text("None. Add games, virtual machines or remote desktops that need these keys themselves.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            ForEach(prefs.excludedApps, id: \.self) { id in
+                HStack {
+                    Text(Self.name(for: id))
+                    Text(id).font(.caption).foregroundStyle(.tertiary)
+                    Spacer()
+                    Button {
+                        prefs.excludedApps.removeAll { $0 == id }
+                        AppDelegate.syncExclusions()
+                    } label: {
+                        Image(systemName: "minus.circle.fill").foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Stop excluding \(Self.name(for: id))")
+                }
+            }
+            Menu("Add Running App") {
+                ForEach(RunningApps.list.filter { !prefs.excludedApps.contains($0.0) }, id: \.0) { id, name in
+                    Button(name) {
+                        prefs.excludedApps.append(id)
+                        AppDelegate.syncExclusions()
+                    }
+                }
+            }
+            .fixedSize()
+            Text("Excluded apps are skipped by edge snapping, window shortcuts and the switcher, and get ⌥⇥ and the window shortcuts back while they are in front.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    static func name(for id: String) -> String {
+        if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) {
+            return FileManager.default.displayName(atPath: url.path).replacingOccurrences(of: ".app", with: "")
+        }
+        return id
     }
 }

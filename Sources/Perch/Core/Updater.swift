@@ -177,7 +177,7 @@ final class Updater: ObservableObject {
                                   "Perch will restart in a moment.", duration: 4)
                     do {
                         // Does not return: it relaunches the new copy.
-                        try UpdateInstaller.install(from: staging)
+                        try await UpdateInstaller.install(from: staging)
                     } catch {
                         // Anything that goes wrong leaves the working app in
                         // place, so fall back to handing over the download.

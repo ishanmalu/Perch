@@ -96,10 +96,12 @@ struct MainPanelView: View {
         .onAppear {
             if let initialTab { tab = initialTab }
             if let initialMetric { metric = initialMetric }
+            SystemMonitor.shared.setVisible(true)
             syncSampling()
         }
         .onChange(of: tab) { _, _ in syncSampling() }
         .onDisappear {
+            SystemMonitor.shared.setVisible(false)
             HardwareStats.shared.stop()
             ProcessMonitor.shared.stop()
             AudioControl.shared.stop()
@@ -121,13 +123,14 @@ struct MainPanelView: View {
 
     private var tabBar: some View {
         HStack(spacing: 3) {
-            ForEach(PanelTab.allCases) { item in
+            ForEach(Array(PanelTab.allCases.enumerated()), id: \.element) { index, item in
                 Button {
                     tab = item
                 } label: {
                     VStack(spacing: 2) {
                         Image(systemName: item.symbol).font(.system(size: 11.5))
-                        Text(item.title).font(.system(size: 9))
+                            .accessibilityHidden(true)
+                        Text(item.title).font(.system(size: 10))
                     }
                     .foregroundStyle(tab == item ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.secondary))
                     .frame(maxWidth: .infinity)
@@ -137,6 +140,10 @@ struct MainPanelView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: .command)
+                .help("\(item.title)  (⌘\(index + 1))")
+                .accessibilityLabel("\(item.title) tab")
+                .accessibilityAddTraits(tab == item ? .isSelected : [])
             }
         }
         .padding(.horizontal, 8)
@@ -166,16 +173,16 @@ struct MainPanelView: View {
                 .foregroundStyle(Color.accentColor)
             Text("Perch").font(.system(size: 12.5, weight: .semibold))
             Spacer()
-            iconButton("camera.viewfinder", help: "Screenshot  (⌃⌥⇧4)") {
+            iconButton("camera.viewfinder", help: Self.withShortcut("Screenshot", "screenshot")) {
                 onDismiss()
                 ScreenshotOverlay.shared.open()
             }
-            iconButton("doc.on.clipboard", help: "Clipboard History  (⌘⇧V)") {
+            iconButton("doc.on.clipboard", help: Self.withShortcut("Clipboard History", "clipboard")) {
                 onDismiss()
                 ClipboardPanelController.shared.toggle()
             }
-            iconButton("gearshape", help: "Settings", action: onOpenSettings)
-            iconButton("power", help: "Quit Perch", action: onQuit)
+            iconButton("gearshape", help: "Settings  (⌘,)", action: onOpenSettings)
+                .keyboardShortcut(",", modifiers: .command)
         }
         .padding(.horizontal, 11)
         .padding(.vertical, 7)
@@ -189,6 +196,14 @@ struct MainPanelView: View {
                 .frame(width: 24, height: 21)
         }
         .help(help)
+        .accessibilityLabel(help)
+    }
+
+    /// "Title  (⌃⌥V)" from whatever the shortcut is bound to now, so the
+    /// tooltip never goes stale after the user rebinds it.
+    static func withShortcut(_ title: String, _ id: String) -> String {
+        guard let spec = Prefs.shared.hotkey(id) else { return title }
+        return "\(title)  (\(spec.display))"
     }
 
     // MARK: - Stats
@@ -237,6 +252,7 @@ struct MainPanelView: View {
                                     .padding(3)
                             }
                             .help("Tile into \(layout.name)  (⌥ toggles the window picker)")
+                            .accessibilityLabel("Tile into \(layout.name)")
                         }
                     }
                     HStack(spacing: 5) {
@@ -244,7 +260,7 @@ struct MainPanelView: View {
                             HStack(spacing: 5) {
                                 Image(systemName: "rectangle.stack")
                                     .font(.system(size: 10))
-                                Text(workspaces.all.isEmpty ? "Fill Screen With All Windows" : "Fill Screen")
+                                Text("Fill Screen")
                                     .font(Theme.Font.caption)
                             }
                             .foregroundStyle(.secondary)
@@ -282,6 +298,7 @@ struct MainPanelView: View {
                 .padding(3)
         }
         .help(action.title)
+        .accessibilityLabel(action.title)
     }
 
     // MARK: - Brightness
@@ -322,6 +339,8 @@ struct MainPanelView: View {
                                     set: { brightness.setLevel($0, for: display.id) }
                                 ), in: 0...1)
                                 .controlSize(.mini)
+                                .accessibilityLabel("\(display.name) brightness")
+                                .accessibilityValue("\(Int(display.level * 100)) percent")
                             }
                             Text("\(Int(display.level * 100))")
                                 .font(Theme.Font.numeric)
@@ -348,6 +367,8 @@ struct MainPanelView: View {
                                 .frame(width: 13)
                             if xdr.isActive && !flattened {
                                 Slider(value: $xdr.amount, in: 0...1).controlSize(.mini)
+                                    .accessibilityLabel("Extra brightness")
+                                    .accessibilityValue("\(Int(xdr.amount * 100)) percent")
                             } else {
                                 Text("Extra Brightness").font(Theme.Font.caption).foregroundStyle(.secondary)
                                 Spacer()
@@ -355,7 +376,7 @@ struct MainPanelView: View {
                             if flattened {
                                 StaticToggle(isOn: xdr.isActive)
                             } else {
-                                Toggle("", isOn: Binding(get: { xdr.isActive }, set: { _ in xdr.toggle() }))
+                                Toggle("Extra Brightness", isOn: Binding(get: { xdr.isActive }, set: { _ in xdr.toggle() }))
                                     .labelsHidden().toggleStyle(.switch).controlSize(.mini)
                             }
                         }
@@ -377,6 +398,8 @@ struct MainPanelView: View {
                                                       set: { night.temperature = $0 }),
                                        in: 2400...6500)
                                 .controlSize(.mini)
+                                .accessibilityLabel("Night mode color temperature")
+                                .accessibilityValue("\(Int(night.temperature)) kelvin")
                             }
                             Text("\(Int(night.temperature))K")
                                 .font(Theme.Font.numeric)
@@ -391,7 +414,7 @@ struct MainPanelView: View {
                         if flattened {
                             StaticToggle(isOn: night.isActive)
                         } else {
-                            Toggle("", isOn: Binding(get: { night.isActive }, set: { _ in night.toggle() }))
+                            Toggle("Night Mode", isOn: Binding(get: { night.isActive }, set: { _ in night.toggle() }))
                                 .labelsHidden().toggleStyle(.switch).controlSize(.mini)
                         }
                     }
@@ -417,12 +440,10 @@ struct MainPanelView: View {
             } else {
             Menu {
                 ForEach(display.resolutions) { res in
-                    Button {
-                        modes.setResolution(res, for: display.id)
-                    } label: {
-                        let mark = res == current?.resolution ? "✓ " : ""
-                        let native = res == display.nativeResolution
-                        Text(mark + res.label + (res.hiDPI ? "  HiDPI" : "") + (native ? "  (native)" : ""))
+                    let native = res == display.nativeResolution
+                    Toggle(isOn: Binding(get: { res == current?.resolution },
+                                         set: { _ in modes.setResolution(res, for: display.id) })) {
+                        Text(res.label + (res.hiDPI ? "  HiDPI" : "") + (native ? "  (native)" : ""))
                     }
                 }
             } label: {
@@ -430,12 +451,13 @@ struct MainPanelView: View {
                     .font(Theme.Font.caption)
             }
             .menuStyle(.borderlessButton).fixedSize()
+            .accessibilityLabel("\(display.name) resolution")
             Spacer(minLength: 4)
             Menu {
                 ForEach(display.refreshRates, id: \.self) { hz in
-                    Button((hz == current?.refresh ? "✓ " : "") + DisplayModeController.rateLabel(hz)) {
-                        modes.setRefresh(hz, for: display.id)
-                    }
+                    Toggle(DisplayModeController.rateLabel(hz),
+                           isOn: Binding(get: { hz == current?.refresh },
+                                         set: { _ in modes.setRefresh(hz, for: display.id) }))
                 }
             } label: {
                 Text(current.map { DisplayModeController.rateLabel($0.refresh) } ?? "—")
@@ -443,6 +465,7 @@ struct MainPanelView: View {
             }
             .menuStyle(.borderlessButton).fixedSize()
             .disabled(display.refreshRates.count < 2)
+            .accessibilityLabel("\(display.name) refresh rate")
             }
         }
         .help("\(display.name) — resolution and refresh rate")
@@ -515,6 +538,7 @@ struct MainPanelView: View {
                 .frame(width: 20, height: 17)
         }
         .help(help)
+        .accessibilityLabel(help)
     }
 
     /// A compact menu that matches HoverButton's chrome.
@@ -536,34 +560,47 @@ struct MainPanelView: View {
 
     private var toolsSection: some View {
         VStack(alignment: .leading, spacing: 9) {
+            // A running timer is the one thing here with state, so it leads.
+            focusSection
+
             VStack(alignment: .leading, spacing: 5) {
                 SectionHeader("Tools")
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 5), count: 3), spacing: 5) {
-                    tool("sparkles.tv", "Screen Clean", .cyan) { ScreenCleaner.shared.start() }
-                    tool("keyboard", "Keyboard Clean", .mint) { InputCleaner.shared.start(.keyboard) }
-                    tool("doc.on.clipboard", "Clipboard", .orange) { ClipboardPanelController.shared.toggle() }
-                    tool("macwindow.on.rectangle", "Switcher", .blue) { WindowSwitcher.shared.toggle() }
-                    tool("internaldrive", "Disk Clean", .purple) { SettingsWindow.shared.show(tab: .disk) }
-                    tool("rectangle.and.hand.point.up.left", "Trackpad Clean", .pink) {
+                // Every tool closes the panel first, so nothing it opens ends
+                // up behind (or underneath) the popover.
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 5), count: 4), spacing: 5) {
+                    tool("sparkles.tv", "Screen Clean", .cyan,
+                         help: Self.withShortcut("Black out the screen for wiping", "screenClean")) {
+                        ScreenCleaner.shared.start()
+                    }
+                    tool("keyboard", "Keyboard", .mint,
+                         help: Self.withShortcut("Lock the keyboard for wiping", "keyboardClean")) {
+                        InputCleaner.shared.start(.keyboard)
+                    }
+                    tool("rectangle.and.hand.point.up.left", "Trackpad", .pink,
+                         help: Self.withShortcut("Lock the trackpad for wiping", "trackpadClean")) {
                         InputCleaner.shared.start(.trackpad)
                     }
+                    tool("macwindow.on.rectangle", "Switcher", .blue,
+                         help: Self.withShortcut("Window switcher", "switcher")) {
+                        WindowSwitcher.shared.toggle()
+                    }
                     tool(recorder.isRecording ? "stop.circle.fill" : "record.circle",
-                         recorder.isRecording ? "Stop" : "Record", .red) {
-                        onDismiss()
+                         recorder.isRecording ? "Stop" : "Record", .red,
+                         help: recorder.isRecording ? "Stop recording" : "Record the screen") {
                         if recorder.isRecording { recorder.stop() }
                         else { MainActor.assumeIsolated { ScreenshotOverlay.shared.open(mode: .record) } }
                     }
-                    tool("pencil.tip.crop.circle", "Mark Up", .yellow) {
-                        onDismiss()
+                    tool("pencil.tip.crop.circle", "Mark Up", .yellow, help: "Draw on the screen") {
                         MainActor.assumeIsolated { ScreenshotOverlay.shared.open(mode: .annotate) }
                     }
-                    tool("xmark.bin", "Uninstall", .gray) {
-                        onDismiss(); SettingsWindow.shared.show(tab: .apps)
+                    tool("internaldrive", "Disk Clean", .purple, help: "Opens Disk Clean in Settings") {
+                        SettingsWindow.shared.show(tab: .disk)
+                    }
+                    tool("xmark.bin", "Uninstall", .gray, help: "Opens the app uninstaller in Settings") {
+                        SettingsWindow.shared.show(tab: .apps)
                     }
                 }
             }
-
-            focusSection
 
             VStack(alignment: .leading, spacing: 5) {
                 SectionHeader("Switches")
@@ -601,8 +638,9 @@ struct MainPanelView: View {
                                     .menuIndicator(.hidden)
                                     .fixedSize()
                                     .help("Keep awake for a set time")
+                                    .accessibilityLabel("Keep awake for a set time")
                                 }
-                                Toggle("", isOn: Binding(get: { sleepBlocker.isActive },
+                                Toggle("Prevent Sleep", isOn: Binding(get: { sleepBlocker.isActive },
                                                          set: { _ in sleepBlocker.toggle() }))
                                     .labelsHidden().toggleStyle(.switch).controlSize(.mini)
                             }
@@ -636,26 +674,30 @@ struct MainPanelView: View {
             if flattened {
                 StaticToggle(isOn: isOn)
             } else {
-                Toggle("", isOn: Binding(get: { isOn }, set: { _ in toggle() }))
+                Toggle(title, isOn: Binding(get: { isOn }, set: { _ in toggle() }))
                     .labelsHidden().toggleStyle(.switch).controlSize(.mini)
             }
         }
     }
 
-    private func tool(_ symbol: String, _ title: String, _ tint: Color,
+    private func tool(_ symbol: String, _ title: String, _ tint: Color, help: String,
                      action: @escaping () -> Void) -> some View {
-        HoverButton(action: action) {
+        HoverButton(action: { onDismiss(); action() }) {
             VStack(spacing: 3) {
                 GlyphBadge(symbol: symbol, tint: tint, size: 24)
+                    .accessibilityHidden(true)
                 Text(title)
-                    .font(.system(size: 9))
+                    .font(.system(size: 10))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                    .minimumScaleFactor(0.9)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 9)
         }
+        .help(help)
+        .accessibilityLabel(title)
+        .accessibilityHint(help)
     }
 
     // MARK: - Footer
@@ -668,6 +710,7 @@ struct MainPanelView: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .truncationMode(.tail)
+                .help(footerText)
             Spacer(minLength: 4)
             if case .available = updater.state {
                 HoverButton(action: { updater.downloadLatest() }) {
@@ -676,13 +719,27 @@ struct MainPanelView: View {
                 }
             } else if !isBusy {
                 HoverButton(action: { updater.check() }) {
-                    Text("Check").font(Theme.Font.keycap)
+                    Text(isFailed ? "Retry" : "Check").font(Theme.Font.keycap)
                         .padding(.horizontal, 7).padding(.vertical, 3)
                 }
+                .help(isFailed ? "Try the update check again" : "Check for updates")
             }
+            // Quit lives down here, away from Settings, so it is hard to hit by accident.
+            HoverButton(action: onQuit) {
+                Image(systemName: "power").font(.system(size: 10.5)).foregroundStyle(.secondary)
+                    .frame(width: 20, height: 18)
+            }
+            .help("Quit Perch  (⌘Q)")
+            .accessibilityLabel("Quit Perch")
+            .keyboardShortcut("q", modifiers: .command)
         }
         .padding(.horizontal, 11)
         .padding(.vertical, 6)
+    }
+
+    private var isFailed: Bool {
+        if case .failed = updater.state { return true }
+        return false
     }
 
     private var isBusy: Bool {
@@ -744,7 +801,7 @@ private struct StatRow: View {
     var body: some View {
         HStack(spacing: 7) {
             Text(title)
-                .font(.system(size: 9, weight: .semibold))
+                .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(.tertiary)
                 .frame(width: 27, alignment: .leading)
             GeometryReader { geo in

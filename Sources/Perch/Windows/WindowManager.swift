@@ -92,7 +92,7 @@ final class WindowManager {
         }
         for (pane, win) in zip(layout.panes, windows) {
             if let f = win.frame { remember(win, f) }
-            move(win, to: rect(for: pane, on: screen))
+            move(win, to: rect(for: pane, on: screen), animated: false)
         }
     }
 
@@ -123,7 +123,7 @@ final class WindowManager {
             // liveness test — otherwise the pane silently stays empty.
             guard let current = win.frame else { vanished += 1; continue }
             remember(win, current)
-            move(win, to: rect(for: pane, on: screen))
+            move(win, to: rect(for: pane, on: screen), animated: false)
         }
         if vanished > 0 {
             Notifier.show(vanished == 1 ? "One window had closed" : "\(vanished) windows had closed",
@@ -140,7 +140,7 @@ final class WindowManager {
         let full = rect(for: Pane(0, 0, 1, 1), on: screen)
         for win in tileCandidates() {
             if let f = win.frame { remember(win, f) }
-            move(win, to: full)
+            move(win, to: full, animated: false)
         }
     }
 
@@ -231,19 +231,34 @@ final class WindowManager {
         if originalFrames[k] == nil { originalFrames[k] = frame }
     }
 
-    private func move(_ win: AXWindow, to rect: CGRect) {
-        guard Prefs.shared.animateWindows, let from = win.frame else {
+    /// Multi-window operations pass `animated: false`: each animated move
+    /// blocks the main thread for ~50 ms plus AX latency, multiplied per window.
+    private var animationGen: [String: Int] = [:]
+
+    private func move(_ win: AXWindow, to rect: CGRect, animated: Bool = true) {
+        guard animated, Prefs.shared.animateWindows, !EnergySaver.shared.isActive,
+              !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion,   // Reduce Motion: jump straight there
+              let from = win.frame else {
             win.setFrame(rect); return
         }
+        // Steps are scheduled on the run loop instead of slept through, so the
+        // main thread stays free between frames. A newer move of the same
+        // window cancels the rest of an older animation.
+        let k = key(for: win)
+        animationGen[k, default: 0] += 1
+        let gen = animationGen[k]!
         let steps = 8
         for i in 1...steps {
-            let t = easeOut(Double(i) / Double(steps))
-            let interp = CGRect(x: from.minX + (rect.minX - from.minX) * t,
-                                y: from.minY + (rect.minY - from.minY) * t,
-                                width: from.width + (rect.width - from.width) * t,
-                                height: from.height + (rect.height - from.height) * t)
-            win.setFrame(interp)
-            usleep(6000)
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(6 * (i - 1))) { [weak self] in
+                guard let self, self.animationGen[k] == gen else { return }
+                let t = self.easeOut(Double(i) / Double(steps))
+                let interp = i == steps ? rect : CGRect(
+                    x: from.minX + (rect.minX - from.minX) * t,
+                    y: from.minY + (rect.minY - from.minY) * t,
+                    width: from.width + (rect.width - from.width) * t,
+                    height: from.height + (rect.height - from.height) * t)
+                win.setFrame(interp)
+            }
         }
     }
 
@@ -255,7 +270,7 @@ final class WindowManager {
         _ = AX.isTrusted(prompt: true)
         let (title, body) = AX.accessibilityMessage(
             feature: "Window management moves windows through Accessibility.")
-        Notifier.show(title, body, duration: 8)
+        Notifier.needsPermission(title, body, pane: "Privacy_Accessibility")
         return false
     }
 }

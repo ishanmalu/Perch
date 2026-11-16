@@ -8,7 +8,11 @@ let package = Package(
         .executableTarget(
             name: "Perch",
             path: "Sources/Perch",
-            swiftSettings: [.swiftLanguageMode(.v5)],
+            swiftSettings: [
+                .swiftLanguageMode(.v5),
+                // Warnings only: surfaces data races without Swift 6's hard errors.
+                .enableExperimentalFeature("StrictConcurrency"),
+            ],
             linkerSettings: [
                 .linkedFramework("Carbon"),
                 .linkedFramework("IOKit"),

@@ -12,7 +12,12 @@ import UniformTypeIdentifiers
 enum Screenshot {
     /// Why the last capture failed, for `--probe-shot`. ScreenCaptureKit's
     /// errors are the only way to tell a permission problem from a real fault.
-    nonisolated(unsafe) static var lastError: Error?
+    static var lastError: Error? {
+        get { lastErrorLock.lock(); defer { lastErrorLock.unlock() }; return _lastError }
+        set { lastErrorLock.lock(); _lastError = newValue; lastErrorLock.unlock() }
+    }
+    private static let lastErrorLock = NSLock()
+    nonisolated(unsafe) private static var _lastError: Error?
 
     /// Where a capture ends up. Both can be on at once.
     struct Destination {

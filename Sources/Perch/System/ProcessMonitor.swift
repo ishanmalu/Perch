@@ -57,15 +57,22 @@ final class ProcessMonitor: ObservableObject {
     func start() {
         guard timer == nil else { return }
         sample()
-        timer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+        timer = Timer.scheduledTimer(withTimeInterval: EnergySaver.shared.isActive ? 6 : 2, repeats: true) { [weak self] _ in
             self?.sample()
         }
+        timer?.tolerance = 0.2   // let macOS coalesce wake-ups
         RunLoop.main.add(timer!, forMode: .common)
     }
 
     func stop() {
         timer?.invalidate()
         timer = nil
+    }
+
+    /// Picks up a new interval after battery saver turns on or off.
+    func restartIfRunning() {
+        guard timer != nil else { return }
+        stop(); start()
     }
 
     // MARK: - Sampling

@@ -4,15 +4,28 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Perch — every Mac utility you keep installing, in one menu</title>
-<meta name="description" content="A free, open-source macOS menu bar utility: display resolution and refresh rate, monitor brightness, window tiling and snapping, workspaces, screen recording, screenshots and markup, clipboard history and snippets, focus timer, battery health, app uninstaller, system monitoring and more.">
+<meta name="description" content="A free, open-source macOS menu bar utility: display resolution and refresh rate, monitor brightness, window tiling and snapping, workspaces, screen recording, screenshots and markup, clipboard history and snippets, focus timer, battery health and battery saver, app uninstaller, system monitoring and more.">
 <link rel="icon" href="perch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&family=Inter+Tight:wght@500..800&display=swap" rel="stylesheet">
-<meta property="og:title" content="Perch — a dozen Mac utilities in one place">
-<meta property="og:description" content="Window tiling, screenshots, clipboard history, Alt-Tab, system monitoring, night mode and cleaning modes — free and open source.">
-<meta property="og:image" content="https://perch.ishanmalu.dev/perch-icon.png">
+<link rel="apple-touch-icon" href="perch-icon.png">
+<link rel="canonical" href="https://perch.ishanmalu.dev/">
+<link rel="preload" href="fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/inter-tight-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="fonts/fonts.css">
+<meta property="og:site_name" content="Perch">
+<meta property="og:title" content="Perch — every Mac utility you keep installing, in one menu">
+<meta property="og:description" content="Free, open-source macOS menu bar app: display modes and monitor brightness, window snapping, workspaces, screen recording and markup, clipboard history and snippets, focus timer, battery health and more.">
+<meta property="og:url" content="https://perch.ishanmalu.dev/">
+<meta property="og:image" content="https://perch.ishanmalu.dev/og-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Perch app icon beside its settings window, with the line: Everything your menu bar was missing.">
 <meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0c0e12" media="(prefers-color-scheme: dark)">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Perch","applicationCategory":"UtilitiesApplication","operatingSystem":"macOS 14 or later","softwareVersion":"1.10.1","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"downloadUrl":"https://github.com/ishanmalu/Perch/releases/download/v1.10.1/Perch-1.10.1.dmg","url":"https://perch.ishanmalu.dev/","license":"https://github.com/ishanmalu/Perch/blob/main/LICENSE"}
+</script>
 <style>
   :root {
     --bg: #ffffff;
@@ -259,6 +272,7 @@
   .b-strip svg.ico { width: 22px; height: 22px; color: var(--accent); margin-bottom: 4px; }
   .b-strip b { font-size: 15px; letter-spacing: -.01em; }
   .b-strip span { font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+  .b-strip b small { font-size: 10.5px; font-weight: 650; color: var(--accent); margin-left: 6px; padding: 1px 7px; border-radius: 99px; background: color-mix(in srgb, var(--accent) 12%, transparent); vertical-align: 2px; }
 
   /* Small animated illustrations, CSS only. */
   .snap-art, .ws-art, .rec-art, .focus-art {
@@ -767,6 +781,37 @@
   }
   .coffee a:hover { color: var(--muted); opacity: 1; text-decoration: none; }
   .coffee svg.ico { width: 13px; height: 13px; }
+
+  /* ---------- review fixes ---------- */
+  img { height: auto; }
+  html { scroll-padding-top: 72px; }
+  @media (max-width: 640px) { html { scroll-padding-top: 116px; } }
+  .hero-icon { height: 132px; }
+  .btn-tertiary { flex-basis: 100%; text-align: center; font-size: 14px; color: var(--muted);
+    display: inline-flex; justify-content: center; align-items: center; min-height: 44px; }
+  /* Tap targets: at least 44px tall without changing how anything looks. */
+  nav a.link, .footer-links a, .made a, .coffee a, .notice a {
+    display: inline-flex; align-items: center; min-height: 44px;
+  }
+  .footer-links { gap: 4px 22px; }
+  .theme-toggle { width: 40px; height: 40px; }
+  /* Small screens: the section links move to a scrollable second row. */
+  .subnav { display: none; }
+  @media (max-width: 640px) {
+    nav a.link { margin-left: 14px; }
+    .theme-toggle { margin-left: 12px; }
+    .subnav {
+      display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none;
+      padding: 0 16px 8px; margin-top: -6px;
+    }
+    .subnav::-webkit-scrollbar { display: none; }
+    .subnav a {
+      flex: none; display: inline-flex; align-items: center; min-height: 36px;
+      padding: 0 12px; border-radius: 999px; font-size: 13.5px;
+      color: var(--muted); background: var(--bg-soft); border: 1px solid var(--line);
+    }
+    .subnav a:hover { color: var(--text); text-decoration: none; }
+  }
 </style>
 <script>
   // Runs before first paint so a remembered choice never flashes the other theme.
@@ -894,6 +939,11 @@
       <span class="sun">☀</span><span class="moon">☾</span>
     </button>
   </div>
+  <div class="subnav">
+    <a href="#new">What’s new</a>
+    <a href="#features">Features</a>
+    <a href="#shortcuts">Shortcuts</a>
+  </div>
 </nav>
 
 <header class="wrap">
@@ -914,8 +964,9 @@
   </p>
 
   <div class="cta">
-    <a class="btn btn-primary" href="https://github.com/ishanmalu/Perch/releases/latest"><svg class="ico"><use href="#i-download"/></svg>Download for macOS</a>
+    <a class="btn btn-primary" href="https://github.com/ishanmalu/Perch/releases/download/v1.10.1/Perch-1.10.1.dmg"><svg class="ico"><use href="#i-download"/></svg>Download for macOS</a>
     <a class="btn btn-secondary" href="https://github.com/ishanmalu/Perch">View source</a>
+    <a class="btn-tertiary" href="https://github.com/ishanmalu/Perch/releases/latest">All releases &amp; notes</a>
   </div>
 
   <div class="notice">
@@ -947,8 +998,8 @@
           </ul>
         </div>
         <figure class="b-shot">
-          <img class="light" src="shots/settings-displays-light.png" alt="Perch display settings: an external 1920 by 1080 monitor at 144 hertz" loading="lazy">
-          <img class="dark" src="shots/settings-displays-dark.png" alt="" loading="lazy">
+          <img class="light" src="shots/settings-displays-light.webp" alt="Perch display settings: an external 1920 by 1080 monitor at 144 hertz" width="892" height="672" loading="lazy">
+          <img class="dark" src="shots/settings-displays-dark.webp" alt="Perch display settings: an external 1920 by 1080 monitor at 144 hertz" width="892" height="672" loading="lazy">
         </figure>
       </article>
 
@@ -992,18 +1043,18 @@
           </ul>
         </div>
         <figure class="b-shot">
-          <img class="light" src="shots/settings-menuBar-light.png" alt="Perch menu bar and focus settings" loading="lazy">
-          <img class="dark" src="shots/settings-menuBar-dark.png" alt="" loading="lazy">
+          <img class="light" src="shots/settings-menuBar-light.webp" alt="Perch menu bar and focus settings" width="892" height="672" loading="lazy">
+          <img class="dark" src="shots/settings-menuBar-dark.webp" alt="Perch menu bar and focus settings" width="892" height="672" loading="lazy">
         </figure>
       </article>
 
       <article class="b b-half">
         <span class="b-tag" style="--t:#22c55e"><svg class="ico"><use href="#i-battery"/></svg>Battery</span>
         <h3>Health you can read.</h3>
-        <p>Capacity against design, cycle count and condition — and a charge limit on Macs whose firmware allows one.</p>
+        <p>Maximum capacity and condition exactly as macOS reports them, cycles, time remaining — a battery saver that quiets Perch itself, and a charge limit on Macs whose firmware allows one.</p>
         <figure class="b-shot small">
-          <img class="light" src="shots/settings-battery-light.png" alt="Perch battery health: 92 percent, 171 cycles" loading="lazy">
-          <img class="dark" src="shots/settings-battery-dark.png" alt="" loading="lazy">
+          <img class="light" src="shots/settings-battery-light.webp" alt="Perch battery health: 92 percent, 171 cycles" width="892" height="672" loading="lazy">
+          <img class="dark" src="shots/settings-battery-dark.webp" alt="Perch battery health: 92 percent, 171 cycles" width="892" height="672" loading="lazy">
         </figure>
       </article>
 
@@ -1012,9 +1063,16 @@
         <h3>Uninstall properly.</h3>
         <p>Drop an app in and Perch finds what it left in your Library — caches, preferences, containers. Everything goes to the Trash.</p>
         <figure class="b-shot small">
-          <img class="light" src="shots/settings-apps-light.png" alt="Perch app uninstaller" loading="lazy">
-          <img class="dark" src="shots/settings-apps-dark.png" alt="" loading="lazy">
+          <img class="light" src="shots/settings-apps-light.webp" alt="Perch app uninstaller" width="892" height="672" loading="lazy">
+          <img class="dark" src="shots/settings-apps-dark.webp" alt="Perch app uninstaller" width="892" height="672" loading="lazy">
         </figure>
+      </article>
+
+      <article class="b b-strip">
+        <div><svg class="ico"><use href="#i-battery"/></svg><b>Battery saver <small>1.10.1</small></b><span>Pauses Perch’s own background work on battery or in Low Power Mode. Nothing polls while the panel is closed.</span></div>
+        <div><svg class="ico"><use href="#i-switch"/></svg><b>Snappier Alt-Tab <small>1.10.1</small></b><span>A quick ⌥⇥ jumps straight back. Hold to pick. Never freezes on a hung app.</span></div>
+        <div><svg class="ico"><use href="#i-window"/></svg><b>App exclusions <small>1.10.1</small></b><span>Games, VMs and remote desktops keep their own shortcuts.</span></div>
+        <div><svg class="ico"><use href="#i-keyboard"/></svg><b>Shortcut conflicts <small>1.10.1</small></b><span>Clashes flagged, any shortcut cleared, defaults one click away.</span></div>
       </article>
 
       <article class="b b-strip">
@@ -1078,7 +1136,7 @@
             </div>
           </div>
           <div class="pp-foot">
-            <svg class="bird"><use href="#i-bird"/></svg><span>Perch 1.10.0 — up to date</span>
+            <svg class="bird"><use href="#i-bird"/></svg><span>Perch 1.10.1 — up to date</span>
             <span class="sp"></span><em>Check</em>
           </div>
         </div>
@@ -1130,7 +1188,7 @@
             <div class="live-rows" id="liveRows"></div>
           </div>
           <div class="pp-foot">
-            <svg class="bird"><use href="#i-bird"/></svg><span>Perch 1.10.0 — up to date</span>
+            <svg class="bird"><use href="#i-bird"/></svg><span>Perch 1.10.1 — up to date</span>
             <span class="sp"></span><em>Check</em>
           </div>
         </div>
@@ -1172,7 +1230,7 @@
             <div class="pp-card" id="switchCard"></div>
           </div>
           <div class="pp-foot">
-            <svg class="bird"><use href="#i-bird"/></svg><span>Perch 1.10.0 — up to date</span>
+            <svg class="bird"><use href="#i-bird"/></svg><span>Perch 1.10.1 — up to date</span>
             <span class="sp"></span><em>Check</em>
           </div>
         </div>
@@ -1190,7 +1248,7 @@
     <div class="caps">
       <div class="cap"><svg class="ico"><use href="#i-window"/></svg><div><b>Window manager</b><span>Halves, thirds, quarters, gaps, multi-display, undo.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-layout"/></svg><div><b>Custom layouts</b><span>Five presets that tile your frontmost windows at once.</span></div></div>
-      <div class="cap"><svg class="ico"><use href="#i-switch"/></svg><div><b>Alt-Tab switcher</b><span>Live window previews, type to filter, close or quit inline.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-switch"/></svg><div><b>Alt-Tab switcher</b><span>Tap to jump back, hold for live previews, type to filter, close or quit inline.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-clipboard"/></svg><div><b>Clipboard history</b><span>Searchable, pinnable, with image previews and source apps.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-activity"/></svg><div><b>System monitoring</b><span>CPU, GPU, memory, disk, network, battery health, thermals.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-drive"/></svg><div><b>Disk cleaning</b><span>Sixteen cache targets plus your own. Always to the Trash.</span></div></div>
@@ -1207,7 +1265,7 @@
       <div class="cap"><svg class="ico"><use href="#i-record"/></svg><div><b>Recording &amp; markup</b><span>Region to MP4 or GIF; arrows, boxes, highlighter, pixelate.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-timer"/></svg><div><b>Focus &amp; calendar</b><span>Pomodoro blocks in the menu bar, next meeting with Join.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-menubar"/></svg><div><b>Menu bar hider</b><span>Rarely used icons behind a chevron.</span></div></div>
-      <div class="cap"><svg class="ico"><use href="#i-battery"/></svg><div><b>Battery</b><span>Health, cycles, condition; charge limit where supported.</span></div></div>
+      <div class="cap"><svg class="ico"><use href="#i-battery"/></svg><div><b>Battery</b><span>Health as macOS reports it, cycles, condition, a battery saver for Perch itself; charge limit where supported.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-trash"/></svg><div><b>Uninstaller</b><span>The app and its leftovers, to the Trash.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-text"/></svg><div><b>Snippets</b><span>Typed triggers that expand to saved text.</span></div></div>
       <div class="cap"><svg class="ico"><use href="#i-coffee"/></svg><div><b>Keep awake</b><span>Hold it open, or for 15 minutes to 8 hours with the time left on the row. It can start itself while plugged in, while an app runs, or while the CPU is busy, and let the display sleep while the machine works.</span></div></div>
@@ -1225,7 +1283,7 @@
         <tbody>
           <tr><td><kbd>⌃⌥Space</kbd></td><td>Open the Perch panel</td></tr>
           <tr><td><kbd>⌘⇧V</kbd></td><td>Clipboard history</td></tr>
-          <tr><td><kbd>⌥Tab</kbd></td><td>Alt-Tab — hold Option, tap Tab, release to switch</td></tr>
+          <tr><td><kbd>⌥Tab</kbd></td><td>Alt-Tab — tap to jump to the last window; hold Option to pick, release to switch</td></tr>
           <tr><td><kbd>⌃⌥`</kbd></td><td>Searchable window switcher</td></tr>
           <tr><td><kbd>⌃⌥←</kbd> <kbd>→</kbd></td><td>Left / right half — press again to cycle ⅓, ⅔</td></tr>
           <tr><td><kbd>⌃⌥↑</kbd> <kbd>↓</kbd></td><td>Top / bottom half</td></tr>
@@ -1238,7 +1296,7 @@
           <tr><td><kbd>⌃⌥⇧4</kbd></td><td>Screenshot — stays armed; W window, F display, D delayed, T text, C colour, P pin, A mark up, R record (press again to stop)</td></tr>
           <tr><td><kbd>⌃⌥⇧P</kbd></td><td>Start / stop a focus block</td></tr>
           <tr><td><kbd>⌃⌥⇧B</kbd></td><td>Show / hide menu bar icons</td></tr>
-      <tr><td><kbd>⌃⌥=</kbd> <kbd>⌃⌥-</kbd></td><td>Brightness up / down on every display, external ones included</td></tr>
+          <tr><td><kbd>⌃⌥=</kbd> <kbd>⌃⌥-</kbd></td><td>Brightness up / down on every display, external ones included</td></tr>
       <tr><td><kbd>⌃⌥N</kbd></td><td>Night mode</td></tr>
           <tr><td><kbd>⌃⌥⇧S</kbd></td><td>Screen cleaning</td></tr>
           <tr><td><kbd>⌃⌥⇧L</kbd></td><td>Keyboard cleaning</td></tr>
@@ -1284,7 +1342,7 @@ less install.sh &amp;&amp; bash install.sh</pre>
         <li>
           <h4>Download the DMG</h4>
           <p>Grab the newest <code>Perch-x.y.z.dmg</code> from the releases page.</p>
-          <a class="btn btn-primary" href="https://github.com/ishanmalu/Perch/releases/latest" style="margin-top:6px">Download latest release</a>
+          <a class="btn btn-primary" href="https://github.com/ishanmalu/Perch/releases/download/v1.10.1/Perch-1.10.1.dmg" style="margin-top:6px">Download latest release</a>
         </li>
         <li>
           <h4>Drag Perch to Applications</h4>

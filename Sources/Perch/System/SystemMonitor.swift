@@ -20,10 +20,9 @@ struct SystemSnapshot {
     var netIn: Double = 0, netOut: Double = 0   // bytes/sec
 
     var batteryPercent: Int? = nil
-    var batteryCharging = false
+    var batteryCharging = false                 // actually taking charge
+    var batteryOnPower = false                  // plugged in, charging or not
     var batteryTimeMinutes: Int? = nil
-    var batteryCycles: Int? = nil
-    var batteryHealth: Int? = nil               // % of design capacity
 
     var uptime: TimeInterval = 0
     var loadAverage: [Double] = [0, 0, 0]
@@ -42,33 +41,87 @@ final class SystemMonitor: ObservableObject {
     private var timer: Timer?
     private var previousCPU: [UInt32] = []
     private var previousNet: (inB: UInt64, outB: UInt64, at: Date)?
+    private var powerSource: CFRunLoopSource?
+    /// Views currently showing live stats. A set, not a counter, so an
+    /// unpaired onAppear can never leave full-rate sampling running.
+    private var viewers: Set<String> = []
 
+    /// Energy policy: full sampling only while someone is looking. In the
+    /// background nothing polls unless the menu-bar title shows CPU, memory or
+    /// network, and then only that one figure, slowly. Battery figures follow
+    /// macOS's power-source notifications instead of a timer.
     func start() {
-        stop()
-        sample()
-        timer = Timer.scheduledTimer(withTimeInterval: Prefs.shared.sampleInterval, repeats: true) { [weak self] _ in
-            self?.sample()
+        if powerSource == nil {
+            let ctx = Unmanaged.passUnretained(self).toOpaque()
+            powerSource = IOPSNotificationCreateRunLoopSource({ ctx in
+                guard let ctx else { return }
+                let me = Unmanaged<SystemMonitor>.fromOpaque(ctx).takeUnretainedValue()
+                var s = me.snapshot
+                me.readBattery(into: &s)
+                me.snapshot = s
+            }, ctx)?.takeRetainedValue()
+            if let powerSource { CFRunLoopAddSource(CFRunLoopGetMain(), powerSource, .commonModes) }
         }
-        RunLoop.main.add(timer!, forMode: .common)
+        reschedule()
     }
 
     func stop() { timer?.invalidate(); timer = nil }
 
-    private func sample() {
-        var s = SystemSnapshot()
-        readCPU(into: &s)
-        readMemory(into: &s)
-        readDisk(into: &s)
-        readNetwork(into: &s)
-        readBattery(into: &s)
-        s.uptime = ProcessInfo.processInfo.systemUptime
-        s.loadAverage = Self.loadAverage()
-        s.thermalPressure = Self.thermalState()
+    /// Call with true when a live-stats view appears and false when it goes.
+    func setVisible(_ visible: Bool, viewer: String = "panel") {
+        let changed = visible ? viewers.insert(viewer).inserted : viewers.remove(viewer) != nil
+        if changed { reschedule() }
+    }
 
-        DispatchQueue.main.async {
-            self.snapshot = s
-            self.cpuHistory = Array((self.cpuHistory + [s.cpuUsed]).suffix(60))
-            self.memHistory = Array((self.memHistory + [s.memPercent]).suffix(60))
+    /// Re-evaluate after the menu-bar stat or sample interval changes.
+    func reschedule() {
+        stop()
+        let foreground = !viewers.isEmpty
+        let stat = Prefs.shared.menuBarStat
+        // Battery saver: the menu-bar figure stops updating in the background.
+        let backgroundNeeds = ["cpu", "mem", "net"].contains(stat) && !EnergySaver.shared.isActive
+        guard foreground || backgroundNeeds else {
+            var s = snapshot; readBattery(into: &s); snapshot = s
+            return
+        }
+        let saver = EnergySaver.shared.isActive
+        let interval = foreground ? (saver ? max(6, Prefs.shared.sampleInterval) : Prefs.shared.sampleInterval)
+                                  : max(5, Prefs.shared.sampleInterval * 2.5)
+        sample(full: foreground)
+        let t = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            self.sample(full: !self.viewers.isEmpty)
+        }
+        // Let macOS coalesce our wake-ups with others'.
+        t.tolerance = interval * (foreground ? 0.1 : 0.5)
+        RunLoop.main.add(t, forMode: .common)
+        timer = t
+    }
+
+    private func sample(full: Bool) {
+        var s = snapshot
+        if full {
+            readCPU(into: &s)
+            readMemory(into: &s)
+            readDisk(into: &s)
+            readNetwork(into: &s)
+            readBattery(into: &s)
+            s.uptime = ProcessInfo.processInfo.systemUptime
+            s.loadAverage = Self.loadAverage()
+            s.thermalPressure = Self.thermalState()
+        } else {
+            switch Prefs.shared.menuBarStat {
+            case "cpu": readCPU(into: &s)
+            case "mem": readMemory(into: &s)
+            case "net": readNetwork(into: &s)
+            default: break
+            }
+        }
+        snapshot = s
+        // Sparkline history only matters to the panel.
+        if full {
+            cpuHistory = Array((cpuHistory + [s.cpuUsed]).suffix(60))
+            memHistory = Array((memHistory + [s.memPercent]).suffix(60))
         }
     }
 
@@ -172,34 +225,25 @@ final class SystemMonitor: ObservableObject {
 
     // MARK: - Battery
 
-    private func readBattery(into s: inout SystemSnapshot) {
+    fileprivate func readBattery(into s: inout SystemSnapshot) {
+        s.batteryPercent = nil
+        s.batteryCharging = false
+        s.batteryOnPower = false
+        s.batteryTimeMinutes = nil
         guard let blob = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
               let list = IOPSCopyPowerSourcesList(blob)?.takeRetainedValue() as? [CFTypeRef] else { return }
         for src in list {
             guard let d = IOPSGetPowerSourceDescription(blob, src)?.takeUnretainedValue() as? [String: Any],
+                  (d[kIOPSTypeKey] as? String) == kIOPSInternalBatteryType,
                   let current = d[kIOPSCurrentCapacityKey] as? Int,
                   let max = d[kIOPSMaxCapacityKey] as? Int, max > 0 else { continue }
-            s.batteryPercent = Int((Double(current) / Double(max)) * 100)
-            s.batteryCharging = (d[kIOPSPowerSourceStateKey] as? String) == kIOPSACPowerValue
+            s.batteryPercent = Int((Double(current) / Double(max) * 100).rounded())
+            s.batteryOnPower = (d[kIOPSPowerSourceStateKey] as? String) == kIOPSACPowerValue
+            s.batteryCharging = d[kIOPSIsChargingKey] as? Bool ?? false
             let key = s.batteryCharging ? kIOPSTimeToFullChargeKey : kIOPSTimeToEmptyKey
-            if let mins = d[key] as? Int, mins > 0 { s.batteryTimeMinutes = mins }
-        }
-        readBatteryHealth(into: &s)
-    }
-
-    private func readBatteryHealth(into s: inout SystemSnapshot) {
-        let match = IOServiceMatching("AppleSmartBattery")
-        let service = IOServiceGetMatchingService(kIOMainPortDefault, match)
-        guard service != 0 else { return }
-        defer { IOObjectRelease(service) }
-        func int(_ key: String) -> Int? {
-            IORegistryEntryCreateCFProperty(service, key as CFString, kCFAllocatorDefault, 0)?
-                .takeRetainedValue() as? Int
-        }
-        s.batteryCycles = int("CycleCount")
-        if let nominal = int("NominalChargeCapacity") ?? int("AppleRawMaxCapacity"),
-           let design = int("DesignCapacity"), design > 0 {
-            s.batteryHealth = Int(Double(nominal) / Double(design) * 100)
+            if let mins = d[key] as? Int, mins > 0, !(s.batteryOnPower && !s.batteryCharging) {
+                s.batteryTimeMinutes = mins
+            }
         }
     }
 

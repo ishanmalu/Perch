@@ -85,9 +85,10 @@ final class ClipboardStore: ObservableObject {
     func start() {
         stop()
         guard Prefs.shared.clipboardEnabled else { return }
-        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+        timer = Timer.scheduledTimer(withTimeInterval: EnergySaver.shared.isActive ? 2 : 0.75, repeats: true) { [weak self] _ in
             self?.poll()
         }
+        timer?.tolerance = 0.25   // let macOS coalesce wake-ups
         RunLoop.main.add(timer!, forMode: .common)
     }
 

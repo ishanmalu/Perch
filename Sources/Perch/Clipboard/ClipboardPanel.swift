@@ -166,7 +166,11 @@ private struct ClipboardView: View {
                         .padding(5)
                     }
                     .onChange(of: model.selection) { _, new in
-                        withAnimation(.easeOut(duration: 0.1)) { proxy.scrollTo(new, anchor: .center) }
+                        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+                            proxy.scrollTo(new, anchor: .center)
+                        } else {
+                            withAnimation(.easeOut(duration: 0.1)) { proxy.scrollTo(new, anchor: .center) }
+                        }
                     }
                 }
             }
