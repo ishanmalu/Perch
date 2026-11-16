@@ -78,7 +78,7 @@ final class InputCleaner {
         guard AX.isTrusted(prompt: true) else {
             let (title, body) = AX.accessibilityMessage(
                 feature: "Cleaning mode has to intercept input.")
-            Notifier.show(title, body, duration: 8)
+            Notifier.needsPermission(title, body, pane: "Privacy_Accessibility")
             return
         }
         self.mode = mode
@@ -93,13 +93,14 @@ final class InputCleaner {
         }
         self.tap = tap
         runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
-        CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
+        CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
 
         blockedCount = 0
         remaining = max(5, Prefs.shared.keyboardCleanSeconds)
         showOverlay()
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in self?.tick() }
+        timer?.tolerance = 0.1   // let macOS coalesce wake-ups
         RunLoop.main.add(timer!, forMode: .common)
 
         // Independent failsafe: even if the timer is starved or the UI wedges,
@@ -115,7 +116,7 @@ final class InputCleaner {
         timer?.invalidate(); timer = nil
         if let tap {
             CGEvent.tapEnable(tap: tap, enable: false)
-            if let runLoopSource { CFRunLoopRemoveSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes) }
+            if let runLoopSource { CFRunLoopRemoveSource(CFRunLoopGetMain(), runLoopSource, .commonModes) }
             CFMachPortInvalidate(tap)
         }
         tap = nil

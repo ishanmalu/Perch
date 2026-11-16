@@ -120,6 +120,7 @@ final class PreventSleep: ObservableObject {
         ticker = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
         }
+        ticker?.tolerance = interval * 0.2   // let macOS coalesce wake-ups
     }
 
     /// Called when the trigger preference changes, so the timer starts or stops
@@ -211,7 +212,7 @@ final class PreventSleep: ObservableObject {
                                             active: isActive,
                                             floor: Prefs.shared.endOnLowBattery,
                                             percent: snap.batteryPercent,
-                                            charging: snap.batteryCharging)
+                                            charging: snap.batteryOnPower)
         batteryFloorTripped = verdict.tripped
         if verdict.stopSession {
             stop()
@@ -236,7 +237,7 @@ final class PreventSleep: ObservableObject {
         case .manual:
             return
         case .onPower:
-            holds = SystemMonitor.shared.snapshot.batteryCharging
+            holds = SystemMonitor.shared.snapshot.batteryOnPower
                  || SystemMonitor.shared.snapshot.batteryPercent == nil   // desktop Mac
             why = .power
         case .appRunning:

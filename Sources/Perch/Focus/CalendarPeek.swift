@@ -34,6 +34,7 @@ final class CalendarPeek: ObservableObject {
         }
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in self?.refresh() }
+        timer?.tolerance = 15   // let macOS coalesce wake-ups
     }
 
     func requestAccess() {

@@ -253,7 +253,7 @@ struct SystemDetailView: View {
                                 HStack(spacing: 7) {
                                     Image(systemName: device == audio.currentDevice
                                           ? "largecircle.fill.circle" : "circle")
-                                        .font(.system(size: 9))
+                                        .font(.system(size: 10))
                                         .foregroundStyle(device == audio.currentDevice
                                                          ? AnyShapeStyle(Color.indigo)
                                                          : AnyShapeStyle(.tertiary))
@@ -277,7 +277,7 @@ struct SystemDetailView: View {
                                 HStack(spacing: 7) {
                                     Image(systemName: device == audio.currentInput
                                           ? "largecircle.fill.circle" : "circle")
-                                        .font(.system(size: 9))
+                                        .font(.system(size: 10))
                                         .foregroundStyle(device == audio.currentInput
                                                          ? AnyShapeStyle(Color.indigo)
                                                          : AnyShapeStyle(.tertiary))
@@ -315,7 +315,7 @@ struct SystemDetailView: View {
                                 .foregroundStyle(.secondary).lineLimit(1)
                             Spacer(minLength: 0)
                             Image(systemName: "speaker.wave.2")
-                                .font(.system(size: 9)).foregroundStyle(.indigo)
+                                .font(.system(size: 10)).foregroundStyle(.indigo)
                         }
                     }
                 }
@@ -331,7 +331,7 @@ struct SystemDetailView: View {
                     ForEach(hardware.cores) { core in
                         HStack(spacing: 7) {
                             Text("\(core.id)")
-                                .font(.system(size: 9, design: .monospaced))
+                                .font(.system(size: 10, design: .monospaced))
                                 .foregroundStyle(.tertiary)
                                 .frame(width: 12, alignment: .trailing)
                             GeometryReader { geo in
@@ -446,11 +446,11 @@ struct SystemDetailView: View {
                                 // Down and up on one baseline, right-aligned in
                                 // equal columns so the numbers line up.
                                 Text(SystemMonitor.rate(iface.rateIn))
-                                    .font(.system(size: 9.5, design: .monospaced))
+                                    .font(.system(size: 10, design: .monospaced))
                                     .foregroundStyle(.secondary)
                                     .frame(width: 58, alignment: .trailing)
                                 Text(SystemMonitor.rate(iface.rateOut))
-                                    .font(.system(size: 9.5, design: .monospaced))
+                                    .font(.system(size: 10, design: .monospaced))
                                     .foregroundStyle(.tertiary)
                                     .frame(width: 58, alignment: .trailing)
                             }
@@ -458,9 +458,9 @@ struct SystemDetailView: View {
                     }
                     HStack(spacing: 7) {
                         Spacer(minLength: 0)
-                        Text("down").font(.system(size: 8.5)).foregroundStyle(.quaternary)
+                        Text("down").font(.system(size: 10)).foregroundStyle(.quaternary)
                             .frame(width: 58, alignment: .trailing)
-                        Text("up").font(.system(size: 8.5)).foregroundStyle(.quaternary)
+                        Text("up").font(.system(size: 10)).foregroundStyle(.quaternary)
                             .frame(width: 58, alignment: .trailing)
                     }
                 }
@@ -484,7 +484,7 @@ struct SystemDetailView: View {
                 VStack(spacing: 5) {
                     HStack(spacing: 6) {
                         Image(systemName: "magnifyingglass")
-                            .font(.system(size: 9)).foregroundStyle(.tertiary)
+                            .font(.system(size: 10)).foregroundStyle(.tertiary)
                         if RenderMode.isActive {
                             Text("Search process")
                                 .font(.system(size: 11)).foregroundStyle(.tertiary)
@@ -508,13 +508,13 @@ struct SystemDetailView: View {
                                 Image(nsImage: icon).resizable().frame(width: 15, height: 15)
                             } else {
                                 Image(systemName: group.isSystem ? "gearshape.2" : "terminal")
-                                    .font(.system(size: 9.5)).foregroundStyle(.tertiary)
+                                    .font(.system(size: 10)).foregroundStyle(.tertiary)
                                     .frame(width: 15)
                             }
                             Text(group.name).font(.system(size: 11)).lineLimit(1)
                             if group.childCount > 0 {
                                 Text("+\(group.childCount)")
-                                    .font(.system(size: 8.5, weight: .medium))
+                                    .font(.system(size: 10, weight: .medium))
                                     .foregroundStyle(.tertiary)
                                     .padding(.horizontal, 3).padding(.vertical, 1)
                                     .background(Theme.cardFill, in: RoundedRectangle(cornerRadius: 3))

@@ -8,9 +8,9 @@ if CommandLine.arguments.contains("--charge-daemon") {
 // Read-only look at what the battery and SMC expose on this Mac.
 if CommandLine.arguments.contains("--probe-battery") {
     if let b = BatteryInfo.read() {
-        print("battery \(b.percent)%  charging=\(b.charging)  plugged=\(b.pluggedIn)")
-        print("cycles \(b.cycleCount)  design \(b.designCapacity) mAh  max \(b.maxCapacity) mAh  health \(Int(b.health * 100))%")
-        print("temp \(b.temperature.map { String(format: "%.1f°C", $0) } ?? "?")  condition \(b.condition ?? "Normal")")
+        print("battery \(b.percent)%  \(b.stateText)  remaining \(b.minutesRemaining.map(BatteryInfo.duration) ?? "-")")
+        print("cycles \(b.cycleCount)  design \(b.designCapacity) mAh  max \(b.maxCapacity) mAh  health \(Int((b.health * 100).rounded()))%")
+        print("temp \(b.temperature.map { String(format: "%.1f°C", $0) } ?? "?")  condition \(b.condition)")
     } else { print("no battery") }
     if let smc = SMC() {
         for k in ["#KEY", "BCLM", "CHWA", "CH0I"] + [ChargeControl.modernKey] + ChargeControl.legacyKeys {

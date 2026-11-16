@@ -66,6 +66,16 @@ final class WindowSwitcher {
     private var holdModifier: NSEvent.ModifierFlags?
     private var resignObserver: NSObjectProtocol?
     private var openedAt = Date.distantPast
+    /// Sees the modifier release even when another app is key, so a hold can
+    /// never be missed and leave the switcher stuck.
+    private var globalFlagsMonitor: Any?
+
+    /// A press that hasn't shown the panel yet. A quick tap switches straight
+    /// to the next window without any UI; only a hold opens the picker.
+    private var pending: (modifier: NSEvent.ModifierFlags, steps: Int, windows: [AXWindow])?
+    private var pendingMonitors: [Any] = []
+    /// How long the modifier must stay down before the picker appears.
+    private let holdDelay: TimeInterval = 0.2
 
     var isOpen: Bool { panel != nil }
 
@@ -78,8 +88,59 @@ final class WindowSwitcher {
             move(by: 1, in: model.filtered)
             return
         }
-        holdModifier = modifier
-        open(style: Prefs.shared.switcherStyle)
+        if pending != nil {            // another Tab before the picker showed
+            pending?.steps += 1
+            return
+        }
+        guard AX.isTrusted(prompt: true) else {
+            let (title, body) = AX.accessibilityMessage(
+                feature: "The window switcher reads window titles through Accessibility.")
+            Notifier.needsPermission(title, body, pane: "Privacy_Accessibility")
+            return
+        }
+        if isOpen { close() }
+        // Skip the window in front (whatever app it is), then drop excluded
+        // apps, so one tap always means "the window I was in before this".
+        let windows = Array(WindowManager.shared.orderedWindows().dropFirst())
+            .filter { !Prefs.shared.isExcluded(pid: $0.pid) }
+        pending = (modifier, 1, windows)
+
+        // Released before the delay: switch without showing anything.
+        let onFlags: (NSEvent) -> Void = { [weak self] event in
+            guard let self, let p = self.pending, !event.modifierFlags.contains(p.modifier) else { return }
+            self.finishQuickSwitch()
+        }
+        if let m = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged, handler: onFlags) {
+            pendingMonitors.append(m)
+        }
+        if let m = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged, handler: { onFlags($0); return $0 }) {
+            pendingMonitors.append(m)
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + holdDelay) { [weak self] in
+            guard let self, let p = self.pending else { return }
+            // The live state is the truth, in case the release event slipped by.
+            guard NSEvent.modifierFlags.contains(p.modifier) else { self.finishQuickSwitch(); return }
+            self.clearPending()
+            self.holdModifier = p.modifier
+            self.open(style: Prefs.shared.switcherStyle)
+            if self.model.entries.count > 1 {
+                self.model.selection = p.steps % self.model.entries.count
+            }
+        }
+    }
+
+    private func finishQuickSwitch() {
+        guard let p = pending else { return }
+        clearPending()
+        guard !p.windows.isEmpty else { return }
+        p.windows[(p.steps - 1) % p.windows.count].raise()
+    }
+
+    private func clearPending() {
+        pendingMonitors.forEach(NSEvent.removeMonitor)
+        pendingMonitors.removeAll()
+        pending = nil
     }
 
     /// The compact title list, on its own shortcut and switchable off entirely.
@@ -98,7 +159,7 @@ final class WindowSwitcher {
         guard AX.isTrusted(prompt: true) else {
             let (title, body) = AX.accessibilityMessage(
                 feature: "The window switcher reads window titles through Accessibility.")
-            Notifier.show(title, body, duration: 8)
+            Notifier.needsPermission(title, body, pane: "Privacy_Accessibility")
             return
         }
         // close() clears holdModifier, but holdToSwitch has just set it — carry
@@ -108,20 +169,22 @@ final class WindowSwitcher {
         holdModifier = hold
 
         model.style = style
-        model.entries = WindowManager.shared.orderedWindows().map { w in
+        model.entries = WindowManager.shared.orderedWindows()
+            .filter { !Prefs.shared.isExcluded(pid: $0.pid) }
+            .map { w in
             let app = NSRunningApplication(processIdentifier: w.pid)
             return SwitcherEntry(window: w,
                                  appName: app?.localizedName ?? "Unknown",
                                  icon: app?.icon,
                                  title: w.title.isEmpty ? (app?.localizedName ?? "Untitled") : w.title,
-                                 windowID: style == .thumbnails ? w.windowID() : nil)
+                                 windowID: style == .thumbnails && !EnergySaver.shared.isActive ? w.windowID() : nil)
         }
         model.query = ""
         model.holdMode = holdModifier != nil
         // Start on the second entry: the first is what you're already looking at.
         model.selection = model.entries.count > 1 ? 1 : 0
 
-        if style == .thumbnails {
+        if style == .thumbnails && !EnergySaver.shared.isActive {
             WindowThumbnails.shared.capture(model.entries.compactMap(\.windowID))
         }
 
@@ -138,6 +201,11 @@ final class WindowSwitcher {
         monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { [weak self] event in
             self?.handle(event) == true ? nil : event
         }
+        if holdModifier != nil {
+            globalFlagsMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+                _ = self?.handleHoldRelease(event)
+            }
+        }
 
         // The key monitor only sees events aimed at Perch, so if anything else
         // takes focus the switcher would sit there unclosable except by its own
@@ -150,6 +218,22 @@ final class WindowSwitcher {
                 guard Date().timeIntervalSince(self.openedAt) > 0.6 else { return }
                 self.close()
             }
+
+        // A quick Alt-Tab can release the modifier before the monitor above
+        // existed; that flagsChanged is gone, and the switcher would sit stuck
+        // in hold mode. Check the live state once the panel is up.
+        if let hold = holdModifier {
+            DispatchQueue.main.async { [weak self] in
+                guard let self, self.isOpen, self.holdModifier == hold,
+                      !NSEvent.modifierFlags.contains(hold) else { return }
+                let list = self.model.filtered
+                if list.indices.contains(self.model.selection) {
+                    self.pick(list[self.model.selection])
+                } else {
+                    self.close()
+                }
+            }
+        }
     }
 
     private func panelSize(for style: SwitcherStyle, count: Int) -> CGSize {
@@ -166,6 +250,8 @@ final class WindowSwitcher {
     func close() {
         if let monitor { NSEvent.removeMonitor(monitor) }
         monitor = nil
+        if let globalFlagsMonitor { NSEvent.removeMonitor(globalFlagsMonitor) }
+        globalFlagsMonitor = nil
         if let resignObserver { NotificationCenter.default.removeObserver(resignObserver) }
         resignObserver = nil
         holdModifier = nil
@@ -266,7 +352,9 @@ final class WindowSwitcher {
         let removed = model.selection
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
             guard let self, self.isOpen else { return }
-            self.model.entries = WindowManager.shared.orderedWindows().map { w in
+            self.model.entries = WindowManager.shared.orderedWindows()
+                .filter { !Prefs.shared.isExcluded(pid: $0.pid) }
+                .map { w in
                 let app = NSRunningApplication(processIdentifier: w.pid)
                 return SwitcherEntry(window: w,
                                      appName: app?.localizedName ?? "Unknown",
@@ -292,7 +380,9 @@ private struct SwitcherView: View {
         VStack(spacing: 0) {
             header
             Divider()
-            if model.style == .thumbnails { grid } else { list }
+            if model.filtered.isEmpty {
+                emptyState
+            } else if model.style == .thumbnails { grid } else { list }
             Divider()
             footer
         }
@@ -317,6 +407,33 @@ private struct SwitcherView: View {
         .padding(.horizontal, 15).padding(.vertical, 12)
     }
 
+    /// Shown when the filter matches nothing, instead of a blank panel.
+    private var emptyState: some View {
+        VStack(spacing: 6) {
+            Image(systemName: model.query.isEmpty ? "macwindow" : "magnifyingglass")
+                .font(.system(size: 26)).foregroundStyle(.tertiary)
+                .accessibilityHidden(true)
+            Text(model.query.isEmpty ? "No windows to switch to" : "No windows match “\(model.query)”")
+                .font(Theme.Font.body).foregroundStyle(.secondary)
+            if !model.query.isEmpty {
+                Text("Press ⌫ to edit the filter, or ⎋ to close.")
+                    .font(Theme.Font.caption).foregroundStyle(.tertiary)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(24)
+    }
+
+    /// Scrolls the selection into view, without animating when the user has
+    /// asked macOS to reduce motion.
+    private func reveal(_ index: Int, _ proxy: ScrollViewProxy) {
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            proxy.scrollTo(index, anchor: .center)
+        } else {
+            withAnimation(.easeOut(duration: 0.12)) { proxy.scrollTo(index, anchor: .center) }
+        }
+    }
+
     // MARK: Thumbnail grid
 
     private var grid: some View {
@@ -328,12 +445,16 @@ private struct SwitcherView: View {
                         card(entry, selected: index == model.selection)
                             .id(index)
                             .onTapGesture { onPick(entry) }
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel("\(entry.appName), \(entry.title)")
+                            .accessibilityAddTraits(index == model.selection ? [.isButton, .isSelected] : .isButton)
+                            .accessibilityAction { onPick(entry) }
                     }
                 }
                 .padding(14)
             }
             .onChange(of: model.selection) { _, new in
-                withAnimation(.easeOut(duration: 0.12)) { proxy.scrollTo(new, anchor: .center) }
+                reveal(new, proxy)
             }
         }
     }
@@ -388,12 +509,16 @@ private struct SwitcherView: View {
                         row(entry, selected: index == model.selection)
                             .id(index)
                             .onTapGesture { onPick(entry) }
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel("\(entry.appName), \(entry.title)")
+                            .accessibilityAddTraits(index == model.selection ? [.isButton, .isSelected] : .isButton)
+                            .accessibilityAction { onPick(entry) }
                     }
                 }
                 .padding(6)
             }
             .onChange(of: model.selection) { _, new in
-                withAnimation(.easeOut(duration: 0.12)) { proxy.scrollTo(new, anchor: .center) }
+                reveal(new, proxy)
             }
         }
     }

@@ -23,7 +23,7 @@ enum Theme {
         static let body = SwiftUI.Font.system(size: 12)
         static let caption = SwiftUI.Font.system(size: 10.5)
         static let numeric = SwiftUI.Font.system(size: 10.5, design: .monospaced)
-        static let keycap = SwiftUI.Font.system(size: 9.5, weight: .medium, design: .rounded)
+        static let keycap = SwiftUI.Font.system(size: 10, weight: .medium, design: .rounded)
     }
 
     /// Fills sit on top of the popover's material, so they stay translucent.
@@ -158,7 +158,8 @@ struct RingGauge: View {
                     .trim(from: 0, to: max(0.001, min(1, value)))
                     .stroke(tint, style: StrokeStyle(lineWidth: 5, lineCap: .round))
                     .rotationEffect(.degrees(-90))
-                    .animation(.easeOut(duration: 0.35), value: value)
+                    .animation(NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+                               ? nil : .easeOut(duration: 0.35), value: value)
                 VStack(spacing: 1) {
                     Image(systemName: symbol)
                         .font(.system(size: diameter * 0.24, weight: .regular))
@@ -210,7 +211,7 @@ struct CloseButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: "xmark")
-                .font(.system(size: 9, weight: .bold))
+                .font(.system(size: 10, weight: .bold))
                 .foregroundStyle(hovering ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
                 .frame(width: 18, height: 18)
                 .background(hovering ? Theme.hoverFill : Theme.cardFill, in: Circle())

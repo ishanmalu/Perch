@@ -117,8 +117,9 @@ final class ScreenRecorder: NSObject, ObservableObject, SCStreamOutput, SCStream
             Notifier.show("Recording", "Click the red dot in the menu bar to stop.", duration: 2)
         } catch {
             writer?.cancelWriting(); writer = nil; input = nil
-            Notifier.show("Couldn't start recording",
-                          "Perch needs Screen Recording access in System Settings.", duration: 4)
+            Notifier.needsPermission("Couldn't start recording",
+                                     "Perch needs Screen Recording access in System Settings.",
+                                     pane: "Privacy_ScreenCapture")
         }
     }
 

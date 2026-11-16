@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import IOKit.ps
 
 /// Stop charging at a set level to slow battery wear.
 ///
@@ -53,15 +54,45 @@ enum ChargeControl {
     static let label = "com.ishanmalu.perch.charge"
 
     static func readLimit() -> Int {
+        // /Users/Shared is writable by every account. When running as root,
+        // only trust a plain file in a directory that nobody else can write,
+        // both owned by the same user; anything else means "no limit".
+        if geteuid() == 0, !configIsTrustworthy() { return 100 }
         guard let s = try? String(contentsOf: configFile, encoding: .utf8), let v = Int(s.trimmingCharacters(in: .whitespacesAndNewlines))
         else { return 100 }
         return min(100, max(50, v))
     }
 
     static func writeLimit(_ v: Int) {
-        try? FileManager.default.createDirectory(at: configDir, withIntermediateDirectories: true)
+        let fm = FileManager.default
+        try? fm.createDirectory(at: configDir, withIntermediateDirectories: true,
+                                attributes: [.posixPermissions: 0o755])
+        try? fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: configDir.path)
         try? String(min(100, max(50, v))).write(to: configFile, atomically: true, encoding: .utf8)
+        try? fm.setAttributes([.posixPermissions: 0o644], ofItemAtPath: configFile.path)
     }
+
+    /// No symlinks, a regular file and a directory with the same owner, and
+    /// neither writable by group or others.
+    static func configIsTrustworthy() -> Bool {
+        var d = stat(), f = stat()
+        guard lstat(configDir.path, &d) == 0, lstat(configFile.path, &f) == 0,
+              (d.st_mode & S_IFMT) == S_IFDIR, (f.st_mode & S_IFMT) == S_IFREG,
+              d.st_uid == f.st_uid,
+              expectedOwner.map { d.st_uid == $0 } ?? true,
+              d.st_mode & (S_IWGRP | S_IWOTH) == 0, f.st_mode & (S_IWGRP | S_IWOTH) == 0
+        else { return false }
+        return true
+    }
+
+    /// The account that installed the helper, passed as `--owner <uid>`.
+    /// The root daemon trusts only a config that account owns, so another
+    /// local user can't pre-create /Users/Shared/Perch and set the limit.
+    static let expectedOwner: uid_t? = {
+        let args = CommandLine.arguments
+        guard let i = args.firstIndex(of: "--owner"), args.indices.contains(i + 1) else { return nil }
+        return uid_t(args[i + 1])
+    }()
 
     static var helperInstalled: Bool { FileManager.default.fileExists(atPath: plistPath) }
 
@@ -69,7 +100,9 @@ enum ChargeControl {
 
     static func runDaemon() -> Never {
         guard let smc = SMC() else { fputs("perch-charge: no SMC\n", stderr); exit(1) }
-        guard method(smc) != .unsupported else { fputs("perch-charge: charging keys not found\n", stderr); exit(1) }
+        // Exit 0 so launchd (KeepAlive: SuccessfulExit=false) does not respawn
+        // a helper that can never do anything on this hardware.
+        guard method(smc) != .unsupported else { fputs("perch-charge: charging keys not found\n", stderr); exit(0) }
 
         // Whatever ends this process, charging must come back on. Signals are
         // routed through dispatch sources so the cleanup runs as ordinary
@@ -109,9 +142,9 @@ enum ChargeControl {
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
         <plist version="1.0"><dict>
           <key>Label</key><string>\(label)</string>
-          <key>ProgramArguments</key><array><string>\(helperPath)</string><string>--charge-daemon</string></array>
+          <key>ProgramArguments</key><array><string>\(helperPath)</string><string>--charge-daemon</string><string>--owner</string><string>\(getuid())</string></array>
           <key>RunAtLoad</key><true/>
-          <key>KeepAlive</key><true/>
+          <key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>
         </dict></plist>
         """
         let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("perch-charge.plist")
@@ -139,8 +172,9 @@ enum ChargeControl {
     private static func runAsAdmin(_ shell: String, prompt: String) -> Bool {
         let escaped = shell.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
         let src = "do shell script \"\(escaped)\" with prompt \"\(prompt)\" with administrator privileges"
+        guard let script = NSAppleScript(source: src) else { return false }
         var err: NSDictionary?
-        NSAppleScript(source: src)?.executeAndReturnError(&err)
+        script.executeAndReturnError(&err)
         return err == nil
     }
 }
@@ -158,8 +192,31 @@ final class BatteryModel: ObservableObject {
         didSet { ChargeControl.writeLimit(limit) }
     }
 
+    private var powerSource: CFRunLoopSource?
+
+    /// Live updates while the Battery tab is open, driven by macOS's own
+    /// power-source notifications rather than a polling timer.
+    func watch(_ on: Bool) {
+        if on, powerSource == nil {
+            let ctx = Unmanaged.passUnretained(self).toOpaque()
+            powerSource = IOPSNotificationCreateRunLoopSource({ ctx in
+                guard let ctx else { return }
+                Unmanaged<BatteryModel>.fromOpaque(ctx).takeUnretainedValue().refresh()
+            }, ctx)?.takeRetainedValue()
+            if let powerSource { CFRunLoopAddSource(CFRunLoopGetMain(), powerSource, .commonModes) }
+        } else if !on, let src = powerSource {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), src, .commonModes)
+            powerSource = nil
+        }
+    }
+
     func refresh() {
-        info = BatteryInfo.read()
+        // The health figure may need a (cached) system_profiler call; keep it
+        // off the main thread.
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let fresh = BatteryInfo.read()
+            DispatchQueue.main.async { if self?.info != fresh { self?.info = fresh } }
+        }
         helperInstalled = ChargeControl.helperInstalled
         // The installer may have written a default; show what the helper uses.
         let onDisk = ChargeControl.readLimit()

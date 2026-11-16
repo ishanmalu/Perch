@@ -4,6 +4,43 @@ All notable changes to Perch. Versions follow [semver](https://semver.org),
 and each heading below corresponds to a published
 [release](https://github.com/ishanmalu/Perch/releases).
 
+## [1.10.1] — 2026-11-16
+
+Faster, calmer, and easier on the battery.
+
+### Added
+- **Perch battery saver** (Settings → Battery): Off, on battery or in Low Power
+  Mode, or always. Hides the menu-bar CPU, memory and network figure, slows panel
+  stats and clipboard checks, and skips switcher previews and window animation.
+- **Welcome window** on first install, with live permission rows and the key
+  shortcuts. It is one click away in the status menu afterwards.
+- **App exclusions** for games, VMs and remote desktops: snapping, window
+  shortcuts and the switcher leave them alone, and their shortcuts go back to them.
+- **Shortcut conflicts** are flagged, shortcuts can be cleared, and there's a
+  Restore Defaults button. Shortcuts that macOS refuses show "In use".
+- Battery tab shows time to full or empty and the real charging state.
+
+### Changed
+- **Alt-Tab:** a quick ⌥⇥ jumps straight to the previous window with no panel.
+  Hold Option to pick from the switcher.
+- Perch does almost nothing in the background: system stats are sampled only
+  while the panel is open, battery figures follow macOS's own notifications, and
+  every timer lets macOS batch wake-ups.
+- VoiceOver labels throughout, larger minimum text, Reduce Motion respected,
+  shortcuts shown in menus, ⌘1–4 for panel tabs, Settings remembers its page.
+
+### Fixed
+- Alt-Tab freezing when an app is hung or the key is pressed quickly.
+- Battery health showing a lower figure than macOS (89% instead of 96%), and
+  "charging" shown whenever the Mac was plugged in.
+- Volume and mute not working on AirPods and other Bluetooth or USB outputs.
+- Tiling or maximising many windows, and installing updates, no longer stall
+  the UI.
+- Charge limit: an unsupported Mac now says so plainly. The root helper only
+  trusts a config owned by the user who installed it and is no longer respawned
+  on unsupported hardware. Update signatures are checked more strictly.
+- Clipboard history is saved readable only by you.
+
 ## [1.10.0] — 2026-11-12
 
 The biggest release yet: utilities you would otherwise install one by one.

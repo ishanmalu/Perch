@@ -53,6 +53,7 @@ final class NightMode: ObservableObject {
         timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             self?.evaluateSchedule()
         }
+        timer?.tolerance = 15   // let macOS coalesce wake-ups
         RunLoop.main.add(timer!, forMode: .common)
         evaluateSchedule()
     }

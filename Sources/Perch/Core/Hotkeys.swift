@@ -1,5 +1,6 @@
 import AppKit
 import Carbon.HIToolbox
+import Combine
 
 struct HotkeySpec: Codable, Equatable {
     var keyCode: UInt32
@@ -26,6 +27,30 @@ struct HotkeySpec: Codable, Equatable {
         if f.contains(.shift) { s += "⇧" }
         if f.contains(.command) { s += "⌘" }
         return s + KeyNames.name(for: keyCode)
+    }
+
+    /// The key as an NSMenuItem key equivalent, so menus can show the
+    /// shortcut right-aligned the way macOS menus do.
+    var menuKeyEquivalent: String {
+        func fn(_ c: Int) -> String { String(UnicodeScalar(UInt16(c)).map(Character.init) ?? " ") }
+        switch Int(keyCode) {
+        case kVK_Return: return "\r"
+        case kVK_Tab: return "\t"
+        case kVK_Space: return " "
+        case kVK_Delete: return "\u{8}"
+        case kVK_LeftArrow: return fn(NSLeftArrowFunctionKey)
+        case kVK_RightArrow: return fn(NSRightArrowFunctionKey)
+        case kVK_UpArrow: return fn(NSUpArrowFunctionKey)
+        case kVK_DownArrow: return fn(NSDownArrowFunctionKey)
+        default:
+            let fKeys = [kVK_F1, kVK_F2, kVK_F3, kVK_F4, kVK_F5, kVK_F6, kVK_F7, kVK_F8, kVK_F9, kVK_F10,
+                         kVK_F11, kVK_F12, kVK_F13, kVK_F14, kVK_F15, kVK_F16, kVK_F17, kVK_F18, kVK_F19, kVK_F20]
+            if let n = fKeys.firstIndex(of: Int(keyCode)) { return fn(NSF1FunctionKey + n) }
+            // Only a single character is a valid key equivalent; anything
+            // else (Esc, Home, an unknown key) shows no shortcut rather than a wrong one.
+            let name = KeyNames.name(for: keyCode)
+            return name.count == 1 ? name.lowercased() : ""
+        }
     }
 
     static let defaults: [String: HotkeySpec] = [
@@ -95,8 +120,14 @@ enum KeyNames {
 }
 
 /// Registers global hotkeys through Carbon and dispatches them by string id.
-final class HotkeyManager {
+final class HotkeyManager: ObservableObject {
     static let shared = HotkeyManager()
+
+    /// Shortcuts macOS refused, usually because another app holds the combination.
+    /// Shown next to the shortcut in Settings rather than failing silently.
+    @Published private(set) var failed: Set<String> = []
+    /// Shortcuts temporarily released so the frontmost (excluded) app gets the keys.
+    private var suspended: Set<String> = []
 
     private var handlers: [String: () -> Void] = [:]
     private var refs: [String: EventHotKeyRef] = [:]
@@ -114,7 +145,9 @@ final class HotkeyManager {
         installHandlerIfNeeded()
         if let existing = refs.removeValue(forKey: name) { UnregisterEventHotKey(existing) }
         idToName = idToName.filter { $0.value != name }
-        guard let spec = Prefs.shared.hotkey(name), handlers[name] != nil else { return }
+        failed.remove(name)
+        guard !suspended.contains(name),
+              let spec = Prefs.shared.hotkey(name), handlers[name] != nil else { return }
 
         let id = nextID; nextID += 1
         let hotKeyID = EventHotKeyID(signature: OSType(0x50524348 /* 'PRCH' */), id: id)
@@ -127,6 +160,21 @@ final class HotkeyManager {
             idToName[id] = name
         } else {
             NSLog("Perch: could not register hotkey \(name) (\(spec.display)) — likely taken by another app")
+            failed.insert(name)
+        }
+    }
+
+    /// Releases (or re-takes) a group of shortcuts, e.g. while an excluded app is in front.
+    func setSuspended(_ names: [String], _ on: Bool) {
+        for name in names {
+            if on {
+                guard !suspended.contains(name) else { continue }
+                suspended.insert(name)
+                if let ref = refs.removeValue(forKey: name) { UnregisterEventHotKey(ref) }
+                idToName = idToName.filter { $0.value != name }
+            } else if suspended.remove(name) != nil {
+                rebind(name)
+            }
         }
     }
 

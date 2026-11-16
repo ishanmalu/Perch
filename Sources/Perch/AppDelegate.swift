@@ -1,11 +1,13 @@
 import AppKit
 import SwiftUI
 import Carbon.HIToolbox
+import Combine
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var popover: NSPopover!
     private var statTimer: Timer?
+    private var titleWatchers: Set<AnyCancellable> = []
     /// Used when the menu bar item is hidden — behind a notch, or pushed off by
     /// a crowded menu bar. macOS gives apps no control over status item
     /// placement, so the panel needs a way to appear that does not depend on it.
@@ -23,6 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setupPopover()
         registerHotkeys()
 
+        EnergySaver.shared.start()
         SystemMonitor.shared.start()
         NightMode.shared.start()
         ClipboardStore.shared.start()
@@ -39,11 +42,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // trees and is only needed once the user opens Disk clean.
         Task { @MainActor in Updater.shared.checkInBackgroundIfDue() }
 
-        // Every second: the focus and recording clocks count in seconds.
-        statTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.updateStatusTitle() }
-        }
-        RunLoop.main.add(statTimer!, forMode: .common)
+        // The title redraws only when what it shows changes: a new sample,
+        // a focus tick, or a recording second. No always-on 1 s timer.
+        SystemMonitor.shared.$snapshot
+            .merge(with: FocusTimer.shared.objectWillChange.map { _ in SystemMonitor.shared.snapshot })
+            .merge(with: EnergySaver.shared.$isActive.map { _ in SystemMonitor.shared.snapshot })
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in MainActor.assumeIsolated { self?.updateStatusTitle() } }
+            .store(in: &titleWatchers)
+        ScreenRecorder.shared.$isRecording
+            .receive(on: RunLoop.main)
+            .sink { [weak self] recording in MainActor.assumeIsolated { self?.recordingClock(recording) } }
+            .store(in: &titleWatchers)
 
         // `--settings <tab>` opens Settings on launch — for checking the window
         // without clicking through the menu bar.
@@ -56,13 +66,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             SettingsWindow.shared.show(tab: SettingsTab(rawValue: name) ?? .general)
         }
 
-        // Only mention it; the system prompt appears when a feature actually
-        // needs the permission, so launching never nags on its own.
-        if !AX.isTrusted(prompt: false) {
-            Notifier.show("Perch needs Accessibility access",
-                          "Open Settings → General to grant it. Window management, the switcher, and keyboard cleaning stay off until then.",
-                          duration: 6)
+        // First launch gets a proper welcome with live permission rows. After
+        // that, only mention a missing permission; the system prompt appears
+        // when a feature actually needs it, so launching never nags.
+        // Someone upgrading already has Accessibility granted; the welcome is
+        // for new installs, so mark it seen instead of popping it up.
+        if !Prefs.shared.onboardingDone, AX.isTrusted(prompt: false) {
+            Prefs.shared.onboardingDone = true
         }
+        if !Prefs.shared.onboardingDone {
+            OnboardingWindow.shared.show()
+        } else if !AX.isTrusted(prompt: false) {
+            Notifier.needsPermission("Perch needs Accessibility access",
+                                     "Window management, the switcher, and keyboard cleaning stay off until it is granted.",
+                                     pane: "Privacy_Accessibility")
+        }
+
+        // Excluded apps (games, VMs, remote desktops) get their keys back
+        // while they are in front.
+        exclusionObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { _ in
+                AppDelegate.syncExclusions()
+            }
+        AppDelegate.syncExclusions()   // an excluded app may already be in front
     }
 
     /// A recording in progress has to finish writing before the process
@@ -101,12 +127,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
     }
 
+    /// The recording clock is the one title that needs a per-second tick.
+    @MainActor private func recordingClock(_ on: Bool) {
+        statTimer?.invalidate(); statTimer = nil
+        if on {
+            let t = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
+                MainActor.assumeIsolated { self?.updateStatusTitle() }
+            }
+            t.tolerance = 0.1
+            RunLoop.main.add(t, forMode: .common)
+            statTimer = t
+        }
+        updateStatusTitle()
+    }
+
     @MainActor private func updateStatusTitle() {
         guard let button = statusItem.button else { return }
         let s = SystemMonitor.shared.snapshot
         let font = NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .regular)
         let text: String
-        switch Prefs.shared.menuBarStat {
+        // Battery saver pauses these in the background; a frozen number would mislead.
+        let saverHides = EnergySaver.shared.isActive && ["cpu", "mem", "net"].contains(Prefs.shared.menuBarStat)
+        switch saverHides ? "none" : Prefs.shared.menuBarStat {
         case "cpu": text = String(format: "%.0f%%", s.cpuUsed)
         case "mem": text = String(format: "%.0f%%", s.memPercent)
         case "net": text = "↓\(SystemMonitor.rate(s.netIn).replacingOccurrences(of: "/s", with: ""))"
@@ -236,15 +278,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             item.target = self
             item.representedObject = block
             if let spec = Prefs.shared.hotkey(key) {
-                item.keyEquivalent = ""
-                item.toolTip = spec.display
+                item.keyEquivalent = spec.menuKeyEquivalent
+                item.keyEquivalentModifierMask = spec.cocoaFlags.intersection([.command, .option, .control, .shift])
             }
             menu.addItem(item)
         }
         add("Clipboard History", "clipboard") { ClipboardPanelController.shared.toggle() }
         add("Window Switcher", "switcher") { WindowSwitcher.shared.toggleList() }
         add("Night Mode", "nightMode") { NightMode.shared.toggle() }
-        add("Screen Cleaning", "screenClean") { ScreenCleaner.shared.start() }
         menu.addItem(.separator())
         if FocusTimer.shared.phase == .idle {
             add("Start Focus (\(Prefs.shared.focusMinutes) min)", "focus") { FocusTimer.shared.startWork() }
@@ -276,14 +317,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             parent.submenu = sub
             menu.addItem(parent)
         }
+        menu.addItem(.separator())
+        add("Screen Cleaning", "screenClean") { ScreenCleaner.shared.start() }
         add("Keyboard Cleaning", "keyboardClean") { InputCleaner.shared.start(.keyboard) }
         add("Trackpad Cleaning", "trackpadClean") { InputCleaner.shared.start(.trackpad) }
+        add("Disk Clean…", "") { SettingsWindow.shared.show(tab: .disk) }
         menu.addItem(.separator())
         add("Check for Updates…", "") { Task { @MainActor in Updater.shared.check() } }
-        add("Disk Clean…", "") { SettingsWindow.shared.show(tab: .disk) }
+        add("Welcome & Permissions…", "") { OnboardingWindow.shared.show() }
         add("Settings…", "") { SettingsWindow.shared.show() }
+        menu.items.last?.keyEquivalent = ","
+        menu.items.last?.keyEquivalentModifierMask = .command
         menu.addItem(.separator())
         add("Quit Perch", "") { NSApp.terminate(nil) }
+        menu.items.last?.keyEquivalent = "q"
+        menu.items.last?.keyEquivalentModifierMask = .command
 
         statusItem.menu = menu
         statusItem.button?.performClick(nil)
@@ -295,6 +343,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     // MARK: - Hotkeys
+
+    private var exclusionObserver: Any?
+
+    /// Shortcuts released while an excluded app is frontmost.
+    static let excludableHotkeys = ["switcher.altTab", "win.left", "win.right", "win.top", "win.bottom",
+        "win.maximize", "win.center", "win.thirdL", "win.thirdC", "win.thirdR", "win.topLeft", "win.topRight",
+        "win.bottomLeft", "win.bottomRight", "win.restore", "win.nextScreen", "win.prevScreen"]
+
+    static func syncExclusions() {
+        HotkeyManager.shared.setSuspended(excludableHotkeys, Prefs.shared.frontmostIsExcluded)
+    }
 
     private func registerHotkeys() {
         let hk = HotkeyManager.shared
@@ -317,7 +376,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             ("win.bottomLeft", .bottomLeft), ("win.bottomRight", .bottomRight),
         ]
         for (id, action) in windowBindings {
-            hk.register(id) { WindowManager.shared.apply(action) }
+            hk.register(id) {
+                guard !Prefs.shared.frontmostIsExcluded else { return }
+                WindowManager.shared.apply(action)
+            }
         }
         hk.register("win.restore") { WindowManager.shared.restore() }
         hk.register("win.nextScreen") { WindowManager.shared.moveToScreen(next: true) }

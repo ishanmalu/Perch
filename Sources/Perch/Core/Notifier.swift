@@ -8,12 +8,37 @@ import AppKit
 enum Notifier {
     private static var window: NSWindow?
     private static var dismissWorkItem: DispatchWorkItem?
+    private static var actionTarget: ActionTarget?
 
-    static func show(_ title: String, _ body: String? = nil, duration: TimeInterval = 3) {
-        DispatchQueue.main.async { present(title, body, duration) }
+    /// A button on the HUD, e.g. "Open System Settings" when a permission is missing.
+    struct Action {
+        let title: String
+        let run: () -> Void
     }
 
-    private static func present(_ title: String, _ body: String?, _ duration: TimeInterval) {
+    static func show(_ title: String, _ body: String? = nil, duration: TimeInterval = 3, action: Action? = nil) {
+        DispatchQueue.main.async { present(title, body, duration, action) }
+    }
+
+    /// Shows a missing-permission message with a button straight to the right pane.
+    static func needsPermission(_ title: String, _ body: String, pane: String) {
+        show(title, body, duration: 8, action: Action(title: "Open System Settings") {
+            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?\(pane)") {
+                NSWorkspace.shared.open(url)
+            }
+        })
+    }
+
+    private final class ActionTarget: NSObject {
+        let run: () -> Void
+        init(_ run: @escaping () -> Void) { self.run = run }
+        @objc func fire() {
+            run()
+            Notifier.dismissWorkItem?.perform()
+        }
+    }
+
+    private static func present(_ title: String, _ body: String?, _ duration: TimeInterval, _ action: Action?) {
         dismissWorkItem?.cancel()
         window?.orderOut(nil)
         window?.close()
@@ -40,6 +65,17 @@ enum Notifier {
             bodyLabel.lineBreakMode = .byWordWrapping
             bodyLabel.maximumNumberOfLines = 3
             stack.addArrangedSubview(bodyLabel)
+        }
+
+        actionTarget = nil
+        if let action {
+            let target = ActionTarget(action.run)
+            let button = NSButton(title: action.title, target: target, action: #selector(ActionTarget.fire))
+            button.bezelStyle = .rounded
+            button.controlSize = .small
+            stack.setCustomSpacing(8, after: stack.arrangedSubviews.last!)
+            stack.addArrangedSubview(button)
+            actionTarget = target
         }
 
         // Rounded corners need to be clipped by a plain layer-backed view; a
@@ -87,7 +123,8 @@ enum Notifier {
         w.backgroundColor = .clear
         w.hasShadow = true
         w.level = .statusBar
-        w.ignoresMouseEvents = true
+        // Click-through unless there is a button to press.
+        w.ignoresMouseEvents = action == nil
         w.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
 
         if let screen = NSScreen.main {

@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 import Combine
 
 /// Lightweight UserDefaults-backed settings store.
@@ -37,6 +37,23 @@ final class Prefs: ObservableObject {
     /// Drag a window against a screen edge to tile it.
     var snapEnabled: Bool { get { get("win.snap", true) } set { set("win.snap", newValue) } }
 
+    /// Bundle IDs left alone by snapping, window shortcuts and the switcher —
+    /// games, VMs and remote desktops that want those keys for themselves.
+    var excludedApps: [String] { get { get("win.excluded", []) } set { set("win.excluded", newValue) } }
+    func isExcluded(pid: pid_t) -> Bool {
+        guard let id = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier else { return false }
+        return excludedApps.contains(id)
+    }
+    var frontmostIsExcluded: Bool {
+        guard let id = NSWorkspace.shared.frontmostApplication?.bundleIdentifier else { return false }
+        return excludedApps.contains(id)
+    }
+
+    // MARK: Onboarding
+    var onboardingDone: Bool { get { get("onboarding.done", false) } set { set("onboarding.done", newValue) } }
+    /// Last Settings sidebar page, restored on the next open.
+    var settingsTab: String { get { get("settings.tab", "general") } set { set("settings.tab", newValue) } }
+
     // MARK: Screenshots
     /// Where captures are written. Empty means Pictures/Perch.
     var screenshotFolder: String? {
@@ -72,6 +89,8 @@ final class Prefs: ObservableObject {
     /// Icon-only by default — a narrow status item is far less likely to get
     /// pushed off a crowded menu bar or hidden behind the notch.
     var menuBarStat: String { get { get("sys.menuStat", "none") } set { set("sys.menuStat", newValue) } }
+    /// Perch battery saver: "off", "onBattery" or "always". See EnergySaver.
+    var batterySaver: String { get { get("battery.saver", "off") } set { set("battery.saver", newValue) } }
     var sampleInterval: Double { get { get("sys.interval", 2.0) } set { set("sys.interval", newValue) } }
 
     // MARK: Menu bar
@@ -125,13 +144,23 @@ final class Prefs: ObservableObject {
 
     // MARK: Hotkeys
     func hotkey(_ id: String) -> HotkeySpec? {
-        guard let raw = d.data(forKey: "hk.\(id)"),
-              let v = try? JSONDecoder().decode(HotkeySpec.self, from: raw) else { return HotkeySpec.defaults[id] }
+        guard let raw = d.data(forKey: "hk.\(id)") else { return HotkeySpec.defaults[id] }
+        if raw.isEmpty { return nil }   // cleared by the user
+        guard let v = try? JSONDecoder().decode(HotkeySpec.self, from: raw) else { return HotkeySpec.defaults[id] }
         return v
     }
     func setHotkey(_ id: String, _ spec: HotkeySpec?) {
         if let spec, let data = try? JSONEncoder().encode(spec) { d.set(data, forKey: "hk.\(id)") }
         else { d.set(Data(), forKey: "hk.\(id)") }
         objectWillChange.send()
+    }
+    /// Drops every customised shortcut back to its default.
+    func resetHotkeys() {
+        for key in d.dictionaryRepresentation().keys where key.hasPrefix("hk.") { d.removeObject(forKey: key) }
+        objectWillChange.send()
+    }
+    /// The other action already using this combination, if any.
+    func hotkeyOwner(of spec: HotkeySpec, except id: String) -> String? {
+        HotkeySpec.defaults.keys.sorted().first { $0 != id && hotkey($0) == spec }
     }
 }

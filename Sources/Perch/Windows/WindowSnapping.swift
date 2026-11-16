@@ -92,7 +92,8 @@ final class WindowSnapping {
         // title-bar strip of a normal window? Only then ask Accessibility,
         // which is a round trip to the app and runs on every qualifying click.
         guard let hit = Screenshot.window(at: axPoint), axPoint.y - hit.frame.minY < 52,
-              let win = Self.window(at: axPoint), let f = win.frame else { return }
+              let win = Self.window(at: axPoint), let f = win.frame,
+              !Prefs.shared.isExcluded(pid: win.pid) else { return }
         dragged = (win, f)
     }
 
@@ -164,6 +165,12 @@ private final class SnapPreview {
             w.setFrame(target, display: true)
             w.alphaValue = 0
             w.orderFrontRegardless()
+        }
+        // Reduce Motion: fade only, no sliding frame.
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            w.setFrame(target, display: true)
+            w.alphaValue = 1
+            return
         }
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.14

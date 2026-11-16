@@ -100,23 +100,58 @@ struct MenuBarSettings: View {
 
 struct BatterySettings: View {
     @ObservedObject var model = BatteryModel.shared
+    @ObservedObject var saver = EnergySaver.shared
 
     var body: some View {
         Form {
+            Section {
+                Picker("Battery saver", selection: Binding(get: { saver.mode }, set: { saver.mode = $0 })) {
+                    ForEach(SaverMode.allCases) { Text($0.title).tag($0) }
+                }
+                LabeledContent("Status") {
+                    Label(saver.isActive ? "Saving energy" : "Not active",
+                          systemImage: saver.isActive ? "leaf.fill" : "leaf")
+                        .foregroundStyle(saver.isActive ? .green : .secondary)
+                }
+            } header: {
+                Text("Perch battery saver")
+            } footer: {
+                Text("Cuts Perch's own background work: the menu-bar CPU, memory or network figure is hidden, "
+                   + "panel stats refresh every 6 seconds, clipboard history checks less often, the window "
+                   + "switcher shows app icons instead of live previews, and window moves skip animation. "
+                   + "Everything else keeps working.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
             if let b = model.info {
-                Section("Health") {
-                    LabeledContent("Charge", value: "\(b.percent)%" + (b.charging ? " — charging" : b.pluggedIn ? " — plugged in" : ""))
-                    LabeledContent("Health") {
+                Section("Now") {
+                    LabeledContent("Charge", value: "\(b.percent)%")
+                    LabeledContent("State", value: b.stateText)
+                    if let m = b.minutesRemaining {
+                        LabeledContent(b.charging ? "Until full" : "Remaining", value: BatteryInfo.duration(m))
+                    }
+                    if let t = b.temperature { LabeledContent("Temperature", value: String(format: "%.1f °C", t)) }
+                }
+                Section {
+                    LabeledContent("Maximum capacity") {
                         HStack(spacing: 8) {
                             ProgressView(value: b.health).frame(width: 120)
-                                .tint(b.health > 0.8 ? .green : b.health > 0.6 ? .orange : .red)
-                            Text("\(Int(b.health * 100))%").monospacedDigit()
+                                .tint(b.health >= 0.8 ? .green : b.health >= 0.7 ? .orange : .red)
+                                .accessibilityHidden(true)
+                            Text("\(Int((b.health * 100).rounded()))%").monospacedDigit()
                         }
                     }
-                    LabeledContent("Capacity", value: "\(b.maxCapacity) of \(b.designCapacity) mAh")
-                    LabeledContent("Cycle count", value: "\(b.cycleCount)")
-                    if let t = b.temperature { LabeledContent("Temperature", value: String(format: "%.1f °C", t)) }
-                    LabeledContent("Condition", value: b.condition ?? "Normal")
+                    LabeledContent("Condition", value: b.condition)
+                    LabeledContent("Cycle count", value: b.designCycleCount.map { "\(b.cycleCount) of \($0)" } ?? "\(b.cycleCount)")
+                    if b.designCapacity > 0 {
+                        LabeledContent("Full charge today", value: "\(b.maxCapacity) of \(b.designCapacity) mAh")
+                    }
+                } header: {
+                    Text("Health")
+                } footer: {
+                    Text("Maximum capacity and condition are the figures macOS shows in System Settings → Battery. "
+                       + "The mAh reading moves with temperature and charge level, so it runs a few points lower.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
 
                 Section("Charge limit") {
@@ -132,10 +167,16 @@ struct BatterySettings: View {
                            + "removes the helper and restores normal charging.")
                             .font(.caption).foregroundStyle(.secondary)
                     } else {
+                        Label("Not supported on this Mac", systemImage: "exclamationmark.circle")
+                            .foregroundStyle(.orange)
                         Text("This Mac's firmware doesn't expose a charging switch Perch knows how to use safely, "
-                           + "so the limit is unavailable. macOS's own Optimised Battery Charging (System Settings → "
-                           + "Battery) still applies.")
+                           + "so Perch can't limit charging here. macOS can: System Settings → Battery → the ⓘ next "
+                           + "to Battery Health, for Optimised Battery Charging or, on recent macOS, a Charge Limit "
+                           + "such as 80%.")
                             .font(.caption).foregroundStyle(.secondary)
+                        Button("Open Battery Settings") {
+                            NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Battery-Settings.extension")!)
+                        }
                     }
                 }
             } else {
@@ -143,7 +184,8 @@ struct BatterySettings: View {
             }
         }
         .formStyle(.grouped)
-        .onAppear { model.refresh() }
+        .onAppear { model.refresh(); model.watch(true) }
+        .onDisappear { model.watch(false) }
     }
 }
 
